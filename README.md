@@ -7,7 +7,10 @@
 
 ## Table of Contents
 
-TODO
+- [Atlas](#atlas)
+  - [Table of Contents](#table-of-contents)
+  - [Background](#background)
+  - [Usage](#usage)
 
 ## Background
 
