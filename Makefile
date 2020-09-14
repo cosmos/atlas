@@ -4,7 +4,6 @@ COMMIT  := $(shell git rev-parse HEAD)
 VERSION := $(shell echo $(shell git describe --always) | sed 's/^v//')
 BRANCH  := $(shell git rev-parse --abbrev-ref HEAD)
 
-
 ###############################################################################
 #                               Build / Install                               #
 ###############################################################################
