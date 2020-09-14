@@ -1,0 +1,7 @@
+dist: trusty
+language: go
+go:
+  - 1.15.x
+install: true
+script:
+  - make install
