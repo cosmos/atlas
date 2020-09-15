@@ -8,7 +8,7 @@ ADD CONSTRAINT fk_author FOREIGN KEY (author) REFERENCES users(id) ON DELETE
 SET NULL;
 -- create index on author FK
 CREATE INDEX IF NOT EXISTS author_idx ON modules(author);
--- create modules_users many-to-many relationship table
+-- create a many-to-many relationship mapping modules and users
 CREATE TABLE modules_users (
   module_id int NOT NULL,
   user_id int NOT NULL,

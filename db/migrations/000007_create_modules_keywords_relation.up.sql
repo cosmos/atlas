@@ -1,5 +1,5 @@
 BEGIN;
--- create modules_keywords many-to-many relationship table
+-- create a many-to-many relationship mapping modules and keywords
 CREATE TABLE modules_keywords (
   module_id int NOT NULL,
   keyword_id int NOT NULL,

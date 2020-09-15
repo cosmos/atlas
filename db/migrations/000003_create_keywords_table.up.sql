@@ -1,4 +1,4 @@
 CREATE TABLE IF NOT EXISTS keywords (
     id SERIAL PRIMARY KEY,
-    keyword TEXT NOT NULL UNIQUE
+    name TEXT NOT NULL UNIQUE
 );
