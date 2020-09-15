@@ -1,14 +1,19 @@
 package module
 
+// Keyword defines a module keyword, where a module can have one or more keywords.
 type Keyword struct {
 	ID   int    `json:"-" yaml:"-" db:"id"`
 	Name string `json:"name" yaml:"name" db:"name"`
 }
 
 type (
-	Author       User
+	// Author defines a type alias for a User
+	Author User
+
+	// Contributors defines a list of User types
 	Contributors []User
 
+	// User defines an entity that contributes to a Module type.
 	User struct {
 		ID                int    `json:"-" yaml:"-" db:"id"`
 		Name              string `json:"name" yaml:"name" db:"name"`
@@ -19,12 +24,15 @@ type (
 	}
 )
 
+// Bug defines the metadata information for reporting bug reports on a given
+// Module type.
 type Bug struct {
 	ID      int    `json:"-" yaml:"-" db:"id"`
 	URL     string `json:"url" yaml:"url" db:"url"`
 	Contact string `json:"contact" yaml:"contact" db:"contact"`
 }
 
+// Module defines a Cosmos SDK module.
 type Module struct {
 	ID          int    `json:"-" yaml:"-" db:"id"`
 	Name        string `json:"name" yaml:"name" db:"name"`
