@@ -1,8 +1,0 @@
-CREATE TABLE IF NOT EXISTS modules (
-  id SERIAL PRIMARY KEY,
-  name VARCHAR NOT NULL UNIQUE,
-  description VARCHAR,
-  version VARCHAR NOT NULL,
-  homepage VARCHAR NOT NULL,
-  repo VARCHAR NOT NULL
-);
