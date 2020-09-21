@@ -10,9 +10,9 @@ import (
 type User struct {
 	gorm.Model
 
-	Name              string `json:"name" yaml:"name"`
+	Email             string `gorm:"not null;default:null" json:"email" yaml:"email"`
+	Name              string `gorm:"not null;default:null" json:"name" yaml:"name"`
 	URL               string `json:"url" yaml:"url"`
-	Email             string `json:"email" yaml:"email"`
 	AvatarURL         string `json:"avatar_url" yaml:"avatar_url"`
 	GravatarID        string `json:"gravatar_id" yaml:"gravatar_id"`
 	GithubAccessToken string `json:"-" yaml:"-"`
