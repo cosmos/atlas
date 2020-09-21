@@ -7,7 +7,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/cosmos/atlas/server/models"
 	"github.com/dhui/dktest"
 	"github.com/golang-migrate/migrate/v4"
 	migratepg "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -16,6 +15,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+
+	"github.com/cosmos/atlas/server/models"
 )
 
 func TestModels(t *testing.T) {
