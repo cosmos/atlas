@@ -23,4 +23,8 @@ DROP TABLE IF EXISTS bug_trackers CASCADE;
 -- Drop the module_keywords table
 -- 
 DROP TABLE IF EXISTS module_keywords CASCADE;
+-- 
+-- Drop the module_authors table
+-- 
+DROP TABLE IF EXISTS module_authors CASCADE;
 COMMIT;

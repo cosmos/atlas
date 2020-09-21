@@ -32,15 +32,18 @@ CREATE INDEX idx_keywords_deleted_at ON keywords(deleted_at timestamptz_ops);
 -- 
 CREATE TABLE IF NOT EXISTS modules (
     id SERIAL PRIMARY KEY,
-    name VARCHAR NOT NULL UNIQUE,
+    name VARCHAR NOT NULL,
     description VARCHAR,
-    homepage VARCHAR NOT NULL,
+    homepage VARCHAR,
+    documentation VARCHAR,
     repo VARCHAR NOT NULL,
+    team VARCHAR NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL,
-    deleted_at TIMESTAMPTZ,
-    author_id INT REFERENCES users(id)
+    deleted_at TIMESTAMPTZ
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_modules_name_team ON modules(name, team);
+CREATE INDEX IF NOT EXISTS idx_modules_team ON modules(team);
 CREATE INDEX idx_modules_deleted_at ON modules(deleted_at timestamptz_ops);
 -- 
 -- Create the module_versions table
@@ -54,6 +57,8 @@ CREATE TABLE IF NOT EXISTS module_versions (
     deleted_at TIMESTAMPTZ,
     FOREIGN KEY (module_id) REFERENCES modules(id) ON DELETE CASCADE
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_module_versions_version_module_id ON module_versions(version, module_id);
+CREATE INDEX IF NOT EXISTS idx_module_versions_version ON module_versions(module_id);
 CREATE INDEX idx_module_versions_deleted_at ON module_versions(deleted_at timestamptz_ops);
 -- 
 -- Create the bug_trackers table
@@ -79,4 +84,13 @@ CREATE TABLE module_keywords (
     PRIMARY KEY (keyword_id, module_id)
 );
 CREATE INDEX IF NOT EXISTS module_id_idx ON module_keywords(module_id);
+-- 
+-- Create a relationship between the users and modules tables
+-- 
+CREATE TABLE module_authors (
+    user_id INT NOT NULL,
+    module_id INT NOT NULL,
+    PRIMARY KEY (user_id, module_id)
+);
+CREATE INDEX IF NOT EXISTS module_id_idx ON module_authors(module_id);
 COMMIT;

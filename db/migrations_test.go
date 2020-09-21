@@ -32,7 +32,7 @@ func pgReady(ctx context.Context, c dktest.ContainerInfo) bool {
 }
 
 func TestMigration(t *testing.T) {
-	dktest.Run(t, "postgres:11-alpine", dktest.Options{PortRequired: true, ReadyFunc: pgReady},
+	dktest.Run(t, "postgres:11-alpine", dktest.Options{PortRequired: true, ReadyFunc: pgReady, Env: map[string]string{"POSTGRES_HOST_AUTH_METHOD": "trust"}},
 		func(t *testing.T, c dktest.ContainerInfo) {
 			ip, _, err := c.FirstPort()
 			require.NoError(t, err)
@@ -52,6 +52,8 @@ func TestMigration(t *testing.T) {
 
 			m, err := migrate.NewWithDatabaseInstance(fmt.Sprintf("file:///%s/migrations", path), "postgres", driver)
 			require.NoError(t, err)
+
+			require.NoError(t, m.Force(1))
 			require.NoError(t, m.Down())
 			require.NoError(t, m.Up())
 		})

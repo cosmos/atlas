@@ -4,6 +4,8 @@ go 1.15
 
 require (
 	github.com/dhui/dktest v0.3.2
+	github.com/go-playground/validator/v10 v10.3.0 // indirect
+	github.com/golang-migrate/migrate v3.5.4+incompatible
 	github.com/golang-migrate/migrate/v4 v4.12.2
 	github.com/gorilla/mux v1.7.4
 	github.com/jackc/pgproto3/v2 v2.0.4 // indirect
