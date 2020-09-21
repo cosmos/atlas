@@ -18,7 +18,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func TestModule(t *testing.T) {
+func TestModels(t *testing.T) {
 	dktest.Run(t, "postgres:11-alpine", dktest.Options{PortRequired: true, ReadyFunc: pgReady, Env: map[string]string{"POSTGRES_HOST_AUTH_METHOD": "trust"}},
 		func(t *testing.T, c dktest.ContainerInfo) {
 			ip, _, err := c.FirstPort()
@@ -46,6 +46,8 @@ func TestModule(t *testing.T) {
 
 			testModuleCreate(t, m, gormDB)
 			testModuleUpdate(t, m, gormDB)
+			testGetModuleByID(t, m, gormDB)
+			testGetUserByID(t, m, gormDB)
 		})
 }
 
@@ -215,5 +217,76 @@ func testModuleUpdate(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
 		result, err := mod.Upsert(db)
 		require.NoError(t, err)
 		require.Len(t, result.Versions, 2)
+	})
+}
+
+func testGetModuleByID(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
+	resetDB(t, m)
+
+	mod := models.Module{
+		Name: "x/bank",
+		Team: "cosmonauts",
+		Repo: "https://github.com/cosmos/cosmos-sdk",
+		Authors: []models.User{
+			{Name: "foo", Email: "foo@cosmonauts.com"},
+		},
+		Version: "v1.0.0",
+		Keywords: []models.Keyword{
+			{Name: "tokens"},
+		},
+		BugTracker: models.BugTracker{URL: "cosmonauts.com", Contact: "contact@cosmonauts.com"},
+	}
+
+	mod, err := mod.Upsert(db)
+	require.NoError(t, err)
+
+	t.Run("no module exists", func(t *testing.T) {
+		result, err := models.GetModuleByID(db, mod.ID+1)
+		require.Error(t, err)
+		require.Equal(t, models.Module{}, result)
+	})
+
+	t.Run("module exists", func(t *testing.T) {
+		result, err := models.GetModuleByID(db, mod.ID)
+		require.NoError(t, err)
+		require.Equal(t, mod.Name, result.Name)
+		require.Equal(t, mod.Team, result.Team)
+		require.Equal(t, mod.Description, result.Description)
+		require.Equal(t, mod.Homepage, result.Homepage)
+		require.Equal(t, mod.Documentation, result.Documentation)
+	})
+}
+
+func testGetUserByID(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
+	resetDB(t, m)
+
+	mod := models.Module{
+		Name: "x/bank",
+		Team: "cosmonauts",
+		Repo: "https://github.com/cosmos/cosmos-sdk",
+		Authors: []models.User{
+			{Name: "foo", Email: "foo@cosmonauts.com"},
+		},
+		Version: "v1.0.0",
+		Keywords: []models.Keyword{
+			{Name: "tokens"},
+		},
+		BugTracker: models.BugTracker{URL: "cosmonauts.com", Contact: "contact@cosmonauts.com"},
+	}
+
+	mod, err := mod.Upsert(db)
+	require.NoError(t, err)
+
+	t.Run("no user exists", func(t *testing.T) {
+		result, err := models.GetUserByID(db, mod.Authors[0].ID+1)
+		require.Error(t, err)
+		require.Equal(t, models.User{}, result)
+	})
+
+	t.Run("user exists", func(t *testing.T) {
+		result, err := models.GetUserByID(db, mod.Authors[0].ID)
+		require.NoError(t, err)
+		require.Equal(t, mod.Authors[0].Name, result.Name)
+		require.Equal(t, mod.Authors[0].Email, result.Email)
 	})
 }

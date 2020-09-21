@@ -8,28 +8,70 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-// Module defines a Cosmos SDK module.
-type Module struct {
-	gorm.Model
+type (
+	// Keyword defines a module keyword, where a module can have one or more keywords.
+	Keyword struct {
+		gorm.Model
 
-	Name          string `gorm:"not null;default:null" json:"name" yaml:"name"`
-	Team          string `gorm:"not null;default:null" json:"team" yaml:"team"`
-	Description   string `json:"description" yaml:"description"`
-	Documentation string `json:"documentation" yaml:"documentation"`
-	Homepage      string `json:"homepage" yaml:"homepage"`
-	Repo          string `gorm:"not null;default:null" json:"repo" yaml:"repo"`
+		Name string `json:"name" yaml:"name"`
+	}
 
-	// one-to-one relationships
-	BugTracker BugTracker `json:"bug_tracker" yaml:"bug_tracker" gorm:"foreignKey:module_id"`
+	// ModuleVersion defines a version associated with a unique module.
+	ModuleVersion struct {
+		gorm.Model
 
-	// many-to-many relationships
-	Keywords []Keyword `gorm:"many2many:module_keywords" json:"keywords" yaml:"keywords"`
-	Authors  []User    `gorm:"many2many:module_authors" json:"authors" yaml:"authors"`
+		Version  string `json:"version" yaml:"version"`
+		ModuleID uint   `json:"-" yaml:"-"`
+	}
 
-	// one-to-many relationships
-	Version  string          `gorm:"-" json:"-" yaml:"-"` // current version in manifest
-	Versions []ModuleVersion `gorm:"foreignKey:module_id" json:"versions" yaml:"versions"`
-}
+	// ModuleKeywords defines the type relationship between a module and all the
+	// associated keywords.
+	ModuleKeywords struct {
+		ModuleID  uint
+		KeywordID uint
+	}
+
+	// ModuleAuthors defines the type relationship between a module and all the
+	// associated authors.
+	ModuleAuthors struct {
+		ModuleID uint
+		UserID   uint
+	}
+
+	// BugTracker defines the metadata information for reporting bug reports on a
+	// given Module type.
+	BugTracker struct {
+		gorm.Model
+
+		URL      string `gorm:"not null;default:null" json:"url" yaml:"url"`
+		Contact  string `gorm:"not null;default:null" json:"contact" yaml:"contact"`
+		ModuleID uint
+	}
+
+	// Module defines a Cosmos SDK module.
+
+	Module struct {
+		gorm.Model
+
+		Name          string `gorm:"not null;default:null" json:"name" yaml:"name"`
+		Team          string `gorm:"not null;default:null" json:"team" yaml:"team"`
+		Description   string `json:"description" yaml:"description"`
+		Documentation string `json:"documentation" yaml:"documentation"`
+		Homepage      string `json:"homepage" yaml:"homepage"`
+		Repo          string `gorm:"not null;default:null" json:"repo" yaml:"repo"`
+
+		// one-to-one relationships
+		BugTracker BugTracker `json:"bug_tracker" yaml:"bug_tracker" gorm:"foreignKey:module_id"`
+
+		// many-to-many relationships
+		Keywords []Keyword `gorm:"many2many:module_keywords" json:"keywords" yaml:"keywords"`
+		Authors  []User    `gorm:"many2many:module_authors" json:"authors" yaml:"authors"`
+
+		// one-to-many relationships
+		Version  string          `gorm:"-" json:"-" yaml:"-"` // current version in manifest
+		Versions []ModuleVersion `gorm:"foreignKey:module_id" json:"versions" yaml:"versions"`
+	}
+)
 
 // Upsert will attempt to either create a new Module record or update an
 // existing record. A Module record is considered unique by a (name, team) index.
@@ -110,4 +152,16 @@ func (m Module) Upsert(db *gorm.DB) (Module, error) {
 	}
 
 	return record, nil
+}
+
+// GetModuleByID returns a module by ID. If the module doesn't exist or if the
+// query fails, an error is returned.
+func GetModuleByID(db *gorm.DB, id uint) (Module, error) {
+	var m Module
+
+	if err := db.First(&m, id).Error; err != nil {
+		return Module{}, fmt.Errorf("failed to query for module by ID: %w", err)
+	}
+
+	return m, nil
 }
