@@ -180,3 +180,16 @@ func GetAllModules(db *gorm.DB, cursor uint, limit int) ([]Module, error) {
 
 	return modules, nil
 }
+
+// GetAllKeywords returns a slice of Keyword objects paginated by a cursor and a
+// limit. The cursor must be the ID of the last retrieved object. An error is
+// returned upon database query failure.
+func GetAllKeywords(db *gorm.DB, cursor uint, limit int) ([]Keyword, error) {
+	var keywords []Keyword
+
+	if err := db.Limit(limit).Order("id asc").Where("id > ?", cursor).Find(&keywords).Error; err != nil {
+		return nil, fmt.Errorf("failed to query for keywords: %w", err)
+	}
+
+	return keywords, nil
+}

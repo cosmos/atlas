@@ -56,6 +56,10 @@ func TestModels(t *testing.T) {
 				testGetUserByID(t, m, gormDB)
 				testGetAllUsers(t, m, gormDB)
 			})
+
+			t.Run("Keyword", func(t *testing.T) {
+				testGetAllKeywords(t, m, gormDB)
+			})
 		})
 }
 
@@ -398,5 +402,56 @@ func testGetAllUsers(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
 	require.Len(t, users, 5)
 
 	cursor = users[len(users)-1].ID
+	require.Equal(t, uint(25), cursor)
+}
+
+func testGetAllKeywords(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
+	resetDB(t, m)
+
+	keywords, err := models.GetAllKeywords(db, 0, 10)
+	require.NoError(t, err)
+	require.Empty(t, keywords)
+
+	for i := 0; i < 25; i++ {
+		mod := models.Module{
+			Name: fmt.Sprintf("x/bank-%d", i),
+			Team: "cosmonauts",
+			Repo: "https://github.com/cosmos/cosmos-sdk",
+			Authors: []models.User{
+				{Name: "foo", Email: "foo@cosmonauts.com"},
+			},
+			Version: "v1.0.0",
+			Keywords: []models.Keyword{
+				{Name: fmt.Sprintf("tokens-%d", i)},
+			},
+			BugTracker: models.BugTracker{URL: "cosmonauts.com", Contact: "contact@cosmonauts.com"},
+		}
+
+		_, err := mod.Upsert(db)
+		require.NoError(t, err)
+	}
+
+	// first page (full)
+	keywords, err = models.GetAllKeywords(db, 0, 10)
+	require.NoError(t, err)
+	require.Len(t, keywords, 10)
+
+	cursor := keywords[len(keywords)-1].ID
+	require.Equal(t, uint(10), cursor)
+
+	// second page (full)
+	keywords, err = models.GetAllKeywords(db, cursor, 10)
+	require.NoError(t, err)
+	require.Len(t, keywords, 10)
+
+	cursor = keywords[len(keywords)-1].ID
+	require.Equal(t, uint(20), cursor)
+
+	// third page (partially full)
+	keywords, err = models.GetAllKeywords(db, cursor, 10)
+	require.NoError(t, err)
+	require.Len(t, keywords, 5)
+
+	cursor = keywords[len(keywords)-1].ID
 	require.Equal(t, uint(25), cursor)
 }
