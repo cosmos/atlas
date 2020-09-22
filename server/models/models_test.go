@@ -49,6 +49,7 @@ func TestModels(t *testing.T) {
 			testModuleUpdate(t, m, gormDB)
 			testGetModuleByID(t, m, gormDB)
 			testGetUserByID(t, m, gormDB)
+			testGetAllModules(t, m, gormDB)
 		})
 }
 
@@ -270,7 +271,7 @@ func testGetUserByID(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
 		},
 		Version: "v1.0.0",
 		Keywords: []models.Keyword{
-			{Name: "tokens"},
+			{Name: "tokens"}, {Name: "transfer"},
 		},
 		BugTracker: models.BugTracker{URL: "cosmonauts.com", Contact: "contact@cosmonauts.com"},
 	}
@@ -290,4 +291,55 @@ func testGetUserByID(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
 		require.Equal(t, mod.Authors[0].Name, result.Name)
 		require.Equal(t, mod.Authors[0].Email, result.Email)
 	})
+}
+
+func testGetAllModules(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
+	resetDB(t, m)
+
+	mods, err := models.GetAllModules(db, 0, 10)
+	require.NoError(t, err)
+	require.Empty(t, mods)
+
+	for i := 0; i < 25; i++ {
+		mod := models.Module{
+			Name: fmt.Sprintf("x/bank-%d", i),
+			Team: "cosmonauts",
+			Repo: "https://github.com/cosmos/cosmos-sdk",
+			Authors: []models.User{
+				{Name: "foo", Email: "foo@cosmonauts.com"},
+			},
+			Version: "v1.0.0",
+			Keywords: []models.Keyword{
+				{Name: "tokens"},
+			},
+			BugTracker: models.BugTracker{URL: "cosmonauts.com", Contact: "contact@cosmonauts.com"},
+		}
+
+		_, err := mod.Upsert(db)
+		require.NoError(t, err)
+	}
+
+	// first page (full)
+	mods, err = models.GetAllModules(db, 0, 10)
+	require.NoError(t, err)
+	require.Len(t, mods, 10)
+
+	cursor := mods[len(mods)-1].ID
+	require.Equal(t, uint(10), cursor)
+
+	// second page (full)
+	mods, err = models.GetAllModules(db, cursor, 10)
+	require.NoError(t, err)
+	require.Len(t, mods, 10)
+
+	cursor = mods[len(mods)-1].ID
+	require.Equal(t, uint(20), cursor)
+
+	// third page (partially full)
+	mods, err = models.GetAllModules(db, cursor, 10)
+	require.NoError(t, err)
+	require.Len(t, mods, 5)
+
+	cursor = mods[len(mods)-1].ID
+	require.Equal(t, uint(25), cursor)
 }

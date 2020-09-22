@@ -92,6 +92,8 @@ func (m Module) Upsert(db *gorm.DB) (Module, error) {
 			return Module{}, errors.New("failed to create module: empty module authors")
 		}
 
+		m.Versions = []ModuleVersion{{Version: m.Version}}
+
 		// record does not exist, so we create it
 		if err := db.Create(&m).Error; err != nil {
 			return Module{}, fmt.Errorf("failed to create module: %w", err)
@@ -164,4 +166,17 @@ func GetModuleByID(db *gorm.DB, id uint) (Module, error) {
 	}
 
 	return m, nil
+}
+
+// GetAllModules returns a slice of Module objects paginated by a cursor and a
+// limit. The cursor must be the ID of the last retrieved object. An error is
+// returned upon database query failure.
+func GetAllModules(db *gorm.DB, cursor uint, limit int) ([]Module, error) {
+	var modules []Module
+
+	if err := db.Limit(limit).Where("id > ?", cursor).Find(&modules).Error; err != nil {
+		return nil, fmt.Errorf("failed to query for modules: %w", err)
+	}
+
+	return modules, nil
 }
