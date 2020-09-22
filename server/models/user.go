@@ -39,7 +39,7 @@ func GetUserByID(db *gorm.DB, id uint) (User, error) {
 func GetAllUsers(db *gorm.DB, cursor uint, limit int) ([]User, error) {
 	var users []User
 
-	if err := db.Limit(limit).Where("id > ?", cursor).Find(&users).Error; err != nil {
+	if err := db.Limit(limit).Order("id asc").Where("id > ?", cursor).Find(&users).Error; err != nil {
 		return nil, fmt.Errorf("failed to query for users: %w", err)
 	}
 

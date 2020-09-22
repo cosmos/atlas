@@ -174,7 +174,7 @@ func GetModuleByID(db *gorm.DB, id uint) (Module, error) {
 func GetAllModules(db *gorm.DB, cursor uint, limit int) ([]Module, error) {
 	var modules []Module
 
-	if err := db.Limit(limit).Where("id > ?", cursor).Find(&modules).Error; err != nil {
+	if err := db.Limit(limit).Order("id asc").Where("id > ?", cursor).Find(&modules).Error; err != nil {
 		return nil, fmt.Errorf("failed to query for modules: %w", err)
 	}
 

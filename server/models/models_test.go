@@ -45,11 +45,17 @@ func TestModels(t *testing.T) {
 			gormDB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 			require.NoError(t, err)
 
-			testModuleCreate(t, m, gormDB)
-			testModuleUpdate(t, m, gormDB)
-			testGetModuleByID(t, m, gormDB)
-			testGetUserByID(t, m, gormDB)
-			testGetAllModules(t, m, gormDB)
+			t.Run("Module", func(t *testing.T) {
+				testModuleCreate(t, m, gormDB)
+				testModuleUpdate(t, m, gormDB)
+				testGetModuleByID(t, m, gormDB)
+				testGetAllModules(t, m, gormDB)
+			})
+
+			t.Run("User", func(t *testing.T) {
+				testGetUserByID(t, m, gormDB)
+				testGetAllUsers(t, m, gormDB)
+			})
 		})
 }
 
@@ -341,5 +347,56 @@ func testGetAllModules(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
 	require.Len(t, mods, 5)
 
 	cursor = mods[len(mods)-1].ID
+	require.Equal(t, uint(25), cursor)
+}
+
+func testGetAllUsers(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
+	resetDB(t, m)
+
+	users, err := models.GetAllUsers(db, 0, 10)
+	require.NoError(t, err)
+	require.Empty(t, users)
+
+	for i := 0; i < 25; i++ {
+		mod := models.Module{
+			Name: fmt.Sprintf("x/bank-%d", i),
+			Team: "cosmonauts",
+			Repo: "https://github.com/cosmos/cosmos-sdk",
+			Authors: []models.User{
+				{Name: fmt.Sprintf("foo-%d", i), Email: fmt.Sprintf("foo%d@cosmonauts.com", i)},
+			},
+			Version: "v1.0.0",
+			Keywords: []models.Keyword{
+				{Name: "tokens"},
+			},
+			BugTracker: models.BugTracker{URL: "cosmonauts.com", Contact: "contact@cosmonauts.com"},
+		}
+
+		_, err := mod.Upsert(db)
+		require.NoError(t, err)
+	}
+
+	// first page (full)
+	users, err = models.GetAllUsers(db, 0, 10)
+	require.NoError(t, err)
+	require.Len(t, users, 10)
+
+	cursor := users[len(users)-1].ID
+	require.Equal(t, uint(10), cursor)
+
+	// second page (full)
+	users, err = models.GetAllUsers(db, cursor, 10)
+	require.NoError(t, err)
+	require.Len(t, users, 10)
+
+	cursor = users[len(users)-1].ID
+	require.Equal(t, uint(20), cursor)
+
+	// third page (partially full)
+	users, err = models.GetAllUsers(db, cursor, 10)
+	require.NoError(t, err)
+	require.Len(t, users, 5)
+
+	cursor = users[len(users)-1].ID
 	require.Equal(t, uint(25), cursor)
 }
