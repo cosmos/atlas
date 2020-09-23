@@ -1,9 +1,12 @@
 package config
 
-import "time"
+import (
+	"time"
+)
 
 // Configuration values that may be provided in a configuration file, as
-// environment variables or via CLI flags.
+// environment variables or via CLI flags. Note, not all configurations may be
+// passed as CLI flags.
 const (
 	FlagConfig           = "config"
 	FlagLogLevel         = "log.level"
@@ -18,9 +21,10 @@ const (
 	FlagGHRedirectURL    = "gh.redirect.url"
 )
 
-// Config defines a configuration abstraction provided to a Server type in order
-// to be instantiated.
+// Config defines a configuration abstraction so we don't rely on any specific
+// concrete configuration manager.
 type Config interface {
+	Bool(path string) bool
 	String(path string) string
 	Int(path string) int
 	Ints(path string) []int

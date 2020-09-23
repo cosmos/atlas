@@ -1,16 +1,21 @@
 package server
 
 import (
+	"context"
 	"net/http"
+	"time"
 
 	"github.com/dghubble/sessions"
 	"github.com/gorilla/mux"
+	"github.com/justinas/alice"
 	_ "github.com/lib/pq"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/hlog"
 	"golang.org/x/oauth2"
 	githuboauth2 "golang.org/x/oauth2/github"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	gormlogger "gorm.io/gorm/logger"
 
 	"github.com/cosmos/atlas/config"
 )
@@ -20,6 +25,8 @@ const (
 	sessionSecret   = "example cookie signing secret"
 	sessionUserKey  = "githubID"
 	sessionUsername = "githubUsername"
+
+	methodGET = "GET"
 )
 
 var sessionStore = sessions.NewCookieStore([]byte(sessionSecret), nil)
@@ -34,19 +41,27 @@ type Service struct {
 	router     *mux.Router
 	controller *Controller
 	oauth2Cfg  *oauth2.Config
+	server     *http.Server
+	db         *gorm.DB
 }
 
 func NewService(logger zerolog.Logger, cfg config.Config) (*Service, error) {
-	// TODO: Do we need to modify any GORM settings?
-	db, err := gorm.Open(postgres.Open(cfg.String(config.FlagDatabaseURL)), &gorm.Config{})
+	dbLogger := NewDBLogger(logger).LogMode(gormlogger.Silent)
+	if cfg.Bool(config.FlagDev) {
+		dbLogger = dbLogger.LogMode(gormlogger.Info)
+	}
+
+	db, err := gorm.Open(postgres.Open(cfg.String(config.FlagDatabaseURL)), &gorm.Config{Logger: dbLogger})
 	if err != nil {
 		return nil, err
 	}
 
+	db.Logger = dbLogger
 	service := &Service{
 		logger:     logger.With().Str("module", "server").Logger(),
 		cfg:        cfg,
 		router:     mux.NewRouter(),
+		db:         db,
 		controller: NewController(db),
 		oauth2Cfg: &oauth2.Config{
 			ClientID:     cfg.String(config.FlagGHClientID),
@@ -56,23 +71,75 @@ func NewService(logger zerolog.Logger, cfg config.Config) (*Service, error) {
 		},
 	}
 
-	service.registerRoutes()
+	service.registerV1Routes()
 	return service, nil
 }
 
 func (s *Service) Start() error {
-	srv := &http.Server{
+	s.server = &http.Server{
 		Handler:      s.router,
 		Addr:         s.cfg.String(config.FlagListenAddr),
 		WriteTimeout: s.cfg.Duration(config.FlagHTTPReadTimeout),
 		ReadTimeout:  s.cfg.Duration(config.FlagHTTPWriteTimeout),
 	}
 
-	s.logger.Info().Str("address", srv.Addr).Msg("starting atlas server...")
-	return srv.ListenAndServe()
+	s.logger.Info().Str("address", s.server.Addr).Msg("starting atlas server...")
+	return s.server.ListenAndServe()
 }
 
-func (s *Service) registerRoutes() {
+func (s *Service) Cleanup() {
+	if s.server != nil {
+		// create a deadline to wait for all existing requests to finish
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+
+		// Do not block if no connections exist, but otherwise, we will wait until
+		// the timeout deadline.
+		s.server.Shutdown(ctx)
+	}
+}
+
+func (s *Service) buildMiddleware() alice.Chain {
+	mChain := alice.New()
+	mChain = mChain.Append(hlog.NewHandler(s.logger))
+	mChain = mChain.Append(hlog.AccessHandler(func(r *http.Request, status, size int, duration time.Duration) {
+		hlog.FromRequest(r).Info().
+			Str("method", r.Method).
+			Str("url", r.URL.String()).
+			Int("status", status).
+			Int("size", size).
+			Dur("duration", duration).
+			Msg("")
+	}))
+	mChain = mChain.Append(hlog.RequestHandler("req"))
+	mChain = mChain.Append(hlog.RemoteAddrHandler("ip"))
+	mChain = mChain.Append(hlog.UserAgentHandler("ua"))
+	mChain = mChain.Append(hlog.RefererHandler("ref"))
+	mChain = mChain.Append(hlog.RequestIDHandler("req_id", "Request-Id"))
+
+	// TODO: Consider enabling rate limiting.
+
+	return mChain
+}
+
+func (s *Service) registerV1Routes() {
+	// Create a versioned sub-router. All routes will be mounted under this
+	// sub-router.
+	v1Router := s.router.PathPrefix("/api/v1").Subrouter()
+
+	// build middleware chain
+	mChain := s.buildMiddleware()
+
+	// unauthenticated routes
+	v1Router.Handle("/modules/{id}", mChain.ThenFunc(s.controller.GetModuleByID())).Methods(methodGET)
+
+	// authenticated routes
+
+	// session routes
+
+	// // middleware
+	// v1Router.Use(NewLogRequestMiddleware(s.logger).Handle)
+
 	// s.router.HandleFunc("/", homeHandler)
 	// s.router.HandleFunc("/logout", logoutHandler)
 
@@ -120,16 +187,4 @@ func (s *Service) registerRoutes() {
 // 	}
 
 // 	http.Redirect(w, req, "/", http.StatusFound)
-// }
-
-// func respondWithError(w http.ResponseWriter, code int, err error) {
-// 	respondWithJSON(w, code, map[string]string{"error": err.Error()})
-// }
-
-// func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
-// 	response, _ := json.Marshal(payload)
-
-// 	w.Header().Set("Content-Type", "application/json")
-// 	w.WriteHeader(code)
-// 	w.Write(response)
 // }

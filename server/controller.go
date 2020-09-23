@@ -1,8 +1,16 @@
 package server
 
 import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"strconv"
+
 	"github.com/go-playground/validator/v10"
+	"github.com/gorilla/mux"
 	"gorm.io/gorm"
+
+	"github.com/cosmos/atlas/server/models"
 )
 
 // type (
@@ -27,6 +35,39 @@ func NewController(db *gorm.DB) *Controller {
 		db:       db,
 		validate: validator.New(),
 	}
+}
+
+func (ctrl *Controller) GetModuleByID() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		params := mux.Vars(r)
+		idStr := params["id"]
+
+		id, err := strconv.ParseUint(idStr, 10, 64)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, fmt.Errorf("invalid module ID: %w", err))
+			return
+		}
+
+		module, err := models.GetModuleByID(ctrl.db, uint(id))
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		respondWithJSON(w, http.StatusOK, module)
+	}
+}
+
+func respondWithError(w http.ResponseWriter, code int, err error) {
+	respondWithJSON(w, code, map[string]string{"error": err.Error()})
+}
+
+func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
+	response, _ := json.Marshal(payload)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	_, _ = w.Write(response)
 }
 
 // func (ctrl *Controller) UpsertModule(m Module) error {

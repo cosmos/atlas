@@ -28,3 +28,13 @@ install: go.sum
 	@go install -mod=readonly $(BUILD_FLAGS) .
 
 .PHONY: install build
+
+###############################################################################
+#                                 Migrations                                  #
+###############################################################################
+
+migrate:
+	@migrate -database ${ATLAS_DATABASE_URL} -path db/migrations down
+	@migrate -database ${ATLAS_DATABASE_URL} -path db/migrations up
+
+.PHONY: migrate

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"strings"
 	"time"
 
@@ -128,9 +129,39 @@ func startServerCommand() *cli.Command {
 				return err
 			}
 
-			return svr.Start()
+			// start the service in a separate goroutine
+			go func() {
+				if err := svr.Start(); err != nil {
+					logger.Fatal().Err(err).Msg("failed to start atlas service")
+				}
+			}()
+
+			// trap signals and perform any cleanup
+			trapSignal(func() {
+				logger.Info().Msg("shuting down...")
+				svr.Cleanup()
+				os.Exit(0)
+			})
+
+			// run forever...
+			select {}
 		},
 	}
+}
+
+func trapSignal(cleanupFunc func()) {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+
+	go func() {
+		// block until we've received a signal
+		<-c
+
+		// execute any cleanup logic
+		if cleanupFunc != nil {
+			cleanupFunc()
+		}
+	}()
 }
 
 func getVersion() string {
