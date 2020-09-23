@@ -1,35 +1,35 @@
 # The database migrations path used for integration tests. Set this value to the
 # root directory of the database migrations. These migrations are called for each
 # isolated integration test to provide a clean database.
-ATLAS_MIGRATIONS_DIR=
+migrations_dir = ""
 
 # Credentials for integrating with the GitHub API. Typically, the redirect URL
 # will be empty, but in testing environments it should be set to the localhost
 # address (e.g. http://localhost:8080/session/authorize)
-ATLAS_GH_CLIENT_ID=
-ATLAS_GH_CLIENT_SECRET=
-ATLAS_GH_REDIRECT_URL=
+gh_client_id = ""
+gh_client_secret = ""
+gh_redirect_url = ""
 
 # The PostgreSQL database connection string.
-ATLAS_DATABASE_URL=
+database_url = ""
 
 # Logging values to define the logging level and if text or JSON output is
 # preferred. The level must be one of (panic|fatal|error|warn|info|debug|trace)
 # and the format must be one of (text|json).
-ATLAS_LOG_LEVEL=
-ATLAS_LOG_FORMAT=
+log_format = ""
+log_level = ""
 
 # The atlas server HTTP settings.
 #
 # Defines the HTTP listening address
-ATLAS_LISTEN_ADDR=
+listen_addr = ""
 #
 # Define the HTTP read timeout as a duration.
-ATLAS_HTTP_READ_TIMEOUT=
+http_read_timeout = ""
 #
 # Define the HTTP write timeout as a duration.
-ATLAS_HTTP_WRITE_TIMEOUT=
+http_write_timeout = ""
 
 # Enable development settings. This is typically used when running the service
 # locally mimicking a non-production environment. Must be (true|false).
-ATLAS_DEV=
+dev = false
