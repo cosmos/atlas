@@ -76,79 +76,87 @@ type (
 func (m Module) Upsert(db *gorm.DB) (Module, error) {
 	var record Module
 
-	// retrieve existing accounts first before updating the association
-	for i, u := range m.Authors {
-		result, err := User{Name: u.Name}.Query(db)
-		if err == nil {
-			m.Authors[i] = result
-		}
-	}
-
-	// retrieve existing keywords first before updating the association
-	for i, k := range m.Keywords {
-		result, err := Keyword{Name: k.Name}.Query(db)
-		if err == nil {
-			m.Keywords[i] = result
-		}
-	}
-
-	tx := db.Where("name = ? AND team = ?", m.Name, m.Team).First(&record)
-	if errors.Is(tx.Error, gorm.ErrRecordNotFound) {
-		if m.Version == "" {
-			return Module{}, errors.New("failed to create module: empty module version")
-		}
-		if len(m.Authors) == 0 {
-			return Module{}, errors.New("failed to create module: empty module authors")
+	err := db.Transaction(func(tx *gorm.DB) error {
+		// retrieve existing accounts first before updating the association
+		for i, u := range m.Authors {
+			result, err := User{Name: u.Name}.Query(tx)
+			if err == nil {
+				m.Authors[i] = result
+			}
 		}
 
-		m.Versions = []ModuleVersion{{Version: m.Version}}
-
-		// record does not exist, so we create it
-		if err := db.Create(&m).Error; err != nil {
-			return Module{}, fmt.Errorf("failed to create module: %w", err)
+		// retrieve existing keywords first before updating the association
+		for i, k := range m.Keywords {
+			result, err := Keyword{Name: k.Name}.Query(tx)
+			if err == nil {
+				m.Keywords[i] = result
+			}
 		}
 
-		return m, nil
-	}
+		err := tx.Where("name = ? AND team = ?", m.Name, m.Team).First(&record).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			if m.Version == "" {
+				return errors.New("failed to create module: empty module version")
+			}
+			if len(m.Authors) == 0 {
+				return errors.New("failed to create module: empty module authors")
+			}
 
-	// record exists, so we update the relevant fields
-	tx = db.Preload(clause.Associations).First(&record)
+			m.Versions = []ModuleVersion{{Version: m.Version}}
 
-	// update authors association
-	if err := db.Model(&record).Association("Authors").Replace(m.Authors); err != nil {
-		return Module{}, fmt.Errorf("failed to update module authors: %w", err)
-	}
+			// record does not exist, so we create it
+			if err := tx.Create(&m).Error; err != nil {
+				return fmt.Errorf("failed to create module: %w", err)
+			}
 
-	// update keywords association
-	if err := db.Model(&record).Association("Keywords").Replace(m.Keywords); err != nil {
-		return Module{}, fmt.Errorf("failed to update module keywords: %w", err)
-	}
-
-	// update the bug tracker association
-	if err := db.Model(&record.BugTracker).Updates(m.BugTracker).Error; err != nil {
-		return Module{}, fmt.Errorf("failed to update module bug tracker: %w", err)
-	}
-
-	// append version if new
-	versionQuery := &ModuleVersion{Version: m.Version, ModuleID: record.ID}
-	if err := db.Where(versionQuery).First(&ModuleVersion{}).Error; err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
-		if err := db.Model(&record).Association("Versions").Append(&ModuleVersion{Version: m.Version}); err != nil {
-			return Module{}, fmt.Errorf("failed to update module version: %w", err)
+			// commit the tx
+			return nil
 		}
-	}
 
-	// update primary fields
-	if err := tx.Updates(Module{
-		Team:          m.Team,
-		Description:   m.Description,
-		Documentation: m.Documentation,
-		Homepage:      m.Homepage,
-		Repo:          m.Repo,
-	}).Error; err != nil {
-		return Module{}, fmt.Errorf("failed to update module: %w", err)
-	}
+		// record exists, so we update the relevant fields
+		if err := tx.Preload(clause.Associations).First(&record).Error; err != nil {
+			return err
+		}
 
-	return record, nil
+		// update authors association
+		if err := tx.Model(&record).Association("Authors").Replace(m.Authors); err != nil {
+			return fmt.Errorf("failed to update module authors: %w", err)
+		}
+
+		// update keywords association
+		if err := tx.Model(&record).Association("Keywords").Replace(m.Keywords); err != nil {
+			return fmt.Errorf("failed to update module keywords: %w", err)
+		}
+
+		// update the bug tracker association
+		if err := tx.Model(&record.BugTracker).Updates(m.BugTracker).Error; err != nil {
+			return fmt.Errorf("failed to update module bug tracker: %w", err)
+		}
+
+		// append version if new
+		versionQuery := &ModuleVersion{Version: m.Version, ModuleID: record.ID}
+		if err := tx.Where(versionQuery).First(&ModuleVersion{}).Error; err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
+			if err := tx.Model(&record).Association("Versions").Append(&ModuleVersion{Version: m.Version}); err != nil {
+				return fmt.Errorf("failed to update module version: %w", err)
+			}
+		}
+
+		// update primary fields
+		if err := tx.Updates(Module{
+			Team:          m.Team,
+			Description:   m.Description,
+			Documentation: m.Documentation,
+			Homepage:      m.Homepage,
+			Repo:          m.Repo,
+		}).Error; err != nil {
+			return fmt.Errorf("failed to update module: %w", err)
+		}
+
+		// commit the tx
+		return nil
+	})
+
+	return record, err
 }
 
 // GetModuleByID returns a module by ID. If the module doesn't exist or if the
