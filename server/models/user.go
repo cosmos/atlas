@@ -8,7 +8,7 @@ import (
 
 // User defines an entity that contributes to a Module type.
 type User struct {
-	gorm.Model
+	GormModel
 
 	Email             string `json:"email" yaml:"email"`
 	Name              string `json:"name" yaml:"name"`
@@ -18,10 +18,10 @@ type User struct {
 	GithubAccessToken string `json:"-" yaml:"-"`
 	APIToken          string `json:"-" yaml:"-"`
 
-	Modules []Module `gorm:"many2many:module_authors" json:"modules" yaml:"modules"`
+	Modules []Module `gorm:"many2many:module_authors" json:"-" yaml:"-"`
 }
 
-// GetUserByID returns a user by ID. If the user doesn't exist or if the
+// GetUserByID returns a User by ID. If the user doesn't exist or if the
 // query fails, an error is returned.
 func GetUserByID(db *gorm.DB, id uint) (User, error) {
 	var u User
@@ -31,6 +31,19 @@ func GetUserByID(db *gorm.DB, id uint) (User, error) {
 	}
 
 	return u, nil
+}
+
+// Query performs a query for a User record where the search criteria is defined
+// by the receiver object. The resulting record, if it exists, is returned. If
+// the query fails or the record does not exist, an error is returned.
+func (u User) Query(db *gorm.DB) (User, error) {
+	var record User
+
+	if err := db.Where(u).First(&record).Error; err != nil {
+		return User{}, fmt.Errorf("failed to query user: %w", err)
+	}
+
+	return record, nil
 }
 
 // GetAllUsers returns a slice of User objects paginated by a cursor and a

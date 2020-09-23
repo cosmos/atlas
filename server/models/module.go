@@ -9,49 +9,42 @@ import (
 )
 
 type (
-	// Keyword defines a module keyword, where a module can have one or more keywords.
-	Keyword struct {
-		gorm.Model
-
-		Name string `json:"name" yaml:"name"`
-	}
-
 	// ModuleVersion defines a version associated with a unique module.
 	ModuleVersion struct {
-		gorm.Model
+		GormModel
 
 		Version  string `json:"version" yaml:"version"`
-		ModuleID uint   `json:"-" yaml:"-"`
+		ModuleID uint   `json:"module_id" yaml:"module_id"`
 	}
 
 	// ModuleKeywords defines the type relationship between a module and all the
 	// associated keywords.
 	ModuleKeywords struct {
-		ModuleID  uint
-		KeywordID uint
+		ModuleID  uint `json:"module_id" yaml:"module_id"`
+		KeywordID uint `json:"keyword_id" yaml:"keyword_id"`
 	}
 
 	// ModuleAuthors defines the type relationship between a module and all the
 	// associated authors.
 	ModuleAuthors struct {
-		ModuleID uint
-		UserID   uint
+		ModuleID uint `json:"module_id" yaml:"module_id"`
+		UserID   uint `json:"user_id" yaml:"user_id"`
 	}
 
 	// BugTracker defines the metadata information for reporting bug reports on a
 	// given Module type.
 	BugTracker struct {
-		gorm.Model
+		GormModel
 
 		URL      string `gorm:"not null;default:null" json:"url" yaml:"url"`
 		Contact  string `gorm:"not null;default:null" json:"contact" yaml:"contact"`
-		ModuleID uint
+		ModuleID uint   `json:"module_id" yaml:"module_id"`
 	}
 
 	// Module defines a Cosmos SDK module.
 
 	Module struct {
-		gorm.Model
+		GormModel
 
 		Name          string `gorm:"not null;default:null" json:"name" yaml:"name"`
 		Team          string `gorm:"not null;default:null" json:"team" yaml:"team"`
@@ -83,6 +76,22 @@ type (
 func (m Module) Upsert(db *gorm.DB) (Module, error) {
 	var record Module
 
+	// retrieve existing accounts first before updating the association
+	for i, u := range m.Authors {
+		result, err := User{Name: u.Name}.Query(db)
+		if err == nil {
+			m.Authors[i] = result
+		}
+	}
+
+	// retrieve existing keywords first before updating the association
+	for i, k := range m.Keywords {
+		result, err := Keyword{Name: k.Name}.Query(db)
+		if err == nil {
+			m.Keywords[i] = result
+		}
+	}
+
 	tx := db.Where("name = ? AND team = ?", m.Name, m.Team).First(&record)
 	if errors.Is(tx.Error, gorm.ErrRecordNotFound) {
 		if m.Version == "" {
@@ -105,26 +114,12 @@ func (m Module) Upsert(db *gorm.DB) (Module, error) {
 	// record exists, so we update the relevant fields
 	tx = db.Preload(clause.Associations).First(&record)
 
-	// retrieve or create all authors and update the association
-	for i, u := range m.Authors {
-		if err := db.Where(User{Name: u.Name}).FirstOrCreate(&u).Error; err != nil {
-			return Module{}, fmt.Errorf("failed to fetch or create author: %w", err)
-		}
-		m.Authors[i] = u
-	}
-
+	// update authors association
 	if err := db.Model(&record).Association("Authors").Replace(m.Authors); err != nil {
 		return Module{}, fmt.Errorf("failed to update module authors: %w", err)
 	}
 
-	// retrieve or create all keywords and update the association
-	for i, k := range m.Keywords {
-		if err := db.Where(Keyword{Name: k.Name}).FirstOrCreate(&k).Error; err != nil {
-			return Module{}, fmt.Errorf("failed to fetch or create keyword: %w", err)
-		}
-		m.Keywords[i] = k
-	}
-
+	// update keywords association
 	if err := db.Model(&record).Association("Keywords").Replace(m.Keywords); err != nil {
 		return Module{}, fmt.Errorf("failed to update module keywords: %w", err)
 	}
@@ -161,7 +156,7 @@ func (m Module) Upsert(db *gorm.DB) (Module, error) {
 func GetModuleByID(db *gorm.DB, id uint) (Module, error) {
 	var m Module
 
-	if err := db.First(&m, id).Error; err != nil {
+	if err := db.Preload(clause.Associations).First(&m, id).Error; err != nil {
 		return Module{}, fmt.Errorf("failed to query for module by ID: %w", err)
 	}
 
@@ -179,17 +174,4 @@ func GetAllModules(db *gorm.DB, cursor uint, limit int) ([]Module, error) {
 	}
 
 	return modules, nil
-}
-
-// GetAllKeywords returns a slice of Keyword objects paginated by a cursor and a
-// limit. The cursor must be the ID of the last retrieved object. An error is
-// returned upon database query failure.
-func GetAllKeywords(db *gorm.DB, cursor uint, limit int) ([]Keyword, error) {
-	var keywords []Keyword
-
-	if err := db.Limit(limit).Order("id asc").Where("id > ?", cursor).Find(&keywords).Error; err != nil {
-		return nil, fmt.Errorf("failed to query for keywords: %w", err)
-	}
-
-	return keywords, nil
 }
