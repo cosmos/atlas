@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -25,6 +24,8 @@ import (
 // 	}
 // )
 
+// Controller contains a wrapper around a Database and is responsible for
+// implementing API request handlers.
 type Controller struct {
 	db       *gorm.DB
 	validate *validator.Validate
@@ -37,6 +38,7 @@ func NewController(db *gorm.DB) *Controller {
 	}
 }
 
+// GetModuleByID implements a request handler to retrieve a module by ID.
 func (ctrl *Controller) GetModuleByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		params := mux.Vars(r)
@@ -58,26 +60,179 @@ func (ctrl *Controller) GetModuleByID() http.HandlerFunc {
 	}
 }
 
-func respondWithError(w http.ResponseWriter, code int, err error) {
-	respondWithJSON(w, code, map[string]string{"error": err.Error()})
+// GetAllModules implements a request handler returning a paginated set of
+// modules.
+func (ctrl *Controller) GetAllModules() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cursor, limit, err := parsePagination(r)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, err)
+			return
+		}
+
+		modules, err := models.GetAllModules(ctrl.db, cursor, limit)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		paginated := NewPaginationResponse(len(modules), limit, cursor, modules)
+		respondWithJSON(w, http.StatusOK, paginated)
+	}
 }
 
-func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
-	response, _ := json.Marshal(payload)
+// GetModuleVersions implements a request handler to retreive a module's set of
+// versions by ID.
+func (ctrl *Controller) GetModuleVersions() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		params := mux.Vars(r)
+		idStr := params["id"]
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
-	_, _ = w.Write(response)
+		id, err := strconv.ParseUint(idStr, 10, 64)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, fmt.Errorf("invalid module ID: %w", err))
+			return
+		}
+
+		module, err := models.GetModuleByID(ctrl.db, uint(id))
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		respondWithJSON(w, http.StatusOK, module.Versions)
+	}
 }
 
-// func (ctrl *Controller) UpsertModule(m Module) error {
-// 	// err := ctrl.db.Model(&Module{}).Where("name = ?", m.Name).Updates(Module{})
-// 	// if err != nil {
-// 	// 	if gorm.Is(err) {
-// 	// 		// db.Create(&newUser)  // create new record from newUser
-// 	// 	}
-// 	// }
-// 	// if err := ctrl.validate.Struct(req); err != nil {
-// 	// 	return nil, err
-// 	// }
-// }
+// GetModuleAuthors implements a request handler to retreive a module's set of
+// authors by ID.
+func (ctrl *Controller) GetModuleAuthors() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		params := mux.Vars(r)
+		idStr := params["id"]
+
+		id, err := strconv.ParseUint(idStr, 10, 64)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, fmt.Errorf("invalid module ID: %w", err))
+			return
+		}
+
+		module, err := models.GetModuleByID(ctrl.db, uint(id))
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		respondWithJSON(w, http.StatusOK, module.Authors)
+	}
+}
+
+// GetModuleKeywords implements a request handler to retreive a module's set of
+// keywords by ID.
+func (ctrl *Controller) GetModuleKeywords() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		params := mux.Vars(r)
+		idStr := params["id"]
+
+		id, err := strconv.ParseUint(idStr, 10, 64)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, fmt.Errorf("invalid module ID: %w", err))
+			return
+		}
+
+		module, err := models.GetModuleByID(ctrl.db, uint(id))
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		respondWithJSON(w, http.StatusOK, module.Keywords)
+	}
+}
+
+// GetUserByID implements a request handler to retrieve a user by ID.
+func (ctrl *Controller) GetUserByID() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		params := mux.Vars(r)
+		idStr := params["id"]
+
+		id, err := strconv.ParseUint(idStr, 10, 64)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, fmt.Errorf("invalid user ID: %w", err))
+			return
+		}
+
+		user, err := models.GetUserByID(ctrl.db, uint(id))
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		respondWithJSON(w, http.StatusOK, user)
+	}
+}
+
+// GetAllUsers implements a request handler returning a paginated set of
+// users.
+func (ctrl *Controller) GetAllUsers() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cursor, limit, err := parsePagination(r)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, err)
+			return
+		}
+
+		users, err := models.GetAllUsers(ctrl.db, cursor, limit)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		paginated := NewPaginationResponse(len(users), limit, cursor, users)
+		respondWithJSON(w, http.StatusOK, paginated)
+	}
+}
+
+// GetUserModules implements a request handler to retrieve a set of modules
+// authored by a given user by ID.
+func (ctrl *Controller) GetUserModules() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		params := mux.Vars(r)
+		idStr := params["id"]
+
+		id, err := strconv.ParseUint(idStr, 10, 64)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, fmt.Errorf("invalid user ID: %w", err))
+			return
+		}
+
+		modules, err := models.GetUserModules(ctrl.db, uint(id))
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		respondWithJSON(w, http.StatusOK, modules)
+	}
+}
+
+// GetAllKeywords implements a request handler returning a paginated set of
+// keywords.
+func (ctrl *Controller) GetAllKeywords() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cursor, limit, err := parsePagination(r)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, err)
+			return
+		}
+
+		keywords, err := models.GetAllKeywords(ctrl.db, cursor, limit)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		paginated := NewPaginationResponse(len(keywords), limit, cursor, keywords)
+		respondWithJSON(w, http.StatusOK, paginated)
+	}
+}
