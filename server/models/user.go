@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // User defines an entity that contributes to a Module type.
@@ -26,11 +27,31 @@ type User struct {
 func GetUserByID(db *gorm.DB, id uint) (User, error) {
 	var u User
 
-	if err := db.First(&u, id).Error; err != nil {
+	if err := db.Preload(clause.Associations).First(&u, id).Error; err != nil {
 		return User{}, fmt.Errorf("failed to query for user by ID: %w", err)
 	}
 
 	return u, nil
+}
+
+// GetUserModules returns a set of Module's authored by a given User by ID.
+func GetUserModules(db *gorm.DB, id uint) ([]Module, error) {
+	user, err := GetUserByID(db, id)
+	if err != nil {
+		return []Module{}, err
+	}
+
+	moduleIDs := make([]uint, len(user.Modules))
+	for i, mod := range user.Modules {
+		moduleIDs[i] = mod.ID
+	}
+
+	var modules []Module
+	if err := db.Preload(clause.Associations).Where(moduleIDs).Find(&modules).Error; err != nil {
+		return []Module{}, fmt.Errorf("failed to query for user by ID: %w", err)
+	}
+
+	return modules, nil
 }
 
 // Query performs a query for a User record where the search criteria is defined
