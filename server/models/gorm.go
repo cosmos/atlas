@@ -11,5 +11,5 @@ type GormModel struct {
 	ID        uint           `gorm:"primarykey" json:"id" yaml:"id"`
 	CreatedAt time.Time      `json:"created_at" yaml:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at" yaml:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at" yaml:"deleted_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-" yaml:"-"`
 }

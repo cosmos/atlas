@@ -94,23 +94,29 @@ func (m Module) Upsert(db *gorm.DB) (Module, error) {
 		}
 
 		err := tx.Where("name = ? AND team = ?", m.Name, m.Team).First(&record).Error
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			if m.Version == "" {
-				return errors.New("failed to create module: empty module version")
-			}
-			if len(m.Authors) == 0 {
-				return errors.New("failed to create module: empty module authors")
-			}
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				if m.Version == "" {
+					return errors.New("failed to create module: empty module version")
+				}
+				if len(m.Authors) == 0 {
+					return errors.New("failed to create module: empty module authors")
+				}
 
-			m.Versions = []ModuleVersion{{Version: m.Version}}
+				m.Versions = []ModuleVersion{{Version: m.Version}}
 
-			// record does not exist, so we create it
-			if err := tx.Create(&m).Error; err != nil {
-				return fmt.Errorf("failed to create module: %w", err)
+				// record does not exist, so we create it
+				if err := tx.Create(&m).Error; err != nil {
+					return fmt.Errorf("failed to create module: %w", err)
+				}
+
+				record = m
+
+				// commit the tx
+				return nil
+			} else {
+				return fmt.Errorf("failed to query module: %w", err)
 			}
-
-			// commit the tx
-			return nil
 		}
 
 		// record exists, so we update the relevant fields
@@ -128,9 +134,16 @@ func (m Module) Upsert(db *gorm.DB) (Module, error) {
 			return fmt.Errorf("failed to update module keywords: %w", err)
 		}
 
-		// update the bug tracker association
-		if err := tx.Model(&record.BugTracker).Updates(m.BugTracker).Error; err != nil {
-			return fmt.Errorf("failed to update module bug tracker: %w", err)
+		var bugTracker BugTracker
+		if err := tx.Model(&record).Association("BugTracker").Find(&bugTracker); err != nil {
+			return err
+		}
+
+		bugTracker.ModuleID = record.ID
+		bugTracker.URL = m.BugTracker.URL
+		bugTracker.Contact = m.BugTracker.Contact
+		if err := tx.Save(&bugTracker).Error; err != nil {
+			return err
 		}
 
 		// append version if new
@@ -142,14 +155,20 @@ func (m Module) Upsert(db *gorm.DB) (Module, error) {
 		}
 
 		// update primary fields
-		if err := tx.Updates(Module{
+		if err := tx.First(&record, record.ID).Updates(Module{
 			Team:          m.Team,
 			Description:   m.Description,
 			Documentation: m.Documentation,
 			Homepage:      m.Homepage,
 			Repo:          m.Repo,
+			BugTracker:    bugTracker,
 		}).Error; err != nil {
 			return fmt.Errorf("failed to update module: %w", err)
+		}
+
+		// reload associations on the updated record
+		if err := tx.Preload(clause.Associations).First(&record).Error; err != nil {
+			return err
 		}
 
 		// commit the tx
