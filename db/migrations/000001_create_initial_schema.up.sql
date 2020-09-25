@@ -4,10 +4,9 @@ BEGIN;
 -- 
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
-    email VARCHAR NOT NULL UNIQUE,
     name VARCHAR NOT NULL UNIQUE,
+    email VARCHAR UNIQUE,
     github_access_token VARCHAR NOT NULL,
-    api_token VARCHAR NOT NULL,
     url VARCHAR,
     avatar_url VARCHAR,
     gravatar_id VARCHAR,
