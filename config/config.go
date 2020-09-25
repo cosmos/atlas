@@ -19,6 +19,7 @@ const (
 	FlagGHClientID       = "gh.client.id"
 	FlagGHClientSecret   = "gh.client.secret"
 	FlagGHRedirectURL    = "gh.redirect.url"
+	FlagSessionKey       = "session.key"
 )
 
 // Config defines a configuration abstraction so we don't rely on any specific
