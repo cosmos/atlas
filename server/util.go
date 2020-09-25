@@ -2,9 +2,13 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
+
+	"github.com/go-playground/validator/v10"
 )
 
 func parsePagination(r *http.Request) (uint, int, error) {
@@ -33,4 +37,18 @@ func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	_, _ = w.Write(response)
+}
+
+func transformValidationError(err error) error {
+	if _, ok := err.(*validator.InvalidValidationError); ok {
+		return err
+	}
+
+	valErrs := err.(validator.ValidationErrors)
+	msgs := make([]string, len(valErrs))
+	for i, err := range valErrs {
+		msgs[i] = fmt.Sprintf("invalid %s: %s validation failed", strings.ToLower(err.Field()), err.Tag())
+	}
+
+	return errors.New(strings.Join(msgs, "; "))
 }
