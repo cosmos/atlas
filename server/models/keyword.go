@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"gorm.io/gorm"
@@ -8,9 +9,25 @@ import (
 
 // Keyword defines a module keyword, where a module can have one or more keywords.
 type Keyword struct {
-	GormModel
+	gorm.Model
 
 	Name string `json:"name" yaml:"name"`
+}
+
+// MarshalJSON implements custom JSON marshaling for the Keyword model.
+func (k Keyword) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		GormModelJSON
+
+		Name string `json:"name" yaml:"name"`
+	}{
+		GormModelJSON: GormModelJSON{
+			ID:        k.ID,
+			CreatedAt: k.CreatedAt,
+			UpdatedAt: k.UpdatedAt,
+		},
+		Name: k.Name,
+	})
 }
 
 // Query performs a query for a Keyword record where the search criteria is

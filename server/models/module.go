@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -11,7 +12,7 @@ import (
 type (
 	// ModuleVersion defines a version associated with a unique module.
 	ModuleVersion struct {
-		GormModel
+		gorm.Model
 
 		Version  string `json:"version" yaml:"version"`
 		ModuleID uint   `json:"module_id" yaml:"module_id"`
@@ -34,7 +35,7 @@ type (
 	// BugTracker defines the metadata information for reporting bug reports on a
 	// given Module type.
 	BugTracker struct {
-		GormModel
+		gorm.Model
 
 		URL      string `gorm:"not null;default:null" json:"url" yaml:"url"`
 		Contact  string `gorm:"not null;default:null" json:"contact" yaml:"contact"`
@@ -44,7 +45,7 @@ type (
 	// Module defines a Cosmos SDK module.
 
 	Module struct {
-		GormModel
+		gorm.Model
 
 		Name          string `gorm:"not null;default:null" json:"name" yaml:"name"`
 		Team          string `gorm:"not null;default:null" json:"team" yaml:"team"`
@@ -59,12 +60,87 @@ type (
 		// many-to-many relationships
 		Keywords []Keyword `gorm:"many2many:module_keywords" json:"keywords" yaml:"keywords"`
 		Authors  []User    `gorm:"many2many:module_authors" json:"authors" yaml:"authors"`
+		Owners   []User    `gorm:"many2many:module_owners" json:"owners" yaml:"owners"`
 
 		// one-to-many relationships
 		Version  string          `gorm:"-" json:"-" yaml:"-"` // current version in manifest
 		Versions []ModuleVersion `gorm:"foreignKey:module_id" json:"versions" yaml:"versions"`
 	}
 )
+
+// MarshalJSON implements custom JSON marshaling for the ModuleVersion model.
+func (mv ModuleVersion) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		GormModelJSON
+
+		Version  string `json:"version" yaml:"version"`
+		ModuleID uint   `json:"module_id" yaml:"module_id"`
+	}{
+		GormModelJSON: GormModelJSON{
+			ID:        mv.ID,
+			CreatedAt: mv.CreatedAt,
+			UpdatedAt: mv.UpdatedAt,
+		},
+		Version:  mv.Version,
+		ModuleID: mv.ModuleID,
+	})
+}
+
+// MarshalJSON implements custom JSON marshaling for the BugTracker model.
+func (bt BugTracker) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		GormModelJSON
+
+		URL      string `json:"url" yaml:"url"`
+		Contact  string `json:"contact" yaml:"contact"`
+		ModuleID uint   `json:"module_id" yaml:"module_id"`
+	}{
+		GormModelJSON: GormModelJSON{
+			ID:        bt.ID,
+			CreatedAt: bt.CreatedAt,
+			UpdatedAt: bt.UpdatedAt,
+		},
+		URL:      bt.URL,
+		Contact:  bt.Contact,
+		ModuleID: bt.ModuleID,
+	})
+}
+
+// MarshalJSON implements custom JSON marshaling for the Module model.
+func (m Module) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		GormModelJSON
+
+		Name          string          `json:"name" yaml:"name"`
+		Team          string          `json:"team" yaml:"team"`
+		Description   string          `json:"description" yaml:"description"`
+		Documentation string          `json:"documentation" yaml:"documentation"`
+		Homepage      string          `json:"homepage" yaml:"homepage"`
+		Repo          string          `json:"repo" yaml:"repo"`
+		BugTracker    BugTracker      `json:"bug_tracker" yaml:"bug_tracker"`
+		Keywords      []Keyword       `json:"keywords" yaml:"keywords"`
+		Authors       []User          `json:"authors" yaml:"authors"`
+		Owners        []User          `json:"owners" yaml:"owners"`
+		Versions      []ModuleVersion `json:"versions" yaml:"versions"`
+	}{
+		GormModelJSON: GormModelJSON{
+			ID:        m.ID,
+			CreatedAt: m.CreatedAt,
+			UpdatedAt: m.UpdatedAt,
+		},
+		Name:          m.Name,
+		Team:          m.Team,
+		Description:   m.Description,
+		Documentation: m.Documentation,
+		Homepage:      m.Homepage,
+		Repo:          m.Repo,
+		BugTracker:    m.BugTracker,
+		Keywords:      m.Keywords,
+		Authors:       m.Authors,
+		Owners:        m.Owners,
+		Versions:      m.Versions,
+	})
+}
 
 // Upsert will attempt to either create a new Module record or update an
 // existing record. A Module record is considered unique by a (name, team) index.
@@ -77,19 +153,24 @@ func (m Module) Upsert(db *gorm.DB) (Module, error) {
 	var record Module
 
 	err := db.Transaction(func(tx *gorm.DB) error {
-		// retrieve existing accounts first before updating the association
-		for i, u := range m.Authors {
-			result, err := User{Name: u.Name}.Query(tx)
-			if err == nil {
-				m.Authors[i] = result
+		// fetch or create owners first before updating the association
+		for i, o := range m.Owners {
+			if err := tx.Where(User{Name: o.Name}).FirstOrCreate(&m.Owners[i]).Error; err != nil {
+				return err
 			}
 		}
 
-		// retrieve existing keywords first before updating the association
+		// fetch or create users first before updating the association
+		for i, u := range m.Authors {
+			if err := tx.Where(User{Name: u.Name}).FirstOrCreate(&m.Authors[i]).Error; err != nil {
+				return err
+			}
+		}
+
+		// fetch or create keywords first before updating the association
 		for i, k := range m.Keywords {
-			result, err := Keyword{Name: k.Name}.Query(tx)
-			if err == nil {
-				m.Keywords[i] = result
+			if err := tx.Where(Keyword{Name: k.Name}).FirstOrCreate(&m.Keywords[i]).Error; err != nil {
+				return err
 			}
 		}
 
@@ -110,8 +191,6 @@ func (m Module) Upsert(db *gorm.DB) (Module, error) {
 					return fmt.Errorf("failed to create module: %w", err)
 				}
 
-				record = m
-
 				// commit the tx
 				return nil
 			} else {
@@ -122,6 +201,11 @@ func (m Module) Upsert(db *gorm.DB) (Module, error) {
 		// record exists, so we update the relevant fields
 		if err := tx.Preload(clause.Associations).First(&record).Error; err != nil {
 			return err
+		}
+
+		// update owners association
+		if err := tx.Model(&record).Association("Owners").Replace(m.Owners); err != nil {
+			return fmt.Errorf("failed to update module owners: %w", err)
 		}
 
 		// update authors association
@@ -166,16 +250,33 @@ func (m Module) Upsert(db *gorm.DB) (Module, error) {
 			return fmt.Errorf("failed to update module: %w", err)
 		}
 
-		// reload associations on the updated record
-		if err := tx.Preload(clause.Associations).First(&record).Error; err != nil {
-			return err
-		}
-
 		// commit the tx
 		return nil
 	})
+	if err != nil {
+		return Module{}, err
+	}
 
-	return record, err
+	// fetch & reload associations on the upserted record
+	if err := db.Preload(clause.Associations).First(&record).Error; err != nil {
+		return Module{}, err
+	}
+
+	return record, nil
+}
+
+// Query performs a query for a Module record where the search criteria is
+// defined by the receiver object. The resulting record, if it exists, is
+// returned. If the query fails or the record does not exist, an error is
+// returned.
+func (m Module) Query(db *gorm.DB) (Module, error) {
+	var record Module
+
+	if err := db.Preload(clause.Associations).Where(m).First(&record).Error; err != nil {
+		return Module{}, fmt.Errorf("failed to query module: %w", err)
+	}
+
+	return record, nil
 }
 
 // GetModuleByID returns a module by ID. If the module doesn't exist or if the

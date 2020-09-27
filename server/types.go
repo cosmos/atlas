@@ -1,6 +1,8 @@
 package server
 
-import "github.com/cosmos/atlas/server/models"
+import (
+	"github.com/cosmos/atlas/server/models"
+)
 
 // PaginationResponse defines a generic type encapsulating a paginated response.
 // Client should not rely on decoding into this type as the Results is an
@@ -27,12 +29,6 @@ type UserRequest struct {
 	Email string `json:"email" yaml:"email" validate:"omitempty,email"`
 }
 
-// KeywordRequest defines a type wrapper for defining Keyword model data in a
-// request.
-type KeywordRequest struct {
-	Name string `json:"name" yaml:"name" validate:"omitempty,required"`
-}
-
 // BugTrackerRequest defines a type wrapper for defining BugTracker model data
 // in a request.
 type BugTrackerRequest struct {
@@ -47,23 +43,23 @@ type ModuleRequest struct {
 	Team        string             `json:"team" yaml:"team" validate:"required"`
 	Repo        string             `json:"repo" yaml:"repo" validate:"required,url"`
 	Version     string             `json:"version" yaml:"version" validate:"required"`
-	Authors     []UserRequest      `json:"authors" yaml:"authors" validate:"required,dive"`
+	Authors     []UserRequest      `json:"authors" yaml:"authors" validate:"required,gt=0,dive"`
 	Description string             `json:"description" yaml:"description"`
 	Homepage    string             `json:"homepage" yaml:"homepage" validate:"omitempty,url"`
 	BugTracker  *BugTrackerRequest `json:"bug_tracker" yaml:"bug_tracker" validate:"omitempty,dive"`
-	Keywords    []KeywordRequest   `json:"keywords" yaml:"keywords" validate:"dive"`
+	Keywords    []string           `json:"keywords" yaml:"keywords" validate:"omitempty,gt=0,dive,gt=0"`
 }
 
 // ModuleFromRequest converts a ModuleRequest to a Module model.
 func ModuleFromRequest(req ModuleRequest) models.Module {
 	authors := make([]models.User, len(req.Authors))
-	for i, a := range authors {
-		authors[i] = models.User{Name: a.Name, Email: a.Email}
+	for i, a := range req.Authors {
+		authors[i] = models.User{Name: a.Name, Email: models.NewNullString(a.Email)}
 	}
 
 	keywords := make([]models.Keyword, len(req.Keywords))
 	for i, k := range req.Keywords {
-		keywords[i] = models.Keyword{Name: k.Name}
+		keywords[i] = models.Keyword{Name: k}
 	}
 
 	bugTracker := models.BugTracker{}
