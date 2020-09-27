@@ -27,4 +27,8 @@ DROP TABLE IF EXISTS module_keywords CASCADE;
 -- Drop the module_authors table
 -- 
 DROP TABLE IF EXISTS module_authors CASCADE;
+--
+-- Drop the module_owners table
+--
+DROP TABLE IF EXISTS module_owners CASCADE;
 COMMIT;

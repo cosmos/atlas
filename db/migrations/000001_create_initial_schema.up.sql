@@ -5,8 +5,9 @@ BEGIN;
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     name VARCHAR NOT NULL UNIQUE,
+    github_user_id INT UNIQUE,
+    github_access_token VARCHAR UNIQUE,
     email VARCHAR UNIQUE,
-    github_access_token VARCHAR NOT NULL,
     url VARCHAR,
     avatar_url VARCHAR,
     gravatar_id VARCHAR,
@@ -84,12 +85,21 @@ CREATE TABLE module_keywords (
 );
 CREATE INDEX IF NOT EXISTS module_id_idx ON module_keywords(module_id);
 -- 
--- Create a relationship between the users and modules tables
+-- Create a relationship between the users and modules tables as authors
 -- 
 CREATE TABLE module_authors (
     user_id INT NOT NULL,
     module_id INT NOT NULL,
     PRIMARY KEY (user_id, module_id)
 );
-CREATE INDEX IF NOT EXISTS module_id_idx ON module_authors(module_id);
+CREATE INDEX IF NOT EXISTS idx_module_authors_module_id ON module_authors(module_id);
+--
+-- Create a relationship between the modules and users tables as owners
+--
+CREATE TABLE module_owners (
+    user_id INT NOT NULL,
+    module_id INT NOT NULL,
+    PRIMARY KEY (user_id, module_id)
+);
+CREATE INDEX IF NOT EXISTS idx_module_owners_module_id ON module_owners(module_id);
 COMMIT;
