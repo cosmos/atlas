@@ -303,3 +303,72 @@ func GetAllModules(db *gorm.DB, cursor uint, limit int) ([]Module, error) {
 
 	return modules, nil
 }
+
+// SearchModules performs a paginated query for a set of modules by name, team,
+// description and set of keywords. If not matching modules exist, an empty slice
+// is returned.
+func SearchModules(db *gorm.DB, query string, cursor uint, limit int) ([]Module, error) {
+	if len(query) == 0 {
+		return []Module{}, nil
+	}
+
+	type queryRow struct {
+		ModuleID   int
+		ModuleName string
+	}
+
+	rows, err := db.Raw(`SELECT DISTINCT
+  ON (module_id) results.module_id AS module_id,
+  results.module_name AS module_name
+FROM
+  (
+    SELECT
+      m.id AS module_id,
+      m.name AS module_name,
+      m.team,
+      m.description,
+      k.name
+    FROM
+      modules m
+      LEFT JOIN
+        module_keywords mk
+        ON (m.id = mk.module_id)
+      LEFT JOIN
+        keywords k
+        ON (mk.keyword_id = k.id)
+    WHERE
+      to_tsvector('english', COALESCE(m.name, '') || ' ' || COALESCE(m.team, '') || ' ' || COALESCE(m.description, '') || ' ' || COALESCE(k.name, '')) @@ websearch_to_tsquery('english', ?)
+      AND m.id > ?
+  )
+  AS results
+ORDER BY
+  module_id LIMIT ?;
+`, query, cursor, limit).Rows()
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	moduleIDs := []int{}
+	for rows.Next() {
+		var qr queryRow
+		if err := db.ScanRows(rows, &qr); err != nil {
+			return nil, fmt.Errorf("failed to search for modules: %w", err)
+		}
+
+		moduleIDs = append(moduleIDs, qr.ModuleID)
+	}
+
+	if len(moduleIDs) == 0 {
+		return []Module{}, nil
+	}
+
+	var modules []Module
+
+	if err := db.Preload(clause.Associations).Order("id asc").Find(&modules, moduleIDs).Error; err != nil {
+		return nil, fmt.Errorf("failed to search for modules: %w", err)
+	}
+
+	return modules, nil
+}

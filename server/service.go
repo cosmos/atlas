@@ -133,6 +133,11 @@ func (s *Service) registerV1Routes() {
 
 	// unauthenticated routes
 	v1Router.Handle(
+		"/modules/search",
+		mChain.ThenFunc(s.SearchModules()),
+	).Queries("cursor", "{cursor:[0-9]+}", "limit", "{limit:[0-9]+}", "q", "{q}").Methods(methodGET)
+
+	v1Router.Handle(
 		"/modules",
 		mChain.ThenFunc(s.GetAllModules()),
 	).Queries("cursor", "{cursor:[0-9]+}", "limit", "{limit:[0-9]+}").Methods(methodGET)
@@ -281,6 +286,29 @@ func (s *Service) GetModuleByID() http.HandlerFunc {
 		}
 
 		respondWithJSON(w, http.StatusOK, module)
+	}
+}
+
+// SearchModules implements a request handler to retrieve a set of module objects
+// by search criteria.
+func (s *Service) SearchModules() http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		cursor, limit, err := parsePagination(req)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, err)
+			return
+		}
+
+		query := req.URL.Query().Get("q")
+
+		modules, err := models.SearchModules(s.db, query, cursor, limit)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		paginated := NewPaginationResponse(len(modules), limit, cursor, modules)
+		respondWithJSON(w, http.StatusOK, paginated)
 	}
 }
 
