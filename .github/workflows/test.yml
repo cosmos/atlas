@@ -20,13 +20,11 @@ jobs:
           github-token: ${{ secrets.github_token }}
         if: "env.GIT_DIFF != ''"
 
-  # Label of the container job
-  postgres-test-container:
-    # Containers must run in Linux based operating systems
+  # Label of the runner job
+  test-and-cover:
+    # You must use a Linux environment when using service containers or container jobs
     runs-on: ubuntu-latest
-    # Docker Hub image that `container-job` executes in
-    container: node:10.18-jessie
-    # Service containers to run with `container-job`
+    # Service containers to run with `runner-job`
     services:
       # Label used to access the service container
       postgres:
@@ -41,9 +39,9 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-
-  test-and-cover:
-    runs-on: ubuntu-latest
+        ports:
+          # Maps tcp port 5432 on service container to the host
+          - 5432:5432       
     timeout-minutes: 20
     strategy:
       fail-fast: false
