@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	gormlogger "gorm.io/gorm/logger"
 
 	"github.com/cosmos/atlas/server/models"
 )
@@ -43,7 +44,7 @@ func TestModels(t *testing.T) {
 			m, err := migrate.NewWithDatabaseInstance(fmt.Sprintf("file:///%s", path), "postgres", driver)
 			require.NoError(t, err)
 
-			gormDB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+			gormDB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: gormlogger.Discard})
 			require.NoError(t, err)
 
 			t.Run("Module", func(t *testing.T) {
@@ -306,6 +307,9 @@ func testModuleUpdateAuthors(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
 			Team: "cosmonauts",
 			Repo: "https://github.com/cosmos/cosmos-sdk",
 			Authors: []models.User{
+				{Name: "admin"},
+			},
+			Owners: []models.User{
 				{Name: "admin"},
 			},
 			Version:    "v1.0.0",

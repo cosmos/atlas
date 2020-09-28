@@ -38,3 +38,13 @@ migrate:
 	@migrate -database ${ATLAS_DATABASE_URL} -path db/migrations up
 
 .PHONY: migrate
+
+###############################################################################
+#                                    Tests                                    #
+###############################################################################
+
+export ATLAS_MIGRATIONS_DIR ?= $(shell pwd)/db/migrations
+test:
+	@go test -v --timeout=10m ./...
+
+.PHONY: test
