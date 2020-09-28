@@ -4,4 +4,4 @@ go:
   - 1.15.x
 install: true
 script:
-  - make install
+  - make install test
