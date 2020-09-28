@@ -1,0 +1,10 @@
+version: '3'
+services:
+  atlas_test_db:
+    image: "postgres:11-alpine" 
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - 6432:5432

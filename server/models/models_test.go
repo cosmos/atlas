@@ -245,271 +245,259 @@ func (mts *ModelsTestSuite) TestGetAllModules() {
 func (mts *ModelsTestSuite) TestModuleUpdateBasic() {
 	resetDB(mts.T(), mts.m)
 
-	mts.Run("update basic", func() {
-		mod := models.Module{
-			Name:          "x/bank",
-			Team:          "cosmonauts",
-			Description:   "test description",
-			Documentation: "https://github.com/cosmos/cosmos-sdk/x/bank/old_readme.md",
-			Homepage:      "https://old.cosmos.network",
-			Repo:          "https://github.com/cosmos/cosmos-sdk/old",
-			Authors: []models.User{
-				{Name: "admin"},
-			},
-			Version:    "v1.0.0",
-			BugTracker: models.BugTracker{},
-		}
+	mod := models.Module{
+		Name:          "x/bank",
+		Team:          "cosmonauts",
+		Description:   "test description",
+		Documentation: "https://github.com/cosmos/cosmos-sdk/x/bank/old_readme.md",
+		Homepage:      "https://old.cosmos.network",
+		Repo:          "https://github.com/cosmos/cosmos-sdk/old",
+		Authors: []models.User{
+			{Name: "admin"},
+		},
+		Version:    "v1.0.0",
+		BugTracker: models.BugTracker{},
+	}
 
-		record, err := mod.Upsert(mts.gormDB)
-		mts.Require().NoError(err)
+	record, err := mod.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
 
-		mod = models.Module{
-			Name:          record.Name,
-			Team:          record.Team,
-			Description:   "new test description",
-			Documentation: "https://github.com/cosmos/cosmos-sdk/x/bank/new_readme.md",
-			Homepage:      "https://new.cosmos.network",
-			Repo:          "https://github.com/cosmos/cosmos-sdk/new",
-		}
+	mod = models.Module{
+		Name:          record.Name,
+		Team:          record.Team,
+		Description:   "new test description",
+		Documentation: "https://github.com/cosmos/cosmos-sdk/x/bank/new_readme.md",
+		Homepage:      "https://new.cosmos.network",
+		Repo:          "https://github.com/cosmos/cosmos-sdk/new",
+	}
 
-		record, err = mod.Upsert(mts.gormDB)
-		mts.Require().NoError(err)
-		mts.Require().Equal(mod.Description, record.Description)
-		mts.Require().Equal(mod.Documentation, record.Documentation)
-		mts.Require().Equal(mod.Homepage, record.Homepage)
-		mts.Require().Equal(mod.Repo, record.Repo)
-	})
+	record, err = mod.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
+	mts.Require().Equal(mod.Description, record.Description)
+	mts.Require().Equal(mod.Documentation, record.Documentation)
+	mts.Require().Equal(mod.Homepage, record.Homepage)
+	mts.Require().Equal(mod.Repo, record.Repo)
 }
 
 func (mts *ModelsTestSuite) TestModuleUpdateBugTracker() {
 	resetDB(mts.T(), mts.m)
 
-	mts.Run("update bug tracker", func() {
-		mod := models.Module{
-			Name: "x/bank",
-			Team: "cosmonauts",
-			Repo: "https://github.com/cosmos/cosmos-sdk",
-			Authors: []models.User{
-				{Name: "admin"},
-			},
-			Version:    "v1.0.0",
-			BugTracker: models.BugTracker{},
-		}
+	mod := models.Module{
+		Name: "x/bank",
+		Team: "cosmonauts",
+		Repo: "https://github.com/cosmos/cosmos-sdk",
+		Authors: []models.User{
+			{Name: "admin"},
+		},
+		Version:    "v1.0.0",
+		BugTracker: models.BugTracker{},
+	}
 
-		record, err := mod.Upsert(mts.gormDB)
-		mts.Require().NoError(err)
+	record, err := mod.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
 
-		mod.BugTracker = models.BugTracker{
-			URL:     models.NewNullString("https://cosmos.network/bugs"),
-			Contact: models.NewNullString("bugs@cosmos.network"),
-		}
+	mod.BugTracker = models.BugTracker{
+		URL:     models.NewNullString("https://cosmos.network/bugs"),
+		Contact: models.NewNullString("bugs@cosmos.network"),
+	}
 
-		record, err = mod.Upsert(mts.gormDB)
-		mts.Require().NoError(err)
-		mts.Require().Equal(mod.BugTracker.URL, record.BugTracker.URL)
-		mts.Require().Equal(mod.BugTracker.Contact, record.BugTracker.Contact)
+	record, err = mod.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
+	mts.Require().Equal(mod.BugTracker.URL, record.BugTracker.URL)
+	mts.Require().Equal(mod.BugTracker.Contact, record.BugTracker.Contact)
 
-		mod.BugTracker = models.BugTracker{}
+	mod.BugTracker = models.BugTracker{}
 
-		record, err = mod.Upsert(mts.gormDB)
-		mts.Require().NoError(err)
-		mts.Require().Equal(mod.BugTracker.URL, record.BugTracker.URL)
-		mts.Require().Equal(mod.BugTracker.Contact, record.BugTracker.Contact)
-	})
+	record, err = mod.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
+	mts.Require().Equal(mod.BugTracker.URL, record.BugTracker.URL)
+	mts.Require().Equal(mod.BugTracker.Contact, record.BugTracker.Contact)
 }
 
 func (mts *ModelsTestSuite) TestModuleUpdateKeywords() {
 	resetDB(mts.T(), mts.m)
 
-	mts.Run("update keywords", func() {
-		mod := models.Module{
-			Name: "x/bank",
-			Team: "cosmonauts",
-			Repo: "https://github.com/cosmos/cosmos-sdk",
-			Authors: []models.User{
-				{Name: "admin"},
-			},
-			Version:    "v1.0.0",
-			BugTracker: models.BugTracker{},
-		}
+	mod := models.Module{
+		Name: "x/bank",
+		Team: "cosmonauts",
+		Repo: "https://github.com/cosmos/cosmos-sdk",
+		Authors: []models.User{
+			{Name: "admin"},
+		},
+		Version:    "v1.0.0",
+		BugTracker: models.BugTracker{},
+	}
 
-		record, err := mod.Upsert(mts.gormDB)
-		mts.Require().NoError(err)
+	record, err := mod.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
 
-		mod.Keywords = []models.Keyword{
-			{Name: "keyword1"}, {Name: "keyword2"}, {Name: "keyword3"},
-		}
+	mod.Keywords = []models.Keyword{
+		{Name: "keyword1"}, {Name: "keyword2"}, {Name: "keyword3"},
+	}
 
-		record, err = mod.Upsert(mts.gormDB)
-		mts.Require().NoError(err)
-		mts.Require().Equal(mod.Keywords, record.Keywords)
+	record, err = mod.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
+	mts.Require().Equal(mod.Keywords, record.Keywords)
 
-		mod.Keywords = []models.Keyword{
-			{Name: "keyword1"}, {Name: "keyword3"},
-		}
+	mod.Keywords = []models.Keyword{
+		{Name: "keyword1"}, {Name: "keyword3"},
+	}
 
-		record, err = mod.Upsert(mts.gormDB)
-		mts.Require().NoError(err)
-		mts.Require().Equal(mod.Keywords, record.Keywords)
+	record, err = mod.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
+	mts.Require().Equal(mod.Keywords, record.Keywords)
 
-		mod.Keywords = []models.Keyword{}
+	mod.Keywords = []models.Keyword{}
 
-		record, err = mod.Upsert(mts.gormDB)
-		mts.Require().NoError(err)
-		mts.Require().Equal(mod.Keywords, record.Keywords)
-	})
+	record, err = mod.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
+	mts.Require().Equal(mod.Keywords, record.Keywords)
 }
 
 func (mts *ModelsTestSuite) TestModuleUpdateAuthors() {
 	resetDB(mts.T(), mts.m)
 
-	mts.Run("update authors", func() {
-		mod := models.Module{
-			Name: "x/bank",
-			Team: "cosmonauts",
-			Repo: "https://github.com/cosmos/cosmos-sdk",
-			Authors: []models.User{
-				{Name: "admin"},
-			},
-			Owners: []models.User{
-				{Name: "admin"},
-			},
-			Version:    "v1.0.0",
-			BugTracker: models.BugTracker{},
-		}
+	mod := models.Module{
+		Name: "x/bank",
+		Team: "cosmonauts",
+		Repo: "https://github.com/cosmos/cosmos-sdk",
+		Authors: []models.User{
+			{Name: "admin"},
+		},
+		Owners: []models.User{
+			{Name: "admin"},
+		},
+		Version:    "v1.0.0",
+		BugTracker: models.BugTracker{},
+	}
 
-		record, err := mod.Upsert(mts.gormDB)
-		mts.Require().NoError(err)
+	record, err := mod.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
 
-		mod.Authors = []models.User{
-			{Name: "admin"}, {Name: "user1"}, {Name: "user2"},
-		}
+	mod.Authors = []models.User{
+		{Name: "admin"}, {Name: "user1"}, {Name: "user2"},
+	}
 
-		record, err = mod.Upsert(mts.gormDB)
-		mts.Require().NoError(err)
-		mts.Require().Equal(mod.Authors, record.Authors)
-		mts.Require().Equal(mod.Owners, record.Owners)
+	record, err = mod.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
+	mts.Require().Equal(mod.Authors, record.Authors)
+	mts.Require().Equal(mod.Owners, record.Owners)
 
-		mod.Authors = []models.User{
-			{Name: "admin"}, {Name: "user2"},
-		}
+	mod.Authors = []models.User{
+		{Name: "admin"}, {Name: "user2"},
+	}
 
-		record, err = mod.Upsert(mts.gormDB)
-		mts.Require().NoError(err)
-		mts.Require().Equal(mod.Authors, record.Authors)
-		mts.Require().Equal(mod.Owners, record.Owners)
+	record, err = mod.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
+	mts.Require().Equal(mod.Authors, record.Authors)
+	mts.Require().Equal(mod.Owners, record.Owners)
 
-		mod.Authors = []models.User{}
+	mod.Authors = []models.User{}
 
-		record, err = mod.Upsert(mts.gormDB)
-		mts.Require().NoError(err)
-		mts.Require().Equal(mod.Authors, record.Authors)
-		mts.Require().Equal(mod.Owners, record.Owners)
-	})
+	record, err = mod.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
+	mts.Require().Equal(mod.Authors, record.Authors)
+	mts.Require().Equal(mod.Owners, record.Owners)
 }
 
 func (mts *ModelsTestSuite) TestModuleUpdateOwners() {
 	resetDB(mts.T(), mts.m)
 
-	mts.Run("update owners", func() {
-		mod := models.Module{
-			Name: "x/bank",
-			Team: "cosmonauts",
-			Repo: "https://github.com/cosmos/cosmos-sdk",
-			Authors: []models.User{
-				{Name: "admin"},
-			},
-			Owners: []models.User{
-				{Name: "admin"},
-			},
-			Version:    "v1.0.0",
-			BugTracker: models.BugTracker{},
-		}
+	mod := models.Module{
+		Name: "x/bank",
+		Team: "cosmonauts",
+		Repo: "https://github.com/cosmos/cosmos-sdk",
+		Authors: []models.User{
+			{Name: "admin"},
+		},
+		Owners: []models.User{
+			{Name: "admin"},
+		},
+		Version:    "v1.0.0",
+		BugTracker: models.BugTracker{},
+	}
 
-		record, err := mod.Upsert(mts.gormDB)
-		mts.Require().NoError(err)
+	record, err := mod.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
 
-		mod.Owners = []models.User{
-			{Name: "admin"}, {Name: "user1"}, {Name: "user2"},
-		}
+	mod.Owners = []models.User{
+		{Name: "admin"}, {Name: "user1"}, {Name: "user2"},
+	}
 
-		record, err = mod.Upsert(mts.gormDB)
-		mts.Require().NoError(err)
-		mts.Require().Equal(mod.Authors, record.Authors)
-		mts.Require().Equal(mod.Owners, record.Owners)
+	record, err = mod.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
+	mts.Require().Equal(mod.Authors, record.Authors)
+	mts.Require().Equal(mod.Owners, record.Owners)
 
-		mod.Owners = []models.User{
-			{Name: "admin"}, {Name: "user2"},
-		}
+	mod.Owners = []models.User{
+		{Name: "admin"}, {Name: "user2"},
+	}
 
-		record, err = mod.Upsert(mts.gormDB)
-		mts.Require().NoError(err)
-		mts.Require().Equal(mod.Authors, record.Authors)
-		mts.Require().Equal(mod.Owners, record.Owners)
+	record, err = mod.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
+	mts.Require().Equal(mod.Authors, record.Authors)
+	mts.Require().Equal(mod.Owners, record.Owners)
 
-		mod.Owners = []models.User{}
+	mod.Owners = []models.User{}
 
-		record, err = mod.Upsert(mts.gormDB)
-		mts.Require().NoError(err)
-		mts.Require().Equal(mod.Authors, record.Authors)
-		mts.Require().Equal(mod.Owners, record.Owners)
-	})
+	record, err = mod.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
+	mts.Require().Equal(mod.Authors, record.Authors)
+	mts.Require().Equal(mod.Owners, record.Owners)
 }
 
 func (mts *ModelsTestSuite) TestModuleUpdateVersion() {
 	resetDB(mts.T(), mts.m)
 
-	mts.Run("update version", func() {
-		mod := models.Module{
-			Name: "x/bank",
-			Team: "cosmonauts",
-			Repo: "https://github.com/cosmos/cosmos-sdk",
-			Authors: []models.User{
-				{Name: "admin"},
-			},
-			Owners: []models.User{
-				{Name: "admin"},
-			},
-			Version:    "v1.0.0",
-			BugTracker: models.BugTracker{},
-		}
+	mod := models.Module{
+		Name: "x/bank",
+		Team: "cosmonauts",
+		Repo: "https://github.com/cosmos/cosmos-sdk",
+		Authors: []models.User{
+			{Name: "admin"},
+		},
+		Owners: []models.User{
+			{Name: "admin"},
+		},
+		Version:    "v1.0.0",
+		BugTracker: models.BugTracker{},
+	}
 
-		record, err := mod.Upsert(mts.gormDB)
-		mts.Require().NoError(err)
+	record, err := mod.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
 
-		// update version
-		mod.Version = "v1.0.1"
+	// update version
+	mod.Version = "v1.0.1"
 
-		record, err = mod.Upsert(mts.gormDB)
-		mts.Require().NoError(err)
-		mts.Require().Len(record.Versions, 2)
+	record, err = mod.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
+	mts.Require().Len(record.Versions, 2)
 
-		latest, err := record.GetLatestVersion(mts.gormDB)
-		mts.Require().NoError(err)
-		mts.Require().Equal(mod.Version, latest.Version)
+	latest, err := record.GetLatestVersion(mts.gormDB)
+	mts.Require().NoError(err)
+	mts.Require().Equal(mod.Version, latest.Version)
 
-		// no version update
-		mod.Version = "v1.0.1"
+	// no version update
+	mod.Version = "v1.0.1"
 
-		record, err = mod.Upsert(mts.gormDB)
-		mts.Require().NoError(err)
-		mts.Require().Len(record.Versions, 2)
+	record, err = mod.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
+	mts.Require().Len(record.Versions, 2)
 
-		latest, err = record.GetLatestVersion(mts.gormDB)
-		mts.Require().NoError(err)
-		mts.Require().Equal(mod.Version, latest.Version)
+	latest, err = record.GetLatestVersion(mts.gormDB)
+	mts.Require().NoError(err)
+	mts.Require().Equal(mod.Version, latest.Version)
 
-		// update version again
-		mod.Version = "v2.0.0"
+	// update version again
+	mod.Version = "v2.0.0"
 
-		record, err = mod.Upsert(mts.gormDB)
-		mts.Require().NoError(err)
-		mts.Require().Len(record.Versions, 3)
+	record, err = mod.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
+	mts.Require().Len(record.Versions, 3)
 
-		latest, err = record.GetLatestVersion(mts.gormDB)
-		mts.Require().NoError(err)
-		mts.Require().Equal(mod.Version, latest.Version)
-	})
+	latest, err = record.GetLatestVersion(mts.gormDB)
+	mts.Require().NoError(err)
+	mts.Require().Equal(mod.Version, latest.Version)
 }
 
 func (mts *ModelsTestSuite) TestModuleSearch() {
