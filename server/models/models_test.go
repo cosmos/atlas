@@ -63,7 +63,6 @@ func (mts *ModelsTestSuite) SetupTestSuite() {
 
 // TearDownSuite executes after all the suite's test have finished.
 func (mts *ModelsTestSuite) TearDownSuite() {
-	mts.T().Log("tearing down test suite")
 	mts.Require().NoError(mts.db.Close())
 }
 
@@ -72,7 +71,86 @@ func TestModelsTestSuite(t *testing.T) {
 }
 
 func (mts *ModelsTestSuite) TestModuleCreate() {
-	mts.Require().True(true)
+	testCases := []struct {
+		name      string
+		module    models.Module
+		expectErr bool
+	}{
+		{
+			name:      "create module invalid name",
+			module:    models.Module{},
+			expectErr: true,
+		},
+		{
+			name:      "create module invalid team",
+			module:    models.Module{Name: "x/bank"},
+			expectErr: true,
+		},
+		{
+			name:      "create module no repo",
+			module:    models.Module{Name: "x/bank", Team: "cosmonauts"},
+			expectErr: true,
+		},
+		{
+			name: "create module no authors",
+			module: models.Module{
+				Name: "x/bank",
+				Team: "cosmonauts",
+				Repo: "https://github.com/cosmos/cosmos-sdk",
+			},
+			expectErr: true,
+		},
+		{
+			name: "create module no version",
+			module: models.Module{
+				Name: "x/bank",
+				Team: "cosmonauts",
+				Repo: "https://github.com/cosmos/cosmos-sdk",
+				Authors: []models.User{
+					{Name: "foo", Email: models.NewNullString("foo@email.com")},
+				},
+			},
+			expectErr: true,
+		},
+		{
+			name: "create module",
+			module: models.Module{
+				Name: "x/bank",
+				Team: "cosmonauts",
+				Repo: "https://github.com/cosmos/cosmos-sdk",
+				Authors: []models.User{
+					{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
+				},
+				Version: "v1.0.0",
+				Keywords: []models.Keyword{
+					{Name: "tokens"},
+				},
+				BugTracker: models.BugTracker{
+					URL:     models.NewNullString("cosmonauts.com"),
+					Contact: models.NewNullString("contact@cosmonauts.com"),
+				},
+			},
+			expectErr: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+
+		mts.Run(tc.name, func() {
+			result, err := tc.module.Upsert(mts.gormDB)
+			if tc.expectErr {
+				mts.Require().Error(err)
+			} else {
+				mts.Require().NoError(err)
+				mts.Require().Equal(tc.module.Name, result.Name)
+				mts.Require().Equal(tc.module.Team, result.Team)
+				mts.Require().Equal(tc.module.Description, result.Description)
+				mts.Require().Equal(tc.module.Homepage, result.Homepage)
+				mts.Require().Equal(tc.module.Documentation, result.Documentation)
+			}
+		})
+	}
 }
 
 func TestModelz(t *testing.T) {

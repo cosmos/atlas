@@ -20,17 +20,11 @@ jobs:
           github-token: ${{ secrets.github_token }}
         if: "env.GIT_DIFF != ''"
 
-  # Label of the runner job
   test-and-cover:
-    # You must use a Linux environment when using service containers or container jobs
     runs-on: ubuntu-latest
-    # Service containers to run with `runner-job`
     services:
-      # Label used to access the service container
       postgres:
-        # Docker Hub image
         image: postgres:11-alpine
-        # Provide the password for postgres
         env:
           POSTGRES_PASSWORD: postgres
         # Set health checks to wait until postgres has started
