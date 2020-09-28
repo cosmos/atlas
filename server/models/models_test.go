@@ -37,7 +37,7 @@ func (mts *ModelsTestSuite) SetupSuite() {
 
 	connStr := os.Getenv("ATLAS_TEST_DATABASE_URL")
 	mts.Require().NotEmpty(connStr)
-	fmt.Println("DB:", connStr)
+
 	db, err := sql.Open("postgres", connStr)
 	mts.Require().NoError(err)
 	mts.Require().NoError(db.Ping())
@@ -58,6 +58,7 @@ func (mts *ModelsTestSuite) SetupSuite() {
 
 // SetupTestSuite executes before each individual test.
 func (mts *ModelsTestSuite) SetupTestSuite() {
+	fmt.Println("RUNNING SetupTestSuite")
 	resetDB(mts.T(), mts.m)
 }
 
@@ -71,6 +72,9 @@ func TestModelsTestSuite(t *testing.T) {
 }
 
 func (mts *ModelsTestSuite) TestModuleCreate() {
+	fmt.Println("RUNNING TestModuleCreate")
+	resetDB(mts.T(), mts.m)
+
 	testCases := []struct {
 		name      string
 		module    models.Module
@@ -182,7 +186,7 @@ func TestModelz(t *testing.T) {
 			require.NoError(t, err)
 
 			t.Run("Module", func(t *testing.T) {
-				testModuleCreate(t, m, gormDB)
+				// testModuleCreate(t, m, gormDB)
 				testGetModuleByID(t, m, gormDB)
 				testGetAllModules(t, m, gormDB)
 				testModuleUpdateBasic(t, m, gormDB)
