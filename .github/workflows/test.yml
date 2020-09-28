@@ -54,7 +54,7 @@ jobs:
       - uses: actions/checkout@v2
       - run: make test
         env:
-          ATLAS_TEST_DATABASE_URL: "host=localhost port=5432 dbname=postgres password=postgres sslmode=disable"
+          ATLAS_TEST_DATABASE_URL: "host=localhost port=5432 dbname=postgres user=runner password=postgres sslmode=disable"
       - name: Send coverage
         uses: shogo82148/actions-goveralls@v1
         with:
