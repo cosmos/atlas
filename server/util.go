@@ -11,14 +11,14 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-func parsePagination(r *http.Request) (uint, int, error) {
-	cursorStr := r.URL.Query().Get("cursor")
+func parsePagination(req *http.Request) (uint, int, error) {
+	cursorStr := req.URL.Query().Get("cursor")
 	cursor, err := strconv.ParseUint(cursorStr, 10, 64)
 	if err != nil {
 		return 0, 0, fmt.Errorf("invalid cursor param: %w", err)
 	}
 
-	limitStr := r.URL.Query().Get("limit")
+	limitStr := req.URL.Query().Get("limit")
 	limit, err := strconv.ParseInt(limitStr, 10, 64)
 	if err != nil {
 		return 0, 0, fmt.Errorf("invalid limit param: %w", err)
