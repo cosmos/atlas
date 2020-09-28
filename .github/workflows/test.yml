@@ -20,7 +20,7 @@ jobs:
           github-token: ${{ secrets.github_token }}
         if: "env.GIT_DIFF != ''"
 
-  test:
+  test-and-cover:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
