@@ -45,6 +45,6 @@ migrate:
 
 export ATLAS_MIGRATIONS_DIR ?= $(shell pwd)/db/migrations
 test:
-	@go test -v --timeout=10m ./...
+	@go test -v -coverprofile=profile.cov --timeout=10m ./...
 
 .PHONY: test

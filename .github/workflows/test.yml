@@ -16,7 +16,39 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v2
         with:
-          version: v1.29  
+          version: v1.29
+          github-token: ${{ secrets.github_token }}
+        if: "env.GIT_DIFF != ''"
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        go: ['1.15']
+
+    steps:
+      - uses: actions/setup-go@v1
+        with:
+          go-version: ${{ matrix.go }}
+      - uses: actions/checkout@v2
+      - run: make test
+      - name: Send coverage
+        uses: shogo82148/actions-goveralls@v1
+        with:
+          path-to-profile: profile.cov
+          flag-name: Go-${{ matrix.go }}
+          parallel: true
+
+  # notifies that all test jobs are finished
+  finish:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: shogo82148/actions-goveralls@v1
+        with:
+          parallel-finished: true
+
   # lint:
   #   runs-on: ubuntu-latest
   #   steps:
