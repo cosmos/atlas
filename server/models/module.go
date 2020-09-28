@@ -317,6 +317,9 @@ func SearchModules(db *gorm.DB, query string, cursor uint, limit int) ([]Module,
 		ModuleName string
 	}
 
+	// Perform a join on modules and keywords, including modules without keywords,
+	// and execute a text search against fields: module name, module team,
+	// module description, and keyword.
 	rows, err := db.Raw(`SELECT DISTINCT
   ON (module_id) results.module_id AS module_id,
   results.module_name AS module_name
