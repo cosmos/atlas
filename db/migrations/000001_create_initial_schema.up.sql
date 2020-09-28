@@ -72,8 +72,8 @@ CREATE INDEX idx_module_versions_deleted_at ON module_versions(deleted_at timest
 -- 
 CREATE TABLE IF NOT EXISTS bug_trackers (
     id SERIAL PRIMARY KEY,
-    url VARCHAR NOT NULL,
-    contact VARCHAR NOT NULL,
+    url VARCHAR,
+    contact VARCHAR,
     module_id INT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL,
