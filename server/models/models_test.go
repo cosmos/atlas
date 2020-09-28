@@ -380,6 +380,12 @@ func (mts *ModelsTestSuite) TestModuleUpdateAuthors() {
 
 	record, err = mod.Upsert(mts.gormDB)
 	mts.Require().NoError(err)
+
+	for i, a := range record.Authors {
+		fmt.Println("record created at:", a.CreatedAt)
+		fmt.Println("module created at:", mod.Authors[i].CreatedAt)
+	}
+
 	mts.Require().Equal(mod.Authors, record.Authors)
 	mts.Require().Equal(mod.Owners, record.Owners)
 

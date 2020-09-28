@@ -49,6 +49,7 @@ export ATLAS_TEST_DATABASE_URL ?= "host=localhost port=6432 dbname=postgres user
 test:
 	@docker-compose down
 	@docker-compose up -d
+	@bash -c 'while ! nc -z localhost 6432; do sleep 1; done;'
 	@go test -v -coverprofile=profile.cov --timeout=20m ./...
 
 test-ci:
