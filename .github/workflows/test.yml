@@ -1,4 +1,4 @@
-name: Build, Test and Coverage
+name: Build, Test and Cover
 on: 
   push:
     branches:
@@ -8,7 +8,7 @@ on:
     - cron: '0 0 * * 0' # weekly
 
 jobs:
-  golangci:
+  lint:
     name: lint
     runs-on: ubuntu-latest
     steps:
@@ -26,7 +26,6 @@ jobs:
       fail-fast: false
       matrix:
         go: ['1.15']
-
     steps:
       - uses: actions/setup-go@v1
         with:
@@ -42,7 +41,7 @@ jobs:
 
   # notifies that all test jobs are finished
   finish:
-    needs: test
+    needs: test-and-cover
     runs-on: ubuntu-latest
     steps:
       - uses: shogo82148/actions-goveralls@v1
