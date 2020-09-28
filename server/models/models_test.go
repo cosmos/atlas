@@ -14,6 +14,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
@@ -21,7 +22,62 @@ import (
 	"github.com/cosmos/atlas/server/models"
 )
 
-func TestModels(t *testing.T) {
+type ModelsTestSuite struct {
+	suite.Suite
+
+	m      *migrate.Migrate
+	db     *sql.DB
+	gormDB *gorm.DB
+}
+
+// SetupSuite executes once before the suite's tests are executed.
+func (mts *ModelsTestSuite) SetupSuite() {
+	migrationsPath := os.Getenv("ATLAS_MIGRATIONS_DIR")
+	mts.Require().NotEmpty(migrationsPath)
+
+	connStr := os.Getenv("ATLAS_TEST_DATABASE_URL")
+	mts.Require().NotEmpty(connStr)
+
+	db, err := sql.Open("postgres", connStr)
+	mts.Require().NoError(err)
+	mts.Require().NoError(db.Ping())
+
+	driver, err := migratepg.WithInstance(db, &migratepg.Config{})
+	mts.Require().NoError(err)
+
+	m, err := migrate.NewWithDatabaseInstance(fmt.Sprintf("file:///%s", migrationsPath), "postgres", driver)
+	mts.Require().NoError(err)
+
+	gormDB, err := gorm.Open(postgres.Open(connStr), &gorm.Config{Logger: gormlogger.Discard})
+	mts.Require().NoError(err)
+
+	mts.m = m
+	mts.db = db
+	mts.gormDB = gormDB
+}
+
+// SetupTestSuite executes before each individual test.
+func (mts *ModelsTestSuite) SetupTestSuite() {
+	resetDB(mts.T(), mts.m)
+}
+
+// TearDownSuite executes after all the suite's test have finished.
+func (mts *ModelsTestSuite) TearDownSuite() {
+	mts.T().Log("tearing down test suite")
+	mts.Require().NoError(mts.db.Close())
+}
+
+func TestModelsTestSuite(t *testing.T) {
+	suite.Run(t, new(ModelsTestSuite))
+}
+
+func (mts *ModelsTestSuite) TestModuleCreate() {
+	mts.Require().True(true)
+}
+
+func TestModelz(t *testing.T) {
+	t.SkipNow()
+
 	dktest.Run(t, "postgres:11-alpine", dktest.Options{PortRequired: true, ReadyFunc: pgReady, Env: map[string]string{"POSTGRES_HOST_AUTH_METHOD": "trust"}},
 		func(t *testing.T, c dktest.ContainerInfo) {
 			ip, _, err := c.FirstPort()

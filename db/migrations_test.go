@@ -32,6 +32,8 @@ func pgReady(ctx context.Context, c dktest.ContainerInfo) bool {
 }
 
 func TestMigration(t *testing.T) {
+	t.SkipNow()
+
 	dktest.Run(t, "postgres:11-alpine", dktest.Options{PortRequired: true, ReadyFunc: pgReady, Env: map[string]string{"POSTGRES_HOST_AUTH_METHOD": "trust"}},
 		func(t *testing.T, c dktest.ContainerInfo) {
 			ip, _, err := c.FirstPort()

@@ -20,6 +20,28 @@ jobs:
           github-token: ${{ secrets.github_token }}
         if: "env.GIT_DIFF != ''"
 
+  # Label of the container job
+  postgres-test-container:
+    # Containers must run in Linux based operating systems
+    runs-on: ubuntu-latest
+    # Docker Hub image that `container-job` executes in
+    container: node:10.18-jessie
+    # Service containers to run with `container-job`
+    services:
+      # Label used to access the service container
+      postgres:
+        # Docker Hub image
+        image: postgres:11-alpine
+        # Provide the password for postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
   test-and-cover:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -48,20 +70,3 @@ jobs:
       - uses: shogo82148/actions-goveralls@v1
         with:
           parallel-finished: true
-
-  # lint:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #   - name: Install Go
-  #     uses: actions/setup-go@v2.1.2
-  #     with:
-  #       go-version: 1.15.x
-  #   - name: Checkout code
-  #     uses: actions/checkout@v2
-  #   - name: Install golangci-lint
-  #     run: |
-  #       go get github.com/golangci/golangci-lint/cmd/golangci-lint
-  #   - name: Run linters
-  #     run: |
-  #       export PATH=$PATH:$(go env GOPATH)/bin   
-  #       make lint
