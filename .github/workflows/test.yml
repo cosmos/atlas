@@ -1,0 +1,34 @@
+name: Build, Test and Coverage
+on: 
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 0 * * 0' # weekly
+
+jobs:
+  golangci:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          # Required: the version of golangci-lint is required and must be specified without patch version: we always use the latest patch version.
+          version: v1.29  
+  # lint:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #   - name: Install Go
+  #     uses: actions/setup-go@v2.1.2
+  #     with:
+  #       go-version: 1.15.x
+  #   - name: Checkout code
+  #     uses: actions/checkout@v2
+  #   - name: Install golangci-lint
+  #     run: |
+  #       go get github.com/golangci/golangci-lint/cmd/golangci-lint
+  #   - name: Run linters
+  #     run: |
+  #       export PATH=$PATH:$(go env GOPATH)/bin   
+  #       make lint
