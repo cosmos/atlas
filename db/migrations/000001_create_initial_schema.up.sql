@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS keywords (
     deleted_at TIMESTAMPTZ
 );
 CREATE INDEX idx_keywords_deleted_at ON keywords(deleted_at timestamptz_ops);
+CREATE INDEX idx_keywords_tsvector ON keywords USING GIN(to_tsvector('english', name));
 -- 
 -- Create the modules table
 -- 
@@ -45,6 +46,12 @@ CREATE TABLE IF NOT EXISTS modules (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_modules_name_team ON modules(name, team);
 CREATE INDEX IF NOT EXISTS idx_modules_team ON modules(team);
 CREATE INDEX idx_modules_deleted_at ON modules(deleted_at timestamptz_ops);
+CREATE INDEX idx_modules_tsvector ON modules USING GIN(
+    to_tsvector(
+        'english',
+        name || ' ' || team || ' ' || description
+    )
+);
 -- 
 -- Create the module_versions table
 -- 
