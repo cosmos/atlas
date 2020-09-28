@@ -37,7 +37,7 @@ func (mts *ModelsTestSuite) SetupSuite() {
 
 	connStr := os.Getenv("ATLAS_TEST_DATABASE_URL")
 	mts.Require().NotEmpty(connStr)
-
+	fmt.Println("DB:", connStr)
 	db, err := sql.Open("postgres", connStr)
 	mts.Require().NoError(err)
 	mts.Require().NoError(db.Ping())
