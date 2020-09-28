@@ -1,14 +1,12 @@
 package models_test
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"math/rand"
 	"os"
 	"testing"
 
-	"github.com/dhui/dktest"
 	"github.com/golang-migrate/migrate/v4"
 	migratepg "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -56,12 +54,6 @@ func (mts *ModelsTestSuite) SetupSuite() {
 	mts.gormDB = gormDB
 }
 
-// SetupTestSuite executes before each individual test.
-func (mts *ModelsTestSuite) SetupTestSuite() {
-	fmt.Println("RUNNING SetupTestSuite")
-	resetDB(mts.T(), mts.m)
-}
-
 // TearDownSuite executes after all the suite's test have finished.
 func (mts *ModelsTestSuite) TearDownSuite() {
 	mts.Require().NoError(mts.db.Close())
@@ -72,7 +64,6 @@ func TestModelsTestSuite(t *testing.T) {
 }
 
 func (mts *ModelsTestSuite) TestModuleCreate() {
-	fmt.Println("RUNNING TestModuleCreate")
 	resetDB(mts.T(), mts.m)
 
 	testCases := []struct {
@@ -157,171 +148,104 @@ func (mts *ModelsTestSuite) TestModuleCreate() {
 	}
 }
 
-func TestModelz(t *testing.T) {
-	t.SkipNow()
+func (mts *ModelsTestSuite) TestGetModuleByID() {
+	resetDB(mts.T(), mts.m)
 
-	dktest.Run(t, "postgres:11-alpine", dktest.Options{PortRequired: true, ReadyFunc: pgReady, Env: map[string]string{"POSTGRES_HOST_AUTH_METHOD": "trust"}},
-		func(t *testing.T, c dktest.ContainerInfo) {
-			ip, _, err := c.FirstPort()
-			require.NoError(t, err)
-
-			dsn := fmt.Sprintf("host=%s port=5432 dbname=postgres sslmode=disable", ip)
-
-			db, err := sql.Open("postgres", dsn)
-			require.NoError(t, err)
-			defer db.Close()
-
-			require.NoError(t, db.Ping())
-
-			driver, err := migratepg.WithInstance(db, &migratepg.Config{})
-			require.NoError(t, err)
-
-			path := os.Getenv("ATLAS_MIGRATIONS_DIR")
-			require.NotEmpty(t, path)
-
-			m, err := migrate.NewWithDatabaseInstance(fmt.Sprintf("file:///%s", path), "postgres", driver)
-			require.NoError(t, err)
-
-			gormDB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: gormlogger.Discard})
-			require.NoError(t, err)
-
-			t.Run("Module", func(t *testing.T) {
-				// testModuleCreate(t, m, gormDB)
-				testGetModuleByID(t, m, gormDB)
-				testGetAllModules(t, m, gormDB)
-				testModuleUpdateBasic(t, m, gormDB)
-				testModuleUpdateBugTracker(t, m, gormDB)
-				testModuleUpdateKeywords(t, m, gormDB)
-				testModuleUpdateAuthors(t, m, gormDB)
-				testModuleUpdateOwners(t, m, gormDB)
-				testModuleUpdateVersion(t, m, gormDB)
-				testModuleSearch(t, m, gormDB)
-			})
-
-			t.Run("User", func(t *testing.T) {
-				testGetUserByID(t, m, gormDB)
-				testGetAllUsers(t, m, gormDB)
-			})
-
-			t.Run("Keyword", func(t *testing.T) {
-				testGetAllKeywords(t, m, gormDB)
-			})
-		})
-}
-
-func pgReady(ctx context.Context, c dktest.ContainerInfo) bool {
-	ip, _, err := c.FirstPort()
-	if err != nil {
-		return false
+	mod := models.Module{
+		Name: "x/bank",
+		Team: "cosmonauts",
+		Repo: "https://github.com/cosmos/cosmos-sdk",
+		Authors: []models.User{
+			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
+		},
+		Version: "v1.0.0",
+		Keywords: []models.Keyword{
+			{Name: "tokens"},
+		},
+		BugTracker: models.BugTracker{
+			URL:     models.NewNullString("cosmonauts.com"),
+			Contact: models.NewNullString("contact@cosmonauts.com"),
+		},
 	}
 
-	connStr := fmt.Sprintf("host=%s port=5432 dbname=postgres sslmode=disable", ip)
-	db, err := sql.Open("postgres", connStr)
-	if err != nil {
-		return false
-	}
-	defer db.Close()
+	mod, err := mod.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
 
-	return db.PingContext(ctx) == nil
+	mts.Run("no module exists", func() {
+		result, err := models.GetModuleByID(mts.gormDB, mod.ID+1)
+		mts.Require().Error(err)
+		mts.Require().Equal(models.Module{}, result)
+	})
+
+	mts.Run("module exists", func() {
+		result, err := models.GetModuleByID(mts.gormDB, mod.ID)
+		mts.Require().NoError(err)
+		mts.Require().Equal(mod.Name, result.Name)
+		mts.Require().Equal(mod.Team, result.Team)
+		mts.Require().Equal(mod.Description, result.Description)
+		mts.Require().Equal(mod.Homepage, result.Homepage)
+		mts.Require().Equal(mod.Documentation, result.Documentation)
+	})
 }
 
-func resetDB(t *testing.T, m *migrate.Migrate) {
-	t.Helper()
+func (mts *ModelsTestSuite) TestGetAllModules() {
+	resetDB(mts.T(), mts.m)
 
-	require.NoError(t, m.Force(1))
-	require.NoError(t, m.Down())
-	require.NoError(t, m.Up())
-}
+	mods, err := models.GetAllModules(mts.gormDB, 0, 10)
+	mts.Require().NoError(err)
+	mts.Require().Empty(mods)
 
-func testModuleCreate(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
-	resetDB(t, m)
-
-	testCases := []struct {
-		name      string
-		module    models.Module
-		expectErr bool
-	}{
-		{
-			name:      "create module invalid name",
-			module:    models.Module{},
-			expectErr: true,
-		},
-		{
-			name:      "create module invalid team",
-			module:    models.Module{Name: "x/bank"},
-			expectErr: true,
-		},
-		{
-			name:      "create module no repo",
-			module:    models.Module{Name: "x/bank", Team: "cosmonauts"},
-			expectErr: true,
-		},
-		{
-			name: "create module no authors",
-			module: models.Module{
-				Name: "x/bank",
-				Team: "cosmonauts",
-				Repo: "https://github.com/cosmos/cosmos-sdk",
+	for i := 0; i < 25; i++ {
+		mod := models.Module{
+			Name: fmt.Sprintf("x/bank-%d", i),
+			Team: "cosmonauts",
+			Repo: "https://github.com/cosmos/cosmos-sdk",
+			Authors: []models.User{
+				{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 			},
-			expectErr: true,
-		},
-		{
-			name: "create module no version",
-			module: models.Module{
-				Name: "x/bank",
-				Team: "cosmonauts",
-				Repo: "https://github.com/cosmos/cosmos-sdk",
-				Authors: []models.User{
-					{Name: "foo", Email: models.NewNullString("foo@email.com")},
-				},
+			Version: "v1.0.0",
+			Keywords: []models.Keyword{
+				{Name: "tokens"},
 			},
-			expectErr: true,
-		},
-		{
-			name: "create module",
-			module: models.Module{
-				Name: "x/bank",
-				Team: "cosmonauts",
-				Repo: "https://github.com/cosmos/cosmos-sdk",
-				Authors: []models.User{
-					{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
-				},
-				Version: "v1.0.0",
-				Keywords: []models.Keyword{
-					{Name: "tokens"},
-				},
-				BugTracker: models.BugTracker{
-					URL:     models.NewNullString("cosmonauts.com"),
-					Contact: models.NewNullString("contact@cosmonauts.com"),
-				},
+			BugTracker: models.BugTracker{
+				URL:     models.NewNullString("cosmonauts.com"),
+				Contact: models.NewNullString("contact@cosmonauts.com"),
 			},
-			expectErr: false,
-		},
+		}
+
+		_, err := mod.Upsert(mts.gormDB)
+		mts.Require().NoError(err)
 	}
 
-	for _, tc := range testCases {
-		tc := tc
+	// first page (full)
+	mods, err = models.GetAllModules(mts.gormDB, 0, 10)
+	mts.Require().NoError(err)
+	mts.Require().Len(mods, 10)
 
-		t.Run(tc.name, func(t *testing.T) {
-			result, err := tc.module.Upsert(db)
-			if tc.expectErr {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-				require.Equal(t, tc.module.Name, result.Name)
-				require.Equal(t, tc.module.Team, result.Team)
-				require.Equal(t, tc.module.Description, result.Description)
-				require.Equal(t, tc.module.Homepage, result.Homepage)
-				require.Equal(t, tc.module.Documentation, result.Documentation)
-			}
-		})
-	}
+	cursor := mods[len(mods)-1].ID
+	mts.Require().Equal(uint(10), cursor)
+
+	// second page (full)
+	mods, err = models.GetAllModules(mts.gormDB, cursor, 10)
+	mts.Require().NoError(err)
+	mts.Require().Len(mods, 10)
+
+	cursor = mods[len(mods)-1].ID
+	mts.Require().Equal(uint(20), cursor)
+
+	// third page (partially full)
+	mods, err = models.GetAllModules(mts.gormDB, cursor, 10)
+	mts.Require().NoError(err)
+	mts.Require().Len(mods, 5)
+
+	cursor = mods[len(mods)-1].ID
+	mts.Require().Equal(uint(25), cursor)
 }
 
-func testModuleUpdateBasic(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
-	resetDB(t, m)
+func (mts *ModelsTestSuite) TestModuleUpdateBasic() {
+	resetDB(mts.T(), mts.m)
 
-	t.Run("update basic", func(t *testing.T) {
+	mts.Run("update basic", func() {
 		mod := models.Module{
 			Name:          "x/bank",
 			Team:          "cosmonauts",
@@ -336,8 +260,8 @@ func testModuleUpdateBasic(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
 			BugTracker: models.BugTracker{},
 		}
 
-		record, err := mod.Upsert(db)
-		require.NoError(t, err)
+		record, err := mod.Upsert(mts.gormDB)
+		mts.Require().NoError(err)
 
 		mod = models.Module{
 			Name:          record.Name,
@@ -348,19 +272,19 @@ func testModuleUpdateBasic(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
 			Repo:          "https://github.com/cosmos/cosmos-sdk/new",
 		}
 
-		record, err = mod.Upsert(db)
-		require.NoError(t, err)
-		require.Equal(t, mod.Description, record.Description)
-		require.Equal(t, mod.Documentation, record.Documentation)
-		require.Equal(t, mod.Homepage, record.Homepage)
-		require.Equal(t, mod.Repo, record.Repo)
+		record, err = mod.Upsert(mts.gormDB)
+		mts.Require().NoError(err)
+		mts.Require().Equal(mod.Description, record.Description)
+		mts.Require().Equal(mod.Documentation, record.Documentation)
+		mts.Require().Equal(mod.Homepage, record.Homepage)
+		mts.Require().Equal(mod.Repo, record.Repo)
 	})
 }
 
-func testModuleUpdateBugTracker(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
-	resetDB(t, m)
+func (mts *ModelsTestSuite) TestModuleUpdateBugTracker() {
+	resetDB(mts.T(), mts.m)
 
-	t.Run("update bug tracker", func(t *testing.T) {
+	mts.Run("update bug tracker", func() {
 		mod := models.Module{
 			Name: "x/bank",
 			Team: "cosmonauts",
@@ -372,32 +296,32 @@ func testModuleUpdateBugTracker(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
 			BugTracker: models.BugTracker{},
 		}
 
-		record, err := mod.Upsert(db)
-		require.NoError(t, err)
+		record, err := mod.Upsert(mts.gormDB)
+		mts.Require().NoError(err)
 
 		mod.BugTracker = models.BugTracker{
 			URL:     models.NewNullString("https://cosmos.network/bugs"),
 			Contact: models.NewNullString("bugs@cosmos.network"),
 		}
 
-		record, err = mod.Upsert(db)
-		require.NoError(t, err)
-		require.Equal(t, mod.BugTracker.URL, record.BugTracker.URL)
-		require.Equal(t, mod.BugTracker.Contact, record.BugTracker.Contact)
+		record, err = mod.Upsert(mts.gormDB)
+		mts.Require().NoError(err)
+		mts.Require().Equal(mod.BugTracker.URL, record.BugTracker.URL)
+		mts.Require().Equal(mod.BugTracker.Contact, record.BugTracker.Contact)
 
 		mod.BugTracker = models.BugTracker{}
 
-		record, err = mod.Upsert(db)
-		require.NoError(t, err)
-		require.Equal(t, mod.BugTracker.URL, record.BugTracker.URL)
-		require.Equal(t, mod.BugTracker.Contact, record.BugTracker.Contact)
+		record, err = mod.Upsert(mts.gormDB)
+		mts.Require().NoError(err)
+		mts.Require().Equal(mod.BugTracker.URL, record.BugTracker.URL)
+		mts.Require().Equal(mod.BugTracker.Contact, record.BugTracker.Contact)
 	})
 }
 
-func testModuleUpdateKeywords(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
-	resetDB(t, m)
+func (mts *ModelsTestSuite) TestModuleUpdateKeywords() {
+	resetDB(mts.T(), mts.m)
 
-	t.Run("update keywords", func(t *testing.T) {
+	mts.Run("update keywords", func() {
 		mod := models.Module{
 			Name: "x/bank",
 			Team: "cosmonauts",
@@ -409,37 +333,37 @@ func testModuleUpdateKeywords(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
 			BugTracker: models.BugTracker{},
 		}
 
-		record, err := mod.Upsert(db)
-		require.NoError(t, err)
+		record, err := mod.Upsert(mts.gormDB)
+		mts.Require().NoError(err)
 
 		mod.Keywords = []models.Keyword{
 			{Name: "keyword1"}, {Name: "keyword2"}, {Name: "keyword3"},
 		}
 
-		record, err = mod.Upsert(db)
-		require.NoError(t, err)
-		require.Equal(t, mod.Keywords, record.Keywords)
+		record, err = mod.Upsert(mts.gormDB)
+		mts.Require().NoError(err)
+		mts.Require().Equal(mod.Keywords, record.Keywords)
 
 		mod.Keywords = []models.Keyword{
 			{Name: "keyword1"}, {Name: "keyword3"},
 		}
 
-		record, err = mod.Upsert(db)
-		require.NoError(t, err)
-		require.Equal(t, mod.Keywords, record.Keywords)
+		record, err = mod.Upsert(mts.gormDB)
+		mts.Require().NoError(err)
+		mts.Require().Equal(mod.Keywords, record.Keywords)
 
 		mod.Keywords = []models.Keyword{}
 
-		record, err = mod.Upsert(db)
-		require.NoError(t, err)
-		require.Equal(t, mod.Keywords, record.Keywords)
+		record, err = mod.Upsert(mts.gormDB)
+		mts.Require().NoError(err)
+		mts.Require().Equal(mod.Keywords, record.Keywords)
 	})
 }
 
-func testModuleUpdateAuthors(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
-	resetDB(t, m)
+func (mts *ModelsTestSuite) TestModuleUpdateAuthors() {
+	resetDB(mts.T(), mts.m)
 
-	t.Run("update authors", func(t *testing.T) {
+	mts.Run("update authors", func() {
 		mod := models.Module{
 			Name: "x/bank",
 			Team: "cosmonauts",
@@ -454,40 +378,40 @@ func testModuleUpdateAuthors(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
 			BugTracker: models.BugTracker{},
 		}
 
-		record, err := mod.Upsert(db)
-		require.NoError(t, err)
+		record, err := mod.Upsert(mts.gormDB)
+		mts.Require().NoError(err)
 
 		mod.Authors = []models.User{
 			{Name: "admin"}, {Name: "user1"}, {Name: "user2"},
 		}
 
-		record, err = mod.Upsert(db)
-		require.NoError(t, err)
-		require.Equal(t, mod.Authors, record.Authors)
-		require.Equal(t, mod.Owners, record.Owners)
+		record, err = mod.Upsert(mts.gormDB)
+		mts.Require().NoError(err)
+		mts.Require().Equal(mod.Authors, record.Authors)
+		mts.Require().Equal(mod.Owners, record.Owners)
 
 		mod.Authors = []models.User{
 			{Name: "admin"}, {Name: "user2"},
 		}
 
-		record, err = mod.Upsert(db)
-		require.NoError(t, err)
-		require.Equal(t, mod.Authors, record.Authors)
-		require.Equal(t, mod.Owners, record.Owners)
+		record, err = mod.Upsert(mts.gormDB)
+		mts.Require().NoError(err)
+		mts.Require().Equal(mod.Authors, record.Authors)
+		mts.Require().Equal(mod.Owners, record.Owners)
 
 		mod.Authors = []models.User{}
 
-		record, err = mod.Upsert(db)
-		require.NoError(t, err)
-		require.Equal(t, mod.Authors, record.Authors)
-		require.Equal(t, mod.Owners, record.Owners)
+		record, err = mod.Upsert(mts.gormDB)
+		mts.Require().NoError(err)
+		mts.Require().Equal(mod.Authors, record.Authors)
+		mts.Require().Equal(mod.Owners, record.Owners)
 	})
 }
 
-func testModuleUpdateOwners(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
-	resetDB(t, m)
+func (mts *ModelsTestSuite) TestModuleUpdateOwners() {
+	resetDB(mts.T(), mts.m)
 
-	t.Run("update owners", func(t *testing.T) {
+	mts.Run("update owners", func() {
 		mod := models.Module{
 			Name: "x/bank",
 			Team: "cosmonauts",
@@ -502,40 +426,40 @@ func testModuleUpdateOwners(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
 			BugTracker: models.BugTracker{},
 		}
 
-		record, err := mod.Upsert(db)
-		require.NoError(t, err)
+		record, err := mod.Upsert(mts.gormDB)
+		mts.Require().NoError(err)
 
 		mod.Owners = []models.User{
 			{Name: "admin"}, {Name: "user1"}, {Name: "user2"},
 		}
 
-		record, err = mod.Upsert(db)
-		require.NoError(t, err)
-		require.Equal(t, mod.Authors, record.Authors)
-		require.Equal(t, mod.Owners, record.Owners)
+		record, err = mod.Upsert(mts.gormDB)
+		mts.Require().NoError(err)
+		mts.Require().Equal(mod.Authors, record.Authors)
+		mts.Require().Equal(mod.Owners, record.Owners)
 
 		mod.Owners = []models.User{
 			{Name: "admin"}, {Name: "user2"},
 		}
 
-		record, err = mod.Upsert(db)
-		require.NoError(t, err)
-		require.Equal(t, mod.Authors, record.Authors)
-		require.Equal(t, mod.Owners, record.Owners)
+		record, err = mod.Upsert(mts.gormDB)
+		mts.Require().NoError(err)
+		mts.Require().Equal(mod.Authors, record.Authors)
+		mts.Require().Equal(mod.Owners, record.Owners)
 
 		mod.Owners = []models.User{}
 
-		record, err = mod.Upsert(db)
-		require.NoError(t, err)
-		require.Equal(t, mod.Authors, record.Authors)
-		require.Equal(t, mod.Owners, record.Owners)
+		record, err = mod.Upsert(mts.gormDB)
+		mts.Require().NoError(err)
+		mts.Require().Equal(mod.Authors, record.Authors)
+		mts.Require().Equal(mod.Owners, record.Owners)
 	})
 }
 
-func testModuleUpdateVersion(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
-	resetDB(t, m)
+func (mts *ModelsTestSuite) TestModuleUpdateVersion() {
+	resetDB(mts.T(), mts.m)
 
-	t.Run("update version", func(t *testing.T) {
+	mts.Run("update version", func() {
 		mod := models.Module{
 			Name: "x/bank",
 			Team: "cosmonauts",
@@ -550,46 +474,46 @@ func testModuleUpdateVersion(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
 			BugTracker: models.BugTracker{},
 		}
 
-		record, err := mod.Upsert(db)
-		require.NoError(t, err)
+		record, err := mod.Upsert(mts.gormDB)
+		mts.Require().NoError(err)
 
 		// update version
 		mod.Version = "v1.0.1"
 
-		record, err = mod.Upsert(db)
-		require.NoError(t, err)
-		require.Len(t, record.Versions, 2)
+		record, err = mod.Upsert(mts.gormDB)
+		mts.Require().NoError(err)
+		mts.Require().Len(record.Versions, 2)
 
-		latest, err := record.GetLatestVersion(db)
-		require.NoError(t, err)
-		require.Equal(t, mod.Version, latest.Version)
+		latest, err := record.GetLatestVersion(mts.gormDB)
+		mts.Require().NoError(err)
+		mts.Require().Equal(mod.Version, latest.Version)
 
 		// no version update
 		mod.Version = "v1.0.1"
 
-		record, err = mod.Upsert(db)
-		require.NoError(t, err)
-		require.Len(t, record.Versions, 2)
+		record, err = mod.Upsert(mts.gormDB)
+		mts.Require().NoError(err)
+		mts.Require().Len(record.Versions, 2)
 
-		latest, err = record.GetLatestVersion(db)
-		require.NoError(t, err)
-		require.Equal(t, mod.Version, latest.Version)
+		latest, err = record.GetLatestVersion(mts.gormDB)
+		mts.Require().NoError(err)
+		mts.Require().Equal(mod.Version, latest.Version)
 
 		// update version again
 		mod.Version = "v2.0.0"
 
-		record, err = mod.Upsert(db)
-		require.NoError(t, err)
-		require.Len(t, record.Versions, 3)
+		record, err = mod.Upsert(mts.gormDB)
+		mts.Require().NoError(err)
+		mts.Require().Len(record.Versions, 3)
 
-		latest, err = record.GetLatestVersion(db)
-		require.NoError(t, err)
-		require.Equal(t, mod.Version, latest.Version)
+		latest, err = record.GetLatestVersion(mts.gormDB)
+		mts.Require().NoError(err)
+		mts.Require().Equal(mod.Version, latest.Version)
 	})
 }
 
-func testModuleSearch(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
-	resetDB(t, m)
+func (mts *ModelsTestSuite) TestModuleSearch() {
+	resetDB(mts.T(), mts.m)
 
 	teams := []string{"teamA", "teamB", "teamC", "teamD"}
 	bugTrackers := []models.BugTracker{
@@ -632,8 +556,8 @@ func testModuleSearch(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
 			BugTracker: randBugTracker,
 		}
 
-		_, err := mod.Upsert(db)
-		require.NoError(t, err)
+		_, err := mod.Upsert(mts.gormDB)
+		mts.Require().NoError(err)
 	}
 
 	testCases := []struct {
@@ -671,61 +595,21 @@ func testModuleSearch(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
 	for _, tc := range testCases {
 		tc := tc
 
-		t.Run(tc.name, func(t *testing.T) {
+		mts.Run(tc.name, func() {
 			// no matching query
-			modules, err := models.SearchModules(db, tc.query, tc.cursor, tc.limit)
-			require.NoError(t, err)
-			require.Len(t, modules, len(tc.expected))
+			modules, err := models.SearchModules(mts.gormDB, tc.query, tc.cursor, tc.limit)
+			mts.Require().NoError(err)
+			mts.Require().Len(modules, len(tc.expected))
 
 			for _, m := range modules {
-				require.Contains(t, tc.expected, m.Name)
+				mts.Require().Contains(tc.expected, m.Name)
 			}
 		})
 	}
 }
 
-func testGetModuleByID(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
-	resetDB(t, m)
-
-	mod := models.Module{
-		Name: "x/bank",
-		Team: "cosmonauts",
-		Repo: "https://github.com/cosmos/cosmos-sdk",
-		Authors: []models.User{
-			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
-		},
-		Version: "v1.0.0",
-		Keywords: []models.Keyword{
-			{Name: "tokens"},
-		},
-		BugTracker: models.BugTracker{
-			URL:     models.NewNullString("cosmonauts.com"),
-			Contact: models.NewNullString("contact@cosmonauts.com"),
-		},
-	}
-
-	mod, err := mod.Upsert(db)
-	require.NoError(t, err)
-
-	t.Run("no module exists", func(t *testing.T) {
-		result, err := models.GetModuleByID(db, mod.ID+1)
-		require.Error(t, err)
-		require.Equal(t, models.Module{}, result)
-	})
-
-	t.Run("module exists", func(t *testing.T) {
-		result, err := models.GetModuleByID(db, mod.ID)
-		require.NoError(t, err)
-		require.Equal(t, mod.Name, result.Name)
-		require.Equal(t, mod.Team, result.Team)
-		require.Equal(t, mod.Description, result.Description)
-		require.Equal(t, mod.Homepage, result.Homepage)
-		require.Equal(t, mod.Documentation, result.Documentation)
-	})
-}
-
-func testGetUserByID(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
-	resetDB(t, m)
+func (mts *ModelsTestSuite) TestGetUserByID() {
+	resetDB(mts.T(), mts.m)
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -744,83 +628,29 @@ func testGetUserByID(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
 		},
 	}
 
-	mod, err := mod.Upsert(db)
-	require.NoError(t, err)
+	mod, err := mod.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
 
-	t.Run("no user exists", func(t *testing.T) {
-		result, err := models.GetUserByID(db, mod.Authors[0].ID+1)
-		require.Error(t, err)
-		require.Equal(t, models.User{}, result)
+	mts.Run("no user exists", func() {
+		result, err := models.GetUserByID(mts.gormDB, mod.Authors[0].ID+1)
+		mts.Require().Error(err)
+		mts.Require().Equal(models.User{}, result)
 	})
 
-	t.Run("user exists", func(t *testing.T) {
-		result, err := models.GetUserByID(db, mod.Authors[0].ID)
-		require.NoError(t, err)
-		require.Equal(t, mod.Authors[0].Name, result.Name)
-		require.Equal(t, mod.Authors[0].Email, result.Email)
+	mts.Run("user exists", func() {
+		result, err := models.GetUserByID(mts.gormDB, mod.Authors[0].ID)
+		mts.Require().NoError(err)
+		mts.Require().Equal(mod.Authors[0].Name, result.Name)
+		mts.Require().Equal(mod.Authors[0].Email, result.Email)
 	})
 }
 
-func testGetAllModules(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
-	resetDB(t, m)
+func (mts *ModelsTestSuite) TestGetAllUsers() {
+	resetDB(mts.T(), mts.m)
 
-	mods, err := models.GetAllModules(db, 0, 10)
-	require.NoError(t, err)
-	require.Empty(t, mods)
-
-	for i := 0; i < 25; i++ {
-		mod := models.Module{
-			Name: fmt.Sprintf("x/bank-%d", i),
-			Team: "cosmonauts",
-			Repo: "https://github.com/cosmos/cosmos-sdk",
-			Authors: []models.User{
-				{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
-			},
-			Version: "v1.0.0",
-			Keywords: []models.Keyword{
-				{Name: "tokens"},
-			},
-			BugTracker: models.BugTracker{
-				URL:     models.NewNullString("cosmonauts.com"),
-				Contact: models.NewNullString("contact@cosmonauts.com"),
-			},
-		}
-
-		_, err := mod.Upsert(db)
-		require.NoError(t, err)
-	}
-
-	// first page (full)
-	mods, err = models.GetAllModules(db, 0, 10)
-	require.NoError(t, err)
-	require.Len(t, mods, 10)
-
-	cursor := mods[len(mods)-1].ID
-	require.Equal(t, uint(10), cursor)
-
-	// second page (full)
-	mods, err = models.GetAllModules(db, cursor, 10)
-	require.NoError(t, err)
-	require.Len(t, mods, 10)
-
-	cursor = mods[len(mods)-1].ID
-	require.Equal(t, uint(20), cursor)
-
-	// third page (partially full)
-	mods, err = models.GetAllModules(db, cursor, 10)
-	require.NoError(t, err)
-	require.Len(t, mods, 5)
-
-	cursor = mods[len(mods)-1].ID
-	require.Equal(t, uint(25), cursor)
-}
-
-func testGetAllUsers(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
-	resetDB(t, m)
-
-	users, err := models.GetAllUsers(db, 0, 10)
-	require.NoError(t, err)
-	require.Empty(t, users)
+	users, err := models.GetAllUsers(mts.gormDB, 0, 10)
+	mts.Require().NoError(err)
+	mts.Require().Empty(users)
 
 	for i := 0; i < 25; i++ {
 		mod := models.Module{
@@ -840,41 +670,41 @@ func testGetAllUsers(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
 			},
 		}
 
-		_, err := mod.Upsert(db)
-		require.NoError(t, err)
+		_, err := mod.Upsert(mts.gormDB)
+		mts.Require().NoError(err)
 	}
 
 	// first page (full)
-	users, err = models.GetAllUsers(db, 0, 10)
-	require.NoError(t, err)
-	require.Len(t, users, 10)
+	users, err = models.GetAllUsers(mts.gormDB, 0, 10)
+	mts.Require().NoError(err)
+	mts.Require().Len(users, 10)
 
 	cursor := users[len(users)-1].ID
-	require.Equal(t, uint(10), cursor)
+	mts.Require().Equal(uint(10), cursor)
 
 	// second page (full)
-	users, err = models.GetAllUsers(db, cursor, 10)
-	require.NoError(t, err)
-	require.Len(t, users, 10)
+	users, err = models.GetAllUsers(mts.gormDB, cursor, 10)
+	mts.Require().NoError(err)
+	mts.Require().Len(users, 10)
 
 	cursor = users[len(users)-1].ID
-	require.Equal(t, uint(20), cursor)
+	mts.Require().Equal(uint(20), cursor)
 
 	// third page (partially full)
-	users, err = models.GetAllUsers(db, cursor, 10)
-	require.NoError(t, err)
-	require.Len(t, users, 5)
+	users, err = models.GetAllUsers(mts.gormDB, cursor, 10)
+	mts.Require().NoError(err)
+	mts.Require().Len(users, 5)
 
 	cursor = users[len(users)-1].ID
-	require.Equal(t, uint(25), cursor)
+	mts.Require().Equal(uint(25), cursor)
 }
 
-func testGetAllKeywords(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
-	resetDB(t, m)
+func (mts *ModelsTestSuite) TestGetAllKeywords() {
+	resetDB(mts.T(), mts.m)
 
-	keywords, err := models.GetAllKeywords(db, 0, 10)
-	require.NoError(t, err)
-	require.Empty(t, keywords)
+	keywords, err := models.GetAllKeywords(mts.gormDB, 0, 10)
+	mts.Require().NoError(err)
+	mts.Require().Empty(keywords)
 
 	for i := 0; i < 25; i++ {
 		mod := models.Module{
@@ -894,31 +724,39 @@ func testGetAllKeywords(t *testing.T, m *migrate.Migrate, db *gorm.DB) {
 			},
 		}
 
-		_, err := mod.Upsert(db)
-		require.NoError(t, err)
+		_, err := mod.Upsert(mts.gormDB)
+		mts.Require().NoError(err)
 	}
 
 	// first page (full)
-	keywords, err = models.GetAllKeywords(db, 0, 10)
-	require.NoError(t, err)
-	require.Len(t, keywords, 10)
+	keywords, err = models.GetAllKeywords(mts.gormDB, 0, 10)
+	mts.Require().NoError(err)
+	mts.Require().Len(keywords, 10)
 
 	cursor := keywords[len(keywords)-1].ID
-	require.Equal(t, uint(10), cursor)
+	mts.Require().Equal(uint(10), cursor)
 
 	// second page (full)
-	keywords, err = models.GetAllKeywords(db, cursor, 10)
-	require.NoError(t, err)
-	require.Len(t, keywords, 10)
+	keywords, err = models.GetAllKeywords(mts.gormDB, cursor, 10)
+	mts.Require().NoError(err)
+	mts.Require().Len(keywords, 10)
 
 	cursor = keywords[len(keywords)-1].ID
-	require.Equal(t, uint(20), cursor)
+	mts.Require().Equal(uint(20), cursor)
 
 	// third page (partially full)
-	keywords, err = models.GetAllKeywords(db, cursor, 10)
-	require.NoError(t, err)
-	require.Len(t, keywords, 5)
+	keywords, err = models.GetAllKeywords(mts.gormDB, cursor, 10)
+	mts.Require().NoError(err)
+	mts.Require().Len(keywords, 5)
 
 	cursor = keywords[len(keywords)-1].ID
-	require.Equal(t, uint(25), cursor)
+	mts.Require().Equal(uint(25), cursor)
+}
+
+func resetDB(t *testing.T, m *migrate.Migrate) {
+	t.Helper()
+
+	require.NoError(t, m.Force(1))
+	require.NoError(t, m.Down())
+	require.NoError(t, m.Up())
 }
