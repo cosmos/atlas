@@ -43,11 +43,11 @@ type ModuleRequest struct {
 	Team        string             `json:"team" yaml:"team" validate:"required"`
 	Repo        string             `json:"repo" yaml:"repo" validate:"required,url"`
 	Version     string             `json:"version" yaml:"version" validate:"required"`
-	Authors     []UserRequest      `json:"authors" yaml:"authors" validate:"required,gt=0,dive"`
+	Authors     []UserRequest      `json:"authors" yaml:"authors" validate:"required,gt=0,unique=Name,dive"`
 	Description string             `json:"description" yaml:"description"`
 	Homepage    string             `json:"homepage" yaml:"homepage" validate:"omitempty,url"`
 	BugTracker  *BugTrackerRequest `json:"bug_tracker" yaml:"bug_tracker" validate:"omitempty,dive"`
-	Keywords    []string           `json:"keywords" yaml:"keywords" validate:"omitempty,gt=0,dive,gt=0"`
+	Keywords    []string           `json:"keywords" yaml:"keywords" validate:"omitempty,gt=0,unique,dive,gt=0"`
 }
 
 // ModuleFromRequest converts a ModuleRequest to a Module model.
@@ -64,7 +64,10 @@ func ModuleFromRequest(req ModuleRequest) models.Module {
 
 	bugTracker := models.BugTracker{}
 	if req.BugTracker != nil {
-		bugTracker = models.BugTracker{URL: req.BugTracker.URL, Contact: req.BugTracker.Contact}
+		bugTracker = models.BugTracker{
+			URL:     models.NewNullString(req.BugTracker.URL),
+			Contact: models.NewNullString(req.BugTracker.Contact),
+		}
 	}
 
 	return models.Module{

@@ -85,7 +85,7 @@ func (u User) Upsert(db *gorm.DB) (User, error) {
 		return User{}, err
 	}
 
-	return GetUserByID(db, record.ID)
+	return User{Name: record.Name}.Query(db)
 }
 
 // GetUserByID returns a User by ID. If the user doesn't exist or if the

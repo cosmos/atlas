@@ -1,6 +1,7 @@
 package models
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -37,9 +38,9 @@ type (
 	BugTracker struct {
 		gorm.Model
 
-		URL      string `gorm:"not null;default:null" json:"url" yaml:"url"`
-		Contact  string `gorm:"not null;default:null" json:"contact" yaml:"contact"`
-		ModuleID uint   `json:"module_id" yaml:"module_id"`
+		URL      sql.NullString `json:"url" yaml:"url"`
+		Contact  sql.NullString `json:"contact" yaml:"contact"`
+		ModuleID uint           `json:"module_id" yaml:"module_id"`
 	}
 
 	// Module defines a Cosmos SDK module.
@@ -47,8 +48,9 @@ type (
 	Module struct {
 		gorm.Model
 
-		Name          string `gorm:"not null;default:null" json:"name" yaml:"name"`
-		Team          string `gorm:"not null;default:null" json:"team" yaml:"team"`
+		Name string `gorm:"not null;default:null" json:"name" yaml:"name"`
+		Team string `gorm:"not null;default:null" json:"team" yaml:"team"`
+
 		Description   string `json:"description" yaml:"description"`
 		Documentation string `json:"documentation" yaml:"documentation"`
 		Homepage      string `json:"homepage" yaml:"homepage"`
@@ -88,20 +90,23 @@ func (mv ModuleVersion) MarshalJSON() ([]byte, error) {
 
 // MarshalJSON implements custom JSON marshaling for the BugTracker model.
 func (bt BugTracker) MarshalJSON() ([]byte, error) {
+	btURL, _ := bt.URL.Value()
+	btContact, _ := bt.Contact.Value()
+
 	return json.Marshal(struct {
 		GormModelJSON
 
-		URL      string `json:"url" yaml:"url"`
-		Contact  string `json:"contact" yaml:"contact"`
-		ModuleID uint   `json:"module_id" yaml:"module_id"`
+		URL      interface{} `json:"url" yaml:"url"`
+		Contact  interface{} `json:"contact" yaml:"contact"`
+		ModuleID uint        `json:"module_id" yaml:"module_id"`
 	}{
 		GormModelJSON: GormModelJSON{
 			ID:        bt.ID,
 			CreatedAt: bt.CreatedAt,
 			UpdatedAt: bt.UpdatedAt,
 		},
-		URL:      bt.URL,
-		Contact:  bt.Contact,
+		URL:      btURL,
+		Contact:  btContact,
 		ModuleID: bt.ModuleID,
 	})
 }
@@ -277,6 +282,18 @@ func (m Module) Query(db *gorm.DB) (Module, error) {
 	}
 
 	return record, nil
+}
+
+// GetLatestVersion returns a module's latest version record, if the module
+// exists.
+func (m Module) GetLatestVersion(db *gorm.DB) (ModuleVersion, error) {
+	var mv ModuleVersion
+
+	if err := db.Order("created_at desc").Where("module_id = ?", m.ID).First(&mv).Error; err != nil {
+		return ModuleVersion{}, fmt.Errorf("failed to get latest module version: %w", err)
+	}
+
+	return mv, nil
 }
 
 // GetModuleByID returns a module by ID. If the module doesn't exist or if the
