@@ -119,7 +119,7 @@ func (s *Service) Cleanup() {
 
 		// Do not block if no connections exist, but otherwise, we will wait until
 		// the timeout deadline.
-		s.server.Shutdown(ctx)
+		_ = s.server.Shutdown(ctx)
 	}
 }
 

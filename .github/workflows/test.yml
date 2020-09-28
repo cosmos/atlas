@@ -1,6 +1,8 @@
 name: Build, Test and Coverage
 on: 
   push:
+    branches:
+      - master
   pull_request:
   schedule:
     - cron: '0 0 * * 0' # weekly
@@ -14,7 +16,6 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v2
         with:
-          # Required: the version of golangci-lint is required and must be specified without patch version: we always use the latest patch version.
           version: v1.29  
   # lint:
   #   runs-on: ubuntu-latest
