@@ -215,6 +215,81 @@ func (sts *ServiceTestSuite) TestSearchModules() {
 	}
 }
 
+func (sts *ServiceTestSuite) TestGetAllModules() {
+	resetDB(sts.T(), sts.m)
+
+	path := fmt.Sprintf("/api/v1/modules?cursor=%d&limit=%d", 0, 10)
+	req, err := http.NewRequest("GET", path, nil)
+	sts.Require().NoError(err)
+
+	response := sts.executeRequest(req)
+
+	var pr PaginationResponse
+	sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
+	sts.Require().Empty(pr.Results)
+
+	for i := 0; i < 25; i++ {
+		mod := models.Module{
+			Name: fmt.Sprintf("x/bank-%d", i),
+			Team: "cosmonauts",
+			Repo: "https://github.com/cosmos/cosmos-sdk",
+			Authors: []models.User{
+				{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
+			},
+			Version: "v1.0.0",
+			Keywords: []models.Keyword{
+				{Name: "tokens"},
+			},
+			BugTracker: models.BugTracker{
+				URL:     models.NewNullString("cosmonauts.com"),
+				Contact: models.NewNullString("contact@cosmonauts.com"),
+			},
+		}
+
+		_, err := mod.Upsert(sts.gormDB)
+		sts.Require().NoError(err)
+	}
+
+	// first page (full)
+	path = fmt.Sprintf("/api/v1/modules?cursor=%d&limit=%d", 0, 10)
+	req, err = http.NewRequest("GET", path, nil)
+	sts.Require().NoError(err)
+
+	response = sts.executeRequest(req)
+	sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
+	sts.Require().Len(pr.Results, 10)
+
+	mods := pr.Results.([]interface{})
+	cursor := uint(mods[len(mods)-1].(map[string]interface{})["id"].(float64))
+	sts.Require().Equal(uint(10), cursor)
+
+	// second page (full)
+	path = fmt.Sprintf("/api/v1/modules?cursor=%d&limit=%d", cursor, 10)
+	req, err = http.NewRequest("GET", path, nil)
+	sts.Require().NoError(err)
+
+	response = sts.executeRequest(req)
+	sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
+	sts.Require().Len(pr.Results, 10)
+
+	mods = pr.Results.([]interface{})
+	cursor = uint(mods[len(mods)-1].(map[string]interface{})["id"].(float64))
+	sts.Require().Equal(uint(20), cursor)
+
+	// third page (partially full)
+	path = fmt.Sprintf("/api/v1/modules?cursor=%d&limit=%d", cursor, 10)
+	req, err = http.NewRequest("GET", path, nil)
+	sts.Require().NoError(err)
+
+	response = sts.executeRequest(req)
+	sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
+	sts.Require().Len(pr.Results, 5)
+
+	mods = pr.Results.([]interface{})
+	cursor = uint(mods[len(mods)-1].(map[string]interface{})["id"].(float64))
+	sts.Require().Equal(uint(25), cursor)
+}
+
 func resetDB(t *testing.T, m *migrate.Migrate) {
 	t.Helper()
 
