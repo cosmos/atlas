@@ -520,7 +520,7 @@ func (sts *ServiceTestSuite) GetUserByID() {
 	sts.Require().NoError(err)
 
 	sts.Run("no user exists", func() {
-		path := fmt.Sprintf("/api/v1/users/%d", mod.ID+1)
+		path := fmt.Sprintf("/api/v1/users/%d", mod.Authors[0].ID+1)
 		req, err := http.NewRequest("GET", path, nil)
 		sts.Require().NoError(err)
 
@@ -533,7 +533,7 @@ func (sts *ServiceTestSuite) GetUserByID() {
 	})
 
 	sts.Run("user exists", func() {
-		path := fmt.Sprintf("/api/v1/users/%d", mod.ID)
+		path := fmt.Sprintf("/api/v1/users/%d", mod.Authors[0].ID)
 		req, err := http.NewRequest("GET", path, nil)
 		sts.Require().NoError(err)
 
@@ -547,12 +547,212 @@ func (sts *ServiceTestSuite) GetUserByID() {
 	})
 }
 
+func (sts *ServiceTestSuite) TestGetUserModules() {
+	resetDB(sts.T(), sts.m)
+
+	mod := models.Module{
+		Name: "x/bank",
+		Team: "cosmonauts",
+		Repo: "https://github.com/cosmos/cosmos-sdk",
+		Authors: []models.User{
+			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
+		},
+		Version: "v1.0.0",
+		Keywords: []models.Keyword{
+			{Name: "tokens"}, {Name: "transfer"},
+		},
+		BugTracker: models.BugTracker{
+			URL:     models.NewNullString("cosmonauts.com"),
+			Contact: models.NewNullString("contact@cosmonauts.com"),
+		},
+	}
+
+	mod, err := mod.Upsert(sts.gormDB)
+	sts.Require().NoError(err)
+
+	sts.Run("no user exists", func() {
+		path := fmt.Sprintf("/api/v1/users/%d/modules", mod.Authors[0].ID+1)
+		req, err := http.NewRequest("GET", path, nil)
+		sts.Require().NoError(err)
+
+		response := sts.executeRequest(req)
+
+		var body map[string]interface{}
+		sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
+		sts.Require().Equal(http.StatusNotFound, response.Code)
+		sts.Require().NotEmpty(body["error"])
+	})
+
+	sts.Run("user exists", func() {
+		path := fmt.Sprintf("/api/v1/users/%d/modules", mod.Authors[0].ID)
+		req, err := http.NewRequest("GET", path, nil)
+		sts.Require().NoError(err)
+
+		response := sts.executeRequest(req)
+
+		var body []interface{}
+		sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
+		sts.Require().Equal(http.StatusOK, response.Code)
+		sts.Require().Len(body, 1)
+		sts.Require().Equal(mod.Name, body[0].(map[string]interface{})["name"])
+		sts.Require().Equal(mod.Team, body[0].(map[string]interface{})["team"])
+	})
+}
+
+func (sts *ServiceTestSuite) TestGetAllUsers() {
+	resetDB(sts.T(), sts.m)
+
+	path := fmt.Sprintf("/api/v1/users?cursor=%d&limit=%d", 0, 10)
+	req, err := http.NewRequest("GET", path, nil)
+	sts.Require().NoError(err)
+
+	response := sts.executeRequest(req)
+
+	var pr PaginationResponse
+	sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
+	sts.Require().Empty(pr.Results)
+
+	for i := 0; i < 25; i++ {
+		mod := models.Module{
+			Name: fmt.Sprintf("x/bank-%d", i),
+			Team: "cosmonauts",
+			Repo: "https://github.com/cosmos/cosmos-sdk",
+			Authors: []models.User{
+				{Name: fmt.Sprintf("foo-%d", i), Email: models.NewNullString(fmt.Sprintf("foo%d@cosmonauts.com", i))},
+			},
+			Version: "v1.0.0",
+			Keywords: []models.Keyword{
+				{Name: "tokens"},
+			},
+			BugTracker: models.BugTracker{
+				URL:     models.NewNullString("cosmonauts.com"),
+				Contact: models.NewNullString("contact@cosmonauts.com"),
+			},
+		}
+
+		_, err := mod.Upsert(sts.gormDB)
+		sts.Require().NoError(err)
+	}
+
+	// first page (full)
+	path = fmt.Sprintf("/api/v1/users?cursor=%d&limit=%d", 0, 10)
+	req, err = http.NewRequest("GET", path, nil)
+	sts.Require().NoError(err)
+
+	response = sts.executeRequest(req)
+	sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
+	sts.Require().Len(pr.Results, 10)
+
+	users := pr.Results.([]interface{})
+	cursor := uint(users[len(users)-1].(map[string]interface{})["id"].(float64))
+	sts.Require().Equal(uint(10), cursor)
+
+	// second page (full)
+	path = fmt.Sprintf("/api/v1/users?cursor=%d&limit=%d", cursor, 10)
+	req, err = http.NewRequest("GET", path, nil)
+	sts.Require().NoError(err)
+
+	response = sts.executeRequest(req)
+	sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
+	sts.Require().Len(pr.Results, 10)
+
+	users = pr.Results.([]interface{})
+	cursor = uint(users[len(users)-1].(map[string]interface{})["id"].(float64))
+	sts.Require().Equal(uint(20), cursor)
+
+	// third page (partially full)
+	path = fmt.Sprintf("/api/v1/users?cursor=%d&limit=%d", cursor, 10)
+	req, err = http.NewRequest("GET", path, nil)
+	sts.Require().NoError(err)
+
+	response = sts.executeRequest(req)
+	sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
+	sts.Require().Len(pr.Results, 5)
+
+	users = pr.Results.([]interface{})
+	cursor = uint(users[len(users)-1].(map[string]interface{})["id"].(float64))
+	sts.Require().Equal(uint(25), cursor)
+}
+
+func (sts *ServiceTestSuite) TestGetAllKeywords() {
+	resetDB(sts.T(), sts.m)
+
+	path := fmt.Sprintf("/api/v1/keywords?cursor=%d&limit=%d", 0, 10)
+	req, err := http.NewRequest("GET", path, nil)
+	sts.Require().NoError(err)
+
+	response := sts.executeRequest(req)
+
+	var pr PaginationResponse
+	sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
+	sts.Require().Empty(pr.Results)
+
+	for i := 0; i < 25; i++ {
+		mod := models.Module{
+			Name: fmt.Sprintf("x/bank-%d", i),
+			Team: "cosmonauts",
+			Repo: "https://github.com/cosmos/cosmos-sdk",
+			Authors: []models.User{
+				{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
+			},
+			Version: "v1.0.0",
+			Keywords: []models.Keyword{
+				{Name: fmt.Sprintf("tokens-%d", i)},
+			},
+			BugTracker: models.BugTracker{
+				URL:     models.NewNullString("cosmonauts.com"),
+				Contact: models.NewNullString("contact@cosmonauts.com"),
+			},
+		}
+
+		_, err := mod.Upsert(sts.gormDB)
+		sts.Require().NoError(err)
+	}
+
+	// first page (full)
+	path = fmt.Sprintf("/api/v1/keywords?cursor=%d&limit=%d", 0, 10)
+	req, err = http.NewRequest("GET", path, nil)
+	sts.Require().NoError(err)
+
+	response = sts.executeRequest(req)
+	sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
+	sts.Require().Len(pr.Results, 10)
+
+	keywords := pr.Results.([]interface{})
+	cursor := uint(keywords[len(keywords)-1].(map[string]interface{})["id"].(float64))
+	sts.Require().Equal(uint(10), cursor)
+
+	// second page (full)
+	path = fmt.Sprintf("/api/v1/keywords?cursor=%d&limit=%d", cursor, 10)
+	req, err = http.NewRequest("GET", path, nil)
+	sts.Require().NoError(err)
+
+	response = sts.executeRequest(req)
+	sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
+	sts.Require().Len(pr.Results, 10)
+
+	keywords = pr.Results.([]interface{})
+	cursor = uint(keywords[len(keywords)-1].(map[string]interface{})["id"].(float64))
+	sts.Require().Equal(uint(20), cursor)
+
+	// third page (partially full)
+	path = fmt.Sprintf("/api/v1/keywords?cursor=%d&limit=%d", cursor, 10)
+	req, err = http.NewRequest("GET", path, nil)
+	sts.Require().NoError(err)
+
+	response = sts.executeRequest(req)
+	sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
+	sts.Require().Len(pr.Results, 5)
+
+	keywords = pr.Results.([]interface{})
+	cursor = uint(keywords[len(keywords)-1].(map[string]interface{})["id"].(float64))
+	sts.Require().Equal(uint(25), cursor)
+}
+
 // TODO: Test...
 //
 //
-// GetUserModules
-// GetAllUsers
-// GetAllKeywords
+//
 // UpsertModule
 //
 // Maybe...:

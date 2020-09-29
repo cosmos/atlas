@@ -485,7 +485,12 @@ func (s *Service) GetUserModules() http.HandlerFunc {
 
 		modules, err := models.GetUserModules(s.db, uint(id))
 		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, err)
+			code := http.StatusInternalServerError
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				code = http.StatusNotFound
+			}
+
+			respondWithError(w, code, err)
 			return
 		}
 
