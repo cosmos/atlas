@@ -595,7 +595,6 @@ func (mts *ModelsTestSuite) TestModuleSearch() {
 		tc := tc
 
 		mts.Run(tc.name, func() {
-			// no matching query
 			modules, err := models.SearchModules(mts.gormDB, tc.query, tc.cursor, tc.limit)
 			mts.Require().NoError(err)
 			mts.Require().Len(modules, len(tc.expected))

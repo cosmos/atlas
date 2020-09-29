@@ -83,13 +83,13 @@ func NewService(logger zerolog.Logger, cfg config.Config) (*Service, error) {
 		cookieCfg:    cookieCfg,
 		sessionStore: sessionStore,
 		validate:     validator.New(),
+		router:       mux.NewRouter(),
 		oauth2Cfg: &oauth2.Config{
 			ClientID:     cfg.String(config.FlagGHClientID),
 			ClientSecret: cfg.String(config.FlagGHClientSecret),
 			RedirectURL:  cfg.String(config.FlagGHRedirectURL),
 			Endpoint:     githuboauth2.Endpoint,
 		},
-		router: mux.NewRouter(),
 	}
 
 	service.registerV1Routes()
