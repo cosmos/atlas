@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/golang-migrate/migrate/v4"
 	migratepg "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -46,7 +47,15 @@ func (mts *ModelsTestSuite) SetupSuite() {
 	m, err := migrate.NewWithDatabaseInstance(fmt.Sprintf("file:///%s", migrationsPath), "postgres", driver)
 	mts.Require().NoError(err)
 
-	gormDB, err := gorm.Open(postgres.Open(connStr), &gorm.Config{Logger: gormlogger.Discard})
+	gormDB, err := gorm.Open(
+		postgres.Open(connStr),
+		&gorm.Config{
+			Logger: gormlogger.Discard,
+			NowFunc: func() time.Time {
+				return time.Now().Local().Truncate(time.Microsecond)
+			},
+		},
+	)
 	mts.Require().NoError(err)
 
 	mts.m = m
