@@ -290,6 +290,60 @@ func (sts *ServiceTestSuite) TestGetAllModules() {
 	sts.Require().Equal(uint(25), cursor)
 }
 
+func (sts *ServiceTestSuite) TestGetModuleByID() {
+	resetDB(sts.T(), sts.m)
+
+	mod := models.Module{
+		Name: "x/bank",
+		Team: "cosmonauts",
+		Repo: "https://github.com/cosmos/cosmos-sdk",
+		Authors: []models.User{
+			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
+		},
+		Version: "v1.0.0",
+		Keywords: []models.Keyword{
+			{Name: "tokens"},
+		},
+		BugTracker: models.BugTracker{
+			URL:     models.NewNullString("cosmonauts.com"),
+			Contact: models.NewNullString("contact@cosmonauts.com"),
+		},
+	}
+
+	mod, err := mod.Upsert(sts.gormDB)
+	sts.Require().NoError(err)
+
+	sts.Run("no module exists", func() {
+		path := fmt.Sprintf("/api/v1/modules/%d", mod.ID+1)
+		req, err := http.NewRequest("GET", path, nil)
+		sts.Require().NoError(err)
+
+		response := sts.executeRequest(req)
+
+		var body map[string]interface{}
+		sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
+		sts.Require().Equal(http.StatusNotFound, response.Code)
+		sts.Require().NotEmpty(body["error"])
+	})
+
+	sts.Run("module exists", func() {
+		path := fmt.Sprintf("/api/v1/modules/%d", mod.ID)
+		req, err := http.NewRequest("GET", path, nil)
+		sts.Require().NoError(err)
+
+		response := sts.executeRequest(req)
+
+		var body map[string]interface{}
+		sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
+		sts.Require().Equal(http.StatusOK, response.Code)
+		sts.Require().Equal(mod.Name, body["name"])
+		sts.Require().Equal(mod.Team, body["team"])
+		sts.Require().Equal(mod.Description, body["description"])
+		sts.Require().Equal(mod.Homepage, body["homepage"])
+		sts.Require().Equal(mod.Documentation, body["documentation"])
+	})
+}
+
 func resetDB(t *testing.T, m *migrate.Migrate) {
 	t.Helper()
 
