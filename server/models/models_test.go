@@ -52,6 +52,8 @@ func (mts *ModelsTestSuite) SetupSuite() {
 		&gorm.Config{
 			Logger: gormlogger.Discard,
 			NowFunc: func() time.Time {
+				// Ignore the microseconds so we can use reflect.DeepEqual as the database
+				// does not store the same resolution.
 				return time.Now().Local().Truncate(time.Microsecond)
 			},
 		},
@@ -389,12 +391,6 @@ func (mts *ModelsTestSuite) TestModuleUpdateAuthors() {
 
 	record, err = mod.Upsert(mts.gormDB)
 	mts.Require().NoError(err)
-
-	for i, a := range record.Authors {
-		fmt.Println("record created at:", a.CreatedAt)
-		fmt.Println("module created at:", mod.Authors[i].CreatedAt)
-	}
-
 	mts.Require().Equal(mod.Authors, record.Authors)
 	mts.Require().Equal(mod.Owners, record.Owners)
 
