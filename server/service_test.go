@@ -343,6 +343,223 @@ func (sts *ServiceTestSuite) TestGetModuleByID() {
 		sts.Require().Equal(mod.Documentation, body["documentation"])
 	})
 }
+func (sts *ServiceTestSuite) TestGetModuleVersions() {
+	resetDB(sts.T(), sts.m)
+
+	mod := models.Module{
+		Name: "x/bank",
+		Team: "cosmonauts",
+		Repo: "https://github.com/cosmos/cosmos-sdk",
+		Authors: []models.User{
+			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
+		},
+		Version: "v1.0.0",
+		Keywords: []models.Keyword{
+			{Name: "tokens"},
+		},
+		BugTracker: models.BugTracker{
+			URL:     models.NewNullString("cosmonauts.com"),
+			Contact: models.NewNullString("contact@cosmonauts.com"),
+		},
+	}
+
+	mod, err := mod.Upsert(sts.gormDB)
+	sts.Require().NoError(err)
+
+	sts.Run("no module exists", func() {
+		path := fmt.Sprintf("/api/v1/modules/%d/versions", mod.ID+1)
+		req, err := http.NewRequest("GET", path, nil)
+		sts.Require().NoError(err)
+
+		response := sts.executeRequest(req)
+
+		var body map[string]interface{}
+		sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
+		sts.Require().Equal(http.StatusNotFound, response.Code)
+		sts.Require().NotEmpty(body["error"])
+	})
+
+	sts.Run("module exists", func() {
+		path := fmt.Sprintf("/api/v1/modules/%d/versions", mod.ID)
+		req, err := http.NewRequest("GET", path, nil)
+		sts.Require().NoError(err)
+
+		response := sts.executeRequest(req)
+
+		var body []interface{}
+		sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
+		sts.Require().Equal(http.StatusOK, response.Code)
+		sts.Require().Len(body, 1)
+		sts.Require().Equal("v1.0.0", body[0].(map[string]interface{})["version"])
+	})
+}
+
+func (sts *ServiceTestSuite) GetModuleAuthors() {
+	resetDB(sts.T(), sts.m)
+
+	mod := models.Module{
+		Name: "x/bank",
+		Team: "cosmonauts",
+		Repo: "https://github.com/cosmos/cosmos-sdk",
+		Authors: []models.User{
+			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
+		},
+		Version: "v1.0.0",
+		Keywords: []models.Keyword{
+			{Name: "tokens"},
+		},
+		BugTracker: models.BugTracker{
+			URL:     models.NewNullString("cosmonauts.com"),
+			Contact: models.NewNullString("contact@cosmonauts.com"),
+		},
+	}
+
+	mod, err := mod.Upsert(sts.gormDB)
+	sts.Require().NoError(err)
+
+	sts.Run("no module exists", func() {
+		path := fmt.Sprintf("/api/v1/modules/%d/authors", mod.ID+1)
+		req, err := http.NewRequest("GET", path, nil)
+		sts.Require().NoError(err)
+
+		response := sts.executeRequest(req)
+
+		var body map[string]interface{}
+		sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
+		sts.Require().Equal(http.StatusNotFound, response.Code)
+		sts.Require().NotEmpty(body["error"])
+	})
+
+	sts.Run("module exists", func() {
+		path := fmt.Sprintf("/api/v1/modules/%d/authors", mod.ID)
+		req, err := http.NewRequest("GET", path, nil)
+		sts.Require().NoError(err)
+
+		response := sts.executeRequest(req)
+
+		var body []interface{}
+		sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
+		sts.Require().Equal(http.StatusOK, response.Code)
+		sts.Require().Len(body, 1)
+		sts.Require().Equal("foo", body[0].(map[string]interface{})["name"])
+	})
+}
+
+func (sts *ServiceTestSuite) GetModuleKeywords() {
+	resetDB(sts.T(), sts.m)
+
+	mod := models.Module{
+		Name: "x/bank",
+		Team: "cosmonauts",
+		Repo: "https://github.com/cosmos/cosmos-sdk",
+		Authors: []models.User{
+			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
+		},
+		Version: "v1.0.0",
+		Keywords: []models.Keyword{
+			{Name: "tokens"},
+		},
+		BugTracker: models.BugTracker{
+			URL:     models.NewNullString("cosmonauts.com"),
+			Contact: models.NewNullString("contact@cosmonauts.com"),
+		},
+	}
+
+	mod, err := mod.Upsert(sts.gormDB)
+	sts.Require().NoError(err)
+
+	sts.Run("no module exists", func() {
+		path := fmt.Sprintf("/api/v1/modules/%d/keywords", mod.ID+1)
+		req, err := http.NewRequest("GET", path, nil)
+		sts.Require().NoError(err)
+
+		response := sts.executeRequest(req)
+
+		var body map[string]interface{}
+		sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
+		sts.Require().Equal(http.StatusNotFound, response.Code)
+		sts.Require().NotEmpty(body["error"])
+	})
+
+	sts.Run("module exists", func() {
+		path := fmt.Sprintf("/api/v1/modules/%d/keywords", mod.ID)
+		req, err := http.NewRequest("GET", path, nil)
+		sts.Require().NoError(err)
+
+		response := sts.executeRequest(req)
+
+		var body []interface{}
+		sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
+		sts.Require().Equal(http.StatusOK, response.Code)
+		sts.Require().Len(body, 1)
+		sts.Require().Equal("tokens", body[0].(map[string]interface{})["name"])
+	})
+}
+
+func (sts *ServiceTestSuite) GetUserByID() {
+	resetDB(sts.T(), sts.m)
+
+	mod := models.Module{
+		Name: "x/bank",
+		Team: "cosmonauts",
+		Repo: "https://github.com/cosmos/cosmos-sdk",
+		Authors: []models.User{
+			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
+		},
+		Version: "v1.0.0",
+		Keywords: []models.Keyword{
+			{Name: "tokens"}, {Name: "transfer"},
+		},
+		BugTracker: models.BugTracker{
+			URL:     models.NewNullString("cosmonauts.com"),
+			Contact: models.NewNullString("contact@cosmonauts.com"),
+		},
+	}
+
+	mod, err := mod.Upsert(sts.gormDB)
+	sts.Require().NoError(err)
+
+	sts.Run("no user exists", func() {
+		path := fmt.Sprintf("/api/v1/users/%d", mod.ID+1)
+		req, err := http.NewRequest("GET", path, nil)
+		sts.Require().NoError(err)
+
+		response := sts.executeRequest(req)
+
+		var body map[string]interface{}
+		sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
+		sts.Require().Equal(http.StatusNotFound, response.Code)
+		sts.Require().NotEmpty(body["error"])
+	})
+
+	sts.Run("user exists", func() {
+		path := fmt.Sprintf("/api/v1/users/%d", mod.ID)
+		req, err := http.NewRequest("GET", path, nil)
+		sts.Require().NoError(err)
+
+		response := sts.executeRequest(req)
+
+		var body map[string]interface{}
+		sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
+		sts.Require().Equal(http.StatusOK, response.Code)
+		sts.Require().Equal(mod.Authors[0].Name, body["name"])
+		sts.Require().Equal(mod.Authors[0].Email, body["email"])
+	})
+}
+
+// TODO: Test...
+//
+//
+// GetUserModules
+// GetAllUsers
+// GetAllKeywords
+// UpsertModule
+//
+// Maybe...:
+//
+// BeginSession
+// AuthorizeSession
+// LogoutSession
 
 func resetDB(t *testing.T, m *migrate.Migrate) {
 	t.Helper()

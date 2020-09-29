@@ -353,7 +353,12 @@ func (s *Service) GetModuleVersions() http.HandlerFunc {
 
 		module, err := models.GetModuleByID(s.db, uint(id))
 		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, err)
+			code := http.StatusInternalServerError
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				code = http.StatusNotFound
+			}
+
+			respondWithError(w, code, err)
 			return
 		}
 
@@ -376,7 +381,12 @@ func (s *Service) GetModuleAuthors() http.HandlerFunc {
 
 		module, err := models.GetModuleByID(s.db, uint(id))
 		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, err)
+			code := http.StatusInternalServerError
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				code = http.StatusNotFound
+			}
+
+			respondWithError(w, code, err)
 			return
 		}
 
@@ -399,7 +409,12 @@ func (s *Service) GetModuleKeywords() http.HandlerFunc {
 
 		module, err := models.GetModuleByID(s.db, uint(id))
 		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, err)
+			code := http.StatusInternalServerError
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				code = http.StatusNotFound
+			}
+
+			respondWithError(w, code, err)
 			return
 		}
 
@@ -421,7 +436,12 @@ func (s *Service) GetUserByID() http.HandlerFunc {
 
 		user, err := models.GetUserByID(s.db, uint(id))
 		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, err)
+			code := http.StatusInternalServerError
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				code = http.StatusNotFound
+			}
+
+			respondWithError(w, code, err)
 			return
 		}
 
