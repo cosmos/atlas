@@ -5,7 +5,7 @@
 [![codecov](https://codecov.io/gh/cosmos/atlas/branch/main/graph/badge.svg)](https://codecov.io/gh/cosmos/atlas)
 [![GoDoc](https://godoc.org/github.com/cosmos/atlas?status.png)](https://pkg.go.dev/github.com/cosmos/atlas)
 
-Source code for the default [Cosmos SDK](https://github.com/cosmos/cosmos-sdk) module
+> Source code for the default [Cosmos SDK](https://github.com/cosmos/cosmos-sdk) module
 registry, viewable online at [atlas.cosmos.network](https://atlas.cosmos.network).
 
 ## Table of Contents
@@ -14,6 +14,8 @@ registry, viewable online at [atlas.cosmos.network](https://atlas.cosmos.network
   - [Table of Contents](#table-of-contents)
   - [Background](#background)
   - [Usage](#usage)
+    - [Server](#server)
+    - [Web App](#web-app)
   - [Migrations](#migrations)
   - [Tests](#tests)
   - [License](#license)
@@ -34,6 +36,8 @@ Atlas is composed of two primary components, the server and the web application.
 The server is responsible for providing a RESTful API, handling user authentication
 via Github OAuth and persisting modules and relevant data to PostgreSQL.
 
+### Server
+
 In order to start the Atlas server, you must provide a series of configuration
 values that may be defined in environment variables, a configuration file or via
 CLI flags (in order of precedence). See the sample [env](./.env.sample) or
@@ -43,11 +47,18 @@ CLI flags (in order of precedence). See the sample [env](./.env.sample) or
 $ atlas server --config=/path/to/atlas/config.toml
 ```
 
-See `--help` for further documentation.
+Note:
 
-Note, Atlas will look for environment variables defined in a `.env` file in the
+1. Atlas will look for environment variables defined in a `.env` file in the
 root directory. Any explicit environment variables defined will override those
 defined in this file.
+2. Certain configuration values are not exposed or able to be provided via CLI flags.
+
+See `--help` for further documentation.
+
+### Web App
+
+TODO
 
 ## Migrations
 
