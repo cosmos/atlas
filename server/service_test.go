@@ -983,7 +983,6 @@ func (sts *ServiceTestSuite) TestCreateModule_InvalidOwner() {
 	sts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
 
 	// attempt to update module published by test_user2
-
 	req2.Method = methodPUT
 	req2.URL = upsertURL
 	req2.Body = ioutil.NopCloser(bytes.NewBuffer(bz))
