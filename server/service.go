@@ -10,9 +10,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/dghubble/gologin"
-	"github.com/dghubble/gologin/github"
-	oauth2Login "github.com/dghubble/gologin/oauth2"
+	"github.com/dghubble/gologin/v2"
+	"github.com/dghubble/gologin/v2/github"
+	oauth2login "github.com/dghubble/gologin/v2/oauth2"
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
@@ -191,7 +191,7 @@ func (s *Service) registerV1Routes() {
 	// session routes
 	v1Router.Handle(
 		"/session/start",
-		mChain.Then(s.BeginSession()),
+		mChain.Then(s.StartSession()),
 	).Methods(methodGET)
 
 	v1Router.Handle(
@@ -211,7 +211,7 @@ func (s *Service) UpsertModule() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		ghUserID, ok, err := s.authorize(req)
 		if err != nil || !ok {
-			respondWithError(w, http.StatusBadRequest, err)
+			respondWithError(w, http.StatusUnauthorized, err)
 			return
 		}
 
@@ -519,11 +519,11 @@ func (s *Service) GetAllKeywords() http.HandlerFunc {
 	}
 }
 
-// BeginSession returns a request handler to begin a user session via Github
+// StartSession returns a request handler to begin a user session via Github
 // OAuth authentication. The user must either grant or reject access. Upon
 // granting access, Github will perform a callback where we create a session
 // and obtain a token.
-func (s *Service) BeginSession() http.Handler {
+func (s *Service) StartSession() http.Handler {
 	return github.StateHandler(s.cookieCfg, github.LoginHandler(s.oauth2Cfg, nil))
 }
 
@@ -532,10 +532,14 @@ func (s *Service) BeginSession() http.Handler {
 // executed. A session cookie will be saved and sent to the client. A user record
 // will also be upserted.
 func (s *Service) AuthorizeSession() http.Handler {
-	fn := func(w http.ResponseWriter, req *http.Request) {
+	return github.StateHandler(s.cookieCfg, github.CallbackHandler(s.oauth2Cfg, http.HandlerFunc(s.authorizeHandler()), nil))
+}
+
+func (s *Service) authorizeHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
 
-		token, err := oauth2Login.TokenFromContext(ctx)
+		token, err := oauth2login.TokenFromContext(ctx)
 		if err != nil {
 			respondWithError(w, http.StatusInternalServerError, fmt.Errorf("failed to get github token: %w", err))
 			return
@@ -575,8 +579,6 @@ func (s *Service) AuthorizeSession() http.Handler {
 
 		http.Redirect(w, req, "/", http.StatusFound)
 	}
-
-	return github.StateHandler(s.cookieCfg, github.CallbackHandler(s.oauth2Cfg, http.HandlerFunc(fn), nil))
 }
 
 // LogoutSession implements a request handler to terminate and logout of an

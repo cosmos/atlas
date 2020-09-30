@@ -1,6 +1,8 @@
 package server
 
 import (
+	"bytes"
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -8,15 +10,19 @@ import (
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/dghubble/gologin"
+	"github.com/dghubble/gologin/v2"
+	"github.com/dghubble/gologin/v2/github"
+	oauth2login "github.com/dghubble/gologin/v2/oauth2"
 	"github.com/go-playground/validator/v10"
 	"github.com/golang-migrate/migrate/v4"
 	migratepg "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	gogithub "github.com/google/go-github/github"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	_ "github.com/lib/pq"
@@ -107,6 +113,19 @@ func (sts *ServiceTestSuite) executeRequest(req *http.Request) *httptest.Respons
 	sts.service.router.ServeHTTP(rr, req)
 
 	return rr
+}
+
+func (sts *ServiceTestSuite) authorizeRequest(req *http.Request, token, login string, id int64) *http.Request {
+	rr := httptest.NewRecorder()
+
+	ctx := oauth2login.WithToken(context.Background(), &oauth2.Token{AccessToken: token})
+	ctx = github.WithUser(ctx, &gogithub.User{Login: &login, ID: &id})
+	req = req.WithContext(ctx)
+
+	sts.service.authorizeHandler().ServeHTTP(rr, req)
+	sts.Require().Equal(http.StatusFound, rr.Code)
+
+	return req
 }
 
 func (sts *ServiceTestSuite) TestSearchModules() {
@@ -749,17 +768,149 @@ func (sts *ServiceTestSuite) TestGetAllKeywords() {
 	sts.Require().Equal(uint(25), cursor)
 }
 
-// TODO: Test...
+func (sts *ServiceTestSuite) TestCreateModule() {
+	resetDB(sts.T(), sts.m)
+
+	req, err := http.NewRequest("GET", "/", nil)
+	sts.Require().NoError(err)
+
+	req = sts.authorizeRequest(req, "test_token", "test_user", 12345)
+
+	upsertURL, err := url.Parse("/api/v1/modules")
+	sts.Require().NoError(err)
+
+	testCases := []struct {
+		name string
+		body map[string]interface{}
+		code int
+	}{
+		{
+			name: "invalid name",
+			body: make(map[string]interface{}),
+			code: http.StatusBadRequest,
+		},
+		{
+			name: "invalid team",
+			body: map[string]interface{}{"name": "x/bank"},
+			code: http.StatusBadRequest,
+		},
+		{
+			name: "missing repo",
+			body: map[string]interface{}{"name": "x/bank", "team": "cosmonauts"},
+			code: http.StatusBadRequest,
+		},
+		{
+			name: "missing authors",
+			body: map[string]interface{}{
+				"name": "x/bank",
+				"team": "cosmonauts",
+				"repo": "https://github.com/cosmos/cosmos-sdk",
+			},
+			code: http.StatusBadRequest,
+		},
+		{
+			name: "missing version",
+			body: map[string]interface{}{
+				"name": "x/bank",
+				"team": "cosmonauts",
+				"repo": "https://github.com/cosmos/cosmos-sdk",
+				"authors": []map[string]interface{}{
+					{
+						"name": "foo", "email": "foo@email.com",
+					},
+				},
+			},
+			code: http.StatusBadRequest,
+		},
+		{
+			name: "duplicate authors",
+			body: map[string]interface{}{
+				"name": "x/bank",
+				"team": "cosmonauts",
+				"repo": "https://github.com/cosmos/cosmos-sdk",
+				"authors": []map[string]interface{}{
+					{
+						"name": "foo", "email": "foo@email.com",
+					},
+					{
+						"name": "foo", "email": "foo@email.com",
+					},
+				},
+				"version":  "v1.0.0",
+				"keywords": []string{"tokens"},
+				"bug_tracker": map[string]interface{}{
+					"url":     "https://cosmonauts.com",
+					"contact": "contact@cosmonauts.com",
+				},
+			},
+			code: http.StatusBadRequest,
+		},
+		{
+			name: "duplicate keywords",
+			body: map[string]interface{}{
+				"name": "x/bank",
+				"team": "cosmonauts",
+				"repo": "https://github.com/cosmos/cosmos-sdk",
+				"authors": []map[string]interface{}{
+					{
+						"name": "foo", "email": "foo@email.com",
+					},
+				},
+				"version":  "v1.0.0",
+				"keywords": []string{"tokens", "tokens"},
+				"bug_tracker": map[string]interface{}{
+					"url":     "https://cosmonauts.com",
+					"contact": "contact@cosmonauts.com",
+				},
+			},
+			code: http.StatusBadRequest,
+		},
+		{
+			name: "valid module",
+			body: map[string]interface{}{
+				"name": "x/bank",
+				"team": "cosmonauts",
+				"repo": "https://github.com/cosmos/cosmos-sdk",
+				"authors": []map[string]interface{}{
+					{
+						"name": "foo", "email": "foo@email.com",
+					},
+				},
+				"version":  "v1.0.0",
+				"keywords": []string{"tokens"},
+				"bug_tracker": map[string]interface{}{
+					"url":     "https://cosmonauts.com",
+					"contact": "contact@cosmonauts.com",
+				},
+			},
+			code: http.StatusOK,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+
+		sts.Run(tc.name, func() {
+			bz, err := json.Marshal(tc.body)
+			sts.Require().NoError(err)
+
+			req.Method = methodPUT
+			req.URL = upsertURL
+			req.Body = ioutil.NopCloser(bytes.NewBuffer(bz))
+			req.ContentLength = int64(len(bz))
+
+			rr := httptest.NewRecorder()
+			sts.service.router.ServeHTTP(rr, req)
+
+			sts.Require().Equal(tc.code, rr.Code, rr.Body.String())
+		})
+	}
+}
+
+// TODO: Test
 //
-//
-//
-// UpsertModule
-//
-// Maybe...:
-//
-// BeginSession
-// AuthorizeSession
-// LogoutSession
+// 1. unauthorized module publish
+// 2. non-owner publish
 
 func resetDB(t *testing.T, m *migrate.Migrate) {
 	t.Helper()
