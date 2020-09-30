@@ -907,10 +907,88 @@ func (sts *ServiceTestSuite) TestCreateModule() {
 	}
 }
 
-// TODO: Test
-//
-// 1. unauthorized module publish
-// 2. non-owner publish
+func (sts *ServiceTestSuite) TestCreateModule_Unauthorized() {
+	body := map[string]interface{}{
+		"name": "x/bank",
+		"team": "cosmonauts",
+		"repo": "https://github.com/cosmos/cosmos-sdk",
+		"authors": []map[string]interface{}{
+			{
+				"name": "foo", "email": "foo@email.com",
+			},
+		},
+		"version":  "v1.0.0",
+		"keywords": []string{"tokens"},
+		"bug_tracker": map[string]interface{}{
+			"url":     "https://cosmonauts.com",
+			"contact": "contact@cosmonauts.com",
+		},
+	}
+
+	bz, err := json.Marshal(body)
+	sts.Require().NoError(err)
+
+	req, err := http.NewRequest("PUT", "/api/v1/modules", bytes.NewBuffer(bz))
+	sts.Require().NoError(err)
+
+	response := sts.executeRequest(req)
+	sts.Require().Equal(http.StatusUnauthorized, response.Code)
+}
+
+func (sts *ServiceTestSuite) TestCreateModule_InvalidOwner() {
+	req1, err := http.NewRequest("GET", "/", nil)
+	sts.Require().NoError(err)
+
+	req2, err := http.NewRequest("GET", "/", nil)
+	sts.Require().NoError(err)
+
+	req1 = sts.authorizeRequest(req1, "test_token1", "test_user1", 12345)
+	req2 = sts.authorizeRequest(req2, "test_token2", "test_user2", 67899)
+
+	upsertURL, err := url.Parse("/api/v1/modules")
+	sts.Require().NoError(err)
+
+	body := map[string]interface{}{
+		"name": "x/bank",
+		"team": "cosmonauts",
+		"repo": "https://github.com/cosmos/cosmos-sdk",
+		"authors": []map[string]interface{}{
+			{
+				"name": "foo", "email": "foo@email.com",
+			},
+		},
+		"version":  "v1.0.0",
+		"keywords": []string{"tokens"},
+		"bug_tracker": map[string]interface{}{
+			"url":     "https://cosmonauts.com",
+			"contact": "contact@cosmonauts.com",
+		},
+	}
+
+	// create module published by test_user1
+	bz, err := json.Marshal(body)
+	sts.Require().NoError(err)
+
+	req1.Method = methodPUT
+	req1.URL = upsertURL
+	req1.Body = ioutil.NopCloser(bytes.NewBuffer(bz))
+	req1.ContentLength = int64(len(bz))
+
+	rr := httptest.NewRecorder()
+	sts.service.router.ServeHTTP(rr, req1)
+	sts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
+
+	// attempt to update module published by test_user2
+
+	req2.Method = methodPUT
+	req2.URL = upsertURL
+	req2.Body = ioutil.NopCloser(bytes.NewBuffer(bz))
+	req2.ContentLength = int64(len(bz))
+
+	rr = httptest.NewRecorder()
+	sts.service.router.ServeHTTP(rr, req2)
+	sts.Require().Equal(http.StatusBadRequest, rr.Code, rr.Body.String())
+}
 
 func resetDB(t *testing.T, m *migrate.Migrate) {
 	t.Helper()
