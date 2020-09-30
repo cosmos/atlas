@@ -44,7 +44,7 @@ migrate:
 ###############################################################################
 
 export ATLAS_MIGRATIONS_DIR ?= $(shell pwd)/db/migrations
-export ATLAS_TEST_DATABASE_URL ?= "host=localhost port=6432 dbname=postgres user=postgres password=postgres sslmode=disable"
+export ATLAS_TEST_DATABASE_URL ?= host=localhost port=6432 dbname=postgres user=postgres password=postgres sslmode=disable
 
 test:
 	@docker-compose down
