@@ -15,8 +15,9 @@ type (
 	ModuleVersion struct {
 		gorm.Model
 
-		Version  string `json:"version" yaml:"version"`
-		ModuleID uint   `json:"module_id" yaml:"module_id"`
+		Version   string         `json:"version" yaml:"version"`
+		SDKCompat sql.NullString `json:"sdk_compat" yaml:"sdk_compat"`
+		ModuleID  uint           `json:"module_id" yaml:"module_id"`
 	}
 
 	// ModuleKeywords defines the type relationship between a module and all the
@@ -65,26 +66,30 @@ type (
 		Owners   []User    `gorm:"many2many:module_owners" json:"owners" yaml:"owners"`
 
 		// one-to-many relationships
-		Version  string          `gorm:"-" json:"-" yaml:"-"` // current version in manifest
+		Version  ModuleVersion   `gorm:"-" json:"-" yaml:"-"` // current version in manifest
 		Versions []ModuleVersion `gorm:"foreignKey:module_id" json:"versions" yaml:"versions"`
 	}
 )
 
 // MarshalJSON implements custom JSON marshaling for the ModuleVersion model.
 func (mv ModuleVersion) MarshalJSON() ([]byte, error) {
+	sdkCompat, _ := mv.SDKCompat.Value()
+
 	return json.Marshal(struct {
 		GormModelJSON
 
-		Version  string `json:"version" yaml:"version"`
-		ModuleID uint   `json:"module_id" yaml:"module_id"`
+		Version   string      `json:"version" yaml:"version"`
+		SDKCompat interface{} `json:"sdk_compat" yaml:"sdk_compat"`
+		ModuleID  uint        `json:"module_id" yaml:"module_id"`
 	}{
 		GormModelJSON: GormModelJSON{
 			ID:        mv.ID,
 			CreatedAt: mv.CreatedAt,
 			UpdatedAt: mv.UpdatedAt,
 		},
-		Version:  mv.Version,
-		ModuleID: mv.ModuleID,
+		Version:   mv.Version,
+		SDKCompat: sdkCompat,
+		ModuleID:  mv.ModuleID,
 	})
 }
 
@@ -182,14 +187,14 @@ func (m Module) Upsert(db *gorm.DB) (Module, error) {
 		err := tx.Where("name = ? AND team = ?", m.Name, m.Team).First(&record).Error
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				if m.Version == "" {
+				if m.Version.Version == "" {
 					return errors.New("failed to create module: empty module version")
 				}
 				if len(m.Authors) == 0 {
 					return errors.New("failed to create module: empty module authors")
 				}
 
-				m.Versions = []ModuleVersion{{Version: m.Version}}
+				m.Versions = []ModuleVersion{m.Version}
 
 				// record does not exist, so we create it
 				if err := tx.Create(&m).Error; err != nil {
@@ -236,9 +241,10 @@ func (m Module) Upsert(db *gorm.DB) (Module, error) {
 		}
 
 		// append version if new
-		versionQuery := &ModuleVersion{Version: m.Version, ModuleID: record.ID}
+		versionQuery := &ModuleVersion{Version: m.Version.Version, ModuleID: record.ID}
 		if err := tx.Where(versionQuery).First(&ModuleVersion{}).Error; err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
-			if err := tx.Model(&record).Association("Versions").Append(&ModuleVersion{Version: m.Version}); err != nil {
+			modVer := ModuleVersion{Version: m.Version.Version, SDKCompat: m.Version.SDKCompat}
+			if err := tx.Model(&record).Association("Versions").Append(&modVer); err != nil {
 				return fmt.Errorf("failed to update module version: %w", err)
 			}
 		}

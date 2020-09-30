@@ -127,7 +127,7 @@ func (mts *ModelsTestSuite) TestModuleCreate() {
 				Authors: []models.User{
 					{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 				},
-				Version: "v1.0.0",
+				Version: models.ModuleVersion{Version: "v1.0.0"},
 				Keywords: []models.Keyword{
 					{Name: "tokens"},
 				},
@@ -169,7 +169,7 @@ func (mts *ModelsTestSuite) TestGetModuleByID() {
 		Authors: []models.User{
 			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 		},
-		Version: "v1.0.0",
+		Version: models.ModuleVersion{Version: "v1.0.0"},
 		Keywords: []models.Keyword{
 			{Name: "tokens"},
 		},
@@ -214,7 +214,7 @@ func (mts *ModelsTestSuite) TestGetAllModules() {
 			Authors: []models.User{
 				{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 			},
-			Version: "v1.0.0",
+			Version: models.ModuleVersion{Version: "v1.0.0"},
 			Keywords: []models.Keyword{
 				{Name: "tokens"},
 			},
@@ -266,7 +266,7 @@ func (mts *ModelsTestSuite) TestModuleUpdateBasic() {
 		Authors: []models.User{
 			{Name: "admin"},
 		},
-		Version:    "v1.0.0",
+		Version:    models.ModuleVersion{Version: "v1.0.0"},
 		BugTracker: models.BugTracker{},
 	}
 
@@ -300,7 +300,7 @@ func (mts *ModelsTestSuite) TestModuleUpdateBugTracker() {
 		Authors: []models.User{
 			{Name: "admin"},
 		},
-		Version:    "v1.0.0",
+		Version:    models.ModuleVersion{Version: "v1.0.0"},
 		BugTracker: models.BugTracker{},
 	}
 
@@ -335,7 +335,7 @@ func (mts *ModelsTestSuite) TestModuleUpdateKeywords() {
 		Authors: []models.User{
 			{Name: "admin"},
 		},
-		Version:    "v1.0.0",
+		Version:    models.ModuleVersion{Version: "v1.0.0"},
 		BugTracker: models.BugTracker{},
 	}
 
@@ -378,7 +378,7 @@ func (mts *ModelsTestSuite) TestModuleUpdateAuthors() {
 		Owners: []models.User{
 			{Name: "admin"},
 		},
-		Version:    "v1.0.0",
+		Version:    models.ModuleVersion{Version: "v1.0.0"},
 		BugTracker: models.BugTracker{},
 	}
 
@@ -424,7 +424,7 @@ func (mts *ModelsTestSuite) TestModuleUpdateOwners() {
 		Owners: []models.User{
 			{Name: "admin"},
 		},
-		Version:    "v1.0.0",
+		Version:    models.ModuleVersion{Version: "v1.0.0"},
 		BugTracker: models.BugTracker{},
 	}
 
@@ -470,7 +470,7 @@ func (mts *ModelsTestSuite) TestModuleUpdateVersion() {
 		Owners: []models.User{
 			{Name: "admin"},
 		},
-		Version:    "v1.0.0",
+		Version:    models.ModuleVersion{Version: "v1.0.0"},
 		BugTracker: models.BugTracker{},
 	}
 
@@ -478,7 +478,7 @@ func (mts *ModelsTestSuite) TestModuleUpdateVersion() {
 	mts.Require().NoError(err)
 
 	// update version
-	mod.Version = "v1.0.1"
+	mod.Version = models.ModuleVersion{Version: "v1.0.1"}
 
 	record, err = mod.Upsert(mts.gormDB)
 	mts.Require().NoError(err)
@@ -486,10 +486,11 @@ func (mts *ModelsTestSuite) TestModuleUpdateVersion() {
 
 	latest, err := record.GetLatestVersion(mts.gormDB)
 	mts.Require().NoError(err)
-	mts.Require().Equal(mod.Version, latest.Version)
+	mts.Require().Equal(mod.Version.Version, latest.Version)
+	mts.Require().Equal(mod.Version.SDKCompat, latest.SDKCompat)
 
 	// no version update
-	mod.Version = "v1.0.1"
+	mod.Version = models.ModuleVersion{Version: "v1.0.1"}
 
 	record, err = mod.Upsert(mts.gormDB)
 	mts.Require().NoError(err)
@@ -497,10 +498,11 @@ func (mts *ModelsTestSuite) TestModuleUpdateVersion() {
 
 	latest, err = record.GetLatestVersion(mts.gormDB)
 	mts.Require().NoError(err)
-	mts.Require().Equal(mod.Version, latest.Version)
+	mts.Require().Equal(mod.Version.Version, latest.Version)
+	mts.Require().Equal(mod.Version.SDKCompat, latest.SDKCompat)
 
 	// update version again
-	mod.Version = "v2.0.0"
+	mod.Version = models.ModuleVersion{Version: "v2.0.0"}
 
 	record, err = mod.Upsert(mts.gormDB)
 	mts.Require().NoError(err)
@@ -508,7 +510,8 @@ func (mts *ModelsTestSuite) TestModuleUpdateVersion() {
 
 	latest, err = record.GetLatestVersion(mts.gormDB)
 	mts.Require().NoError(err)
-	mts.Require().Equal(mod.Version, latest.Version)
+	mts.Require().Equal(mod.Version.Version, latest.Version)
+	mts.Require().Equal(mod.Version.SDKCompat, latest.SDKCompat)
 }
 
 func (mts *ModelsTestSuite) TestModuleSearch() {
@@ -546,7 +549,7 @@ func (mts *ModelsTestSuite) TestModuleSearch() {
 				godUser,
 				randUser,
 			},
-			Version: fmt.Sprintf("v1.0.%d", i),
+			Version: models.ModuleVersion{Version: fmt.Sprintf("v1.0.%d", i)},
 			Keywords: []models.Keyword{
 				{Name: "module"},
 				{Name: fmt.Sprintf("mod-keyword-%d", i+1)},
@@ -616,7 +619,7 @@ func (mts *ModelsTestSuite) TestGetUserByID() {
 		Authors: []models.User{
 			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 		},
-		Version: "v1.0.0",
+		Version: models.ModuleVersion{Version: "v1.0.0"},
 		Keywords: []models.Keyword{
 			{Name: "tokens"}, {Name: "transfer"},
 		},
@@ -658,7 +661,7 @@ func (mts *ModelsTestSuite) TestGetAllUsers() {
 			Authors: []models.User{
 				{Name: fmt.Sprintf("foo-%d", i), Email: models.NewNullString(fmt.Sprintf("foo%d@cosmonauts.com", i))},
 			},
-			Version: "v1.0.0",
+			Version: models.ModuleVersion{Version: "v1.0.0"},
 			Keywords: []models.Keyword{
 				{Name: "tokens"},
 			},
@@ -712,7 +715,7 @@ func (mts *ModelsTestSuite) TestGetAllKeywords() {
 			Authors: []models.User{
 				{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 			},
-			Version: "v1.0.0",
+			Version: models.ModuleVersion{Version: "v1.0.0"},
 			Keywords: []models.Keyword{
 				{Name: fmt.Sprintf("tokens-%d", i)},
 			},

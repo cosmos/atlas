@@ -163,7 +163,7 @@ func (sts *ServiceTestSuite) TestSearchModules() {
 				godUser,
 				randUser,
 			},
-			Version: fmt.Sprintf("v1.0.%d", i),
+			Version: models.ModuleVersion{Version: fmt.Sprintf("v1.0.%d", i)},
 			Keywords: []models.Keyword{
 				{Name: "module"},
 				{Name: fmt.Sprintf("mod-keyword-%d", i+1)},
@@ -255,7 +255,7 @@ func (sts *ServiceTestSuite) TestGetAllModules() {
 			Authors: []models.User{
 				{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 			},
-			Version: "v1.0.0",
+			Version: models.ModuleVersion{Version: "v1.0.0"},
 			Keywords: []models.Keyword{
 				{Name: "tokens"},
 			},
@@ -319,7 +319,7 @@ func (sts *ServiceTestSuite) TestGetModuleByID() {
 		Authors: []models.User{
 			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 		},
-		Version: "v1.0.0",
+		Version: models.ModuleVersion{Version: "v1.0.0"},
 		Keywords: []models.Keyword{
 			{Name: "tokens"},
 		},
@@ -372,7 +372,7 @@ func (sts *ServiceTestSuite) TestGetModuleVersions() {
 		Authors: []models.User{
 			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 		},
-		Version: "v1.0.0",
+		Version: models.ModuleVersion{Version: "v1.0.0"},
 		Keywords: []models.Keyword{
 			{Name: "tokens"},
 		},
@@ -423,7 +423,7 @@ func (sts *ServiceTestSuite) GetModuleAuthors() {
 		Authors: []models.User{
 			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 		},
-		Version: "v1.0.0",
+		Version: models.ModuleVersion{Version: "v1.0.0"},
 		Keywords: []models.Keyword{
 			{Name: "tokens"},
 		},
@@ -474,7 +474,7 @@ func (sts *ServiceTestSuite) GetModuleKeywords() {
 		Authors: []models.User{
 			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 		},
-		Version: "v1.0.0",
+		Version: models.ModuleVersion{Version: "v1.0.0"},
 		Keywords: []models.Keyword{
 			{Name: "tokens"},
 		},
@@ -525,7 +525,7 @@ func (sts *ServiceTestSuite) GetUserByID() {
 		Authors: []models.User{
 			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 		},
-		Version: "v1.0.0",
+		Version: models.ModuleVersion{Version: "v1.0.0"},
 		Keywords: []models.Keyword{
 			{Name: "tokens"}, {Name: "transfer"},
 		},
@@ -576,7 +576,7 @@ func (sts *ServiceTestSuite) TestGetUserModules() {
 		Authors: []models.User{
 			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 		},
-		Version: "v1.0.0",
+		Version: models.ModuleVersion{Version: "v1.0.0"},
 		Keywords: []models.Keyword{
 			{Name: "tokens"}, {Name: "transfer"},
 		},
@@ -639,7 +639,7 @@ func (sts *ServiceTestSuite) TestGetAllUsers() {
 			Authors: []models.User{
 				{Name: fmt.Sprintf("foo-%d", i), Email: models.NewNullString(fmt.Sprintf("foo%d@cosmonauts.com", i))},
 			},
-			Version: "v1.0.0",
+			Version: models.ModuleVersion{Version: "v1.0.0"},
 			Keywords: []models.Keyword{
 				{Name: "tokens"},
 			},
@@ -714,7 +714,7 @@ func (sts *ServiceTestSuite) TestGetAllKeywords() {
 			Authors: []models.User{
 				{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 			},
-			Version: "v1.0.0",
+			Version: models.ModuleVersion{Version: "v1.0.0"},
 			Keywords: []models.Keyword{
 				{Name: fmt.Sprintf("tokens-%d", i)},
 			},
@@ -836,7 +836,9 @@ func (sts *ServiceTestSuite) TestCreateModule() {
 						"name": "foo", "email": "foo@email.com",
 					},
 				},
-				"version":  "v1.0.0",
+				"version": map[string]interface{}{
+					"version": "v1.0.0",
+				},
 				"keywords": []string{"tokens"},
 				"bug_tracker": map[string]interface{}{
 					"url":     "https://cosmonauts.com",
@@ -856,7 +858,9 @@ func (sts *ServiceTestSuite) TestCreateModule() {
 						"name": "foo", "email": "foo@email.com",
 					},
 				},
-				"version":  "v1.0.0",
+				"version": map[string]interface{}{
+					"version": "v1.0.0",
+				},
 				"keywords": []string{"tokens", "tokens"},
 				"bug_tracker": map[string]interface{}{
 					"url":     "https://cosmonauts.com",
@@ -876,7 +880,9 @@ func (sts *ServiceTestSuite) TestCreateModule() {
 						"name": "foo", "email": "foo@email.com",
 					},
 				},
-				"version":  "v1.0.0",
+				"version": map[string]interface{}{
+					"version": "v1.0.0",
+				},
 				"keywords": []string{"tokens"},
 				"bug_tracker": map[string]interface{}{
 					"url":     "https://cosmonauts.com",
@@ -961,7 +967,9 @@ func (sts *ServiceTestSuite) TestCreateModule_InvalidOwner() {
 				"name": "foo", "email": "foo@email.com",
 			},
 		},
-		"version":  "v1.0.0",
+		"version": map[string]interface{}{
+			"version": "v1.0.0",
+		},
 		"keywords": []string{"tokens"},
 		"bug_tracker": map[string]interface{}{
 			"url":     "https://cosmonauts.com",
