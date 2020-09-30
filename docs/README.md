@@ -1,0 +1,5 @@
+# Atlas Documentation
+
+## Configuration
+
+TODO
