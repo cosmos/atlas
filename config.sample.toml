@@ -1,0 +1,39 @@
+# The database migrations path used for integration tests. Set this value to the
+# root directory of the database migrations. These migrations are called for each
+# isolated integration test to provide a clean database.
+migrations_dir = ""
+
+# Credentials for integrating with the GitHub API. Typically, the redirect URL
+# will be empty, but in testing environments it should be set to the localhost
+# address (e.g. http://localhost:8080/session/authorize)
+gh_client_id = ""
+gh_client_secret = ""
+gh_redirect_url = ""
+
+# The PostgreSQL database connection string.
+database_url = ""
+
+# Logging values to define the logging level and if text or JSON output is
+# preferred. The level must be one of (panic|fatal|error|warn|info|debug|trace)
+# and the format must be one of (text|json).
+log_format = ""
+log_level = ""
+
+# The atlas server HTTP settings.
+#
+# Defines the HTTP listening address
+listen_addr = ""
+#
+# Define the HTTP read timeout as a duration.
+http_read_timeout = ""
+#
+# Define the HTTP write timeout as a duration.
+http_write_timeout = ""
+
+# Enable development settings. This is typically used when running the service
+# locally mimicking a non-production environment. Must be (true|false).
+dev = false
+
+# Session key used to encrypt and authenticate user session cookies. It is
+# recommended to use a key with 32 or 64 bytes.
+session_key = ""

@@ -28,3 +28,34 @@ install: go.sum
 	@go install -mod=readonly $(BUILD_FLAGS) .
 
 .PHONY: install build
+
+###############################################################################
+#                                 Migrations                                  #
+###############################################################################
+
+migrate:
+	@migrate -database ${ATLAS_DATABASE_URL} -path db/migrations down
+	@migrate -database ${ATLAS_DATABASE_URL} -path db/migrations up
+
+.PHONY: migrate
+
+###############################################################################
+#                                    Tests                                    #
+###############################################################################
+
+export ATLAS_MIGRATIONS_DIR ?= $(shell pwd)/db/migrations
+export ATLAS_TEST_DATABASE_URL ?= "host=localhost port=6432 dbname=postgres user=postgres password=postgres sslmode=disable"
+
+test:
+	@docker-compose down
+	@docker-compose up -d
+	@bash -c 'while ! nc -z localhost 6432; do sleep 1; done;'
+	@go test -p 1 -v -coverprofile=profile.cov --timeout=20m ./...
+
+test-ci:
+	@go test -p 1 -v -coverprofile=profile.cov --timeout=20m ./...
+
+lint:
+	@golangci-lint run --timeout 10m
+
+.PHONY: test-docker-db test test-ci lint
