@@ -11,14 +11,6 @@ coverage:
     project:
       default:
         threshold: 1% # allow this much decrease on project
-      app:
-        target: 70%
-        flags: app
-      modules:
-        target: 70%
-        flags: modules
-      client:
-        flags: client
     changes: false
 
 comment:
