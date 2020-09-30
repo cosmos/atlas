@@ -908,6 +908,8 @@ func (sts *ServiceTestSuite) TestCreateModule() {
 }
 
 func (sts *ServiceTestSuite) TestCreateModule_Unauthorized() {
+	resetDB(sts.T(), sts.m)
+
 	body := map[string]interface{}{
 		"name": "x/bank",
 		"team": "cosmonauts",
@@ -936,6 +938,8 @@ func (sts *ServiceTestSuite) TestCreateModule_Unauthorized() {
 }
 
 func (sts *ServiceTestSuite) TestCreateModule_InvalidOwner() {
+	resetDB(sts.T(), sts.m)
+
 	req1, err := http.NewRequest("GET", "/", nil)
 	sts.Require().NoError(err)
 
