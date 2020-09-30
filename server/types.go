@@ -1,8 +1,6 @@
 package server
 
 import (
-	"fmt"
-
 	"github.com/cosmos/atlas/server/models"
 )
 
@@ -83,8 +81,6 @@ func ModuleFromRequest(req ModuleRequest) models.Module {
 		Version:   req.Version.Version,
 		SDKCompat: models.NewNullString(req.Version.SDKCompat),
 	}
-
-	fmt.Println("MOD VERSION FROM REQ:", modVer)
 
 	return models.Module{
 		Name:        req.Name,
