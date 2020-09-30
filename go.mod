@@ -3,9 +3,10 @@ module github.com/cosmos/atlas
 go 1.15
 
 require (
-	github.com/dghubble/gologin v2.1.0+incompatible
+	github.com/dghubble/gologin/v2 v2.2.0
 	github.com/go-playground/validator/v10 v10.3.0
 	github.com/golang-migrate/migrate/v4 v4.12.2
+	github.com/google/go-github v17.0.0+incompatible
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/sessions v1.2.1
 	github.com/jackc/pgproto3/v2 v2.0.4 // indirect
