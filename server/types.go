@@ -36,13 +36,20 @@ type BugTrackerRequest struct {
 	Contact string `json:"contact" yaml:"contact" validate:"required,email"`
 }
 
+// ModuleVersion defines a type wrapper for defining a ModuleVersion model data
+// in a request.
+type ModuleVersion struct {
+	Version   string `json:"version" yaml:"version" validate:"required"`
+	SDKCompat string `json:"sdk_compat" yaml:"sdk_compat"`
+}
+
 // ModuleRequest defines a type wrapper for defining Module model data in a
 // request.
 type ModuleRequest struct {
 	Name        string             `json:"name" yaml:"name" validate:"required"`
 	Team        string             `json:"team" yaml:"team" validate:"required"`
 	Repo        string             `json:"repo" yaml:"repo" validate:"required,url"`
-	Version     string             `json:"version" yaml:"version" validate:"required"`
+	Version     ModuleVersion      `json:"version" yaml:"version" validate:"required,dive"`
 	Authors     []UserRequest      `json:"authors" yaml:"authors" validate:"required,gt=0,unique=Name,dive"`
 	Description string             `json:"description" yaml:"description"`
 	Homepage    string             `json:"homepage" yaml:"homepage" validate:"omitempty,url"`
@@ -70,11 +77,16 @@ func ModuleFromRequest(req ModuleRequest) models.Module {
 		}
 	}
 
+	modVer := models.ModuleVersion{
+		Version:   req.Version.Version,
+		SDKCompat: models.NewNullString(req.Version.SDKCompat),
+	}
+
 	return models.Module{
 		Name:        req.Name,
 		Team:        req.Team,
 		Repo:        req.Repo,
-		Version:     req.Version,
+		Version:     modVer,
 		Description: req.Description,
 		Homepage:    req.Homepage,
 		Authors:     authors,

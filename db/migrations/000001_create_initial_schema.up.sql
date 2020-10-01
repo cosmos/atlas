@@ -58,6 +58,7 @@ CREATE INDEX idx_modules_tsvector ON modules USING GIN(
 CREATE TABLE IF NOT EXISTS module_versions (
     id SERIAL PRIMARY KEY,
     version VARCHAR NOT NULL,
+    sdk_compat VARCHAR,
     module_id INT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL,
