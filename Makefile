@@ -51,6 +51,7 @@ test:
 	@docker-compose up -d
 	@bash -c 'while ! nc -z localhost 6432; do sleep 1; done;'
 	@go test -p 1 -v -coverprofile=profile.cov --timeout=20m ./...
+	@docker-compose down
 
 test-ci:
 	@go test -p 1 -v -coverprofile=profile.cov --timeout=20m ./...
