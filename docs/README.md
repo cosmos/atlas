@@ -12,6 +12,16 @@ The manifest schema is defined as follows
   - [documentation](#documentation)
   - [homepage](#homepage)
   - [repo](#repo-required)
+  - [keywords](#keywords)
+- [[bug_tacker]](#bug_tracker)
+  - [url](#url)
+  - [contact](#contact)
+- [[[authors]]](#authors)
+  - [name](#name-required)
+  - [email](#email)
+- [[version]](#version)
+  - [version](#version-required)
+  - [sdk_compat](#sdk_compat)
 
 ### [module]
 
@@ -26,7 +36,6 @@ meaningful. Note, the combination of `name` and `team` (see below) must be uniqu
 [module]
 
 name = "x/poa"
-# ...
 ```
 
 #### `team` (required)
@@ -38,7 +47,6 @@ the module. The team combined with the `name` must be globally unique.
 [module]
 
 team = "Interchain"
-# ...
 ```
 
 #### `description`
@@ -50,19 +58,17 @@ this with the module. This should be plain text (not Markdown).
 [module]
 
 description = "A short description of my module."
-# ...
 ```
 
 #### `documentation`
 
 The documentation field specifies a URL to a website hosting the module's documentation.
-Typically, this is a Markdown file hosted in the module's root directory in Github.
+Typically, this is a Markdown file hosted in the module's root directory in GitHub.
 
 ```toml
 [module]
 
-documentation = "https://github.com/cosmos/cosmos-sdk/blob/master/x/slashing/readme.md"
-# ...
+documentation = "https://GitHub.com/cosmos/cosmos-sdk/blob/master/x/slashing/readme.md"
 ```
 
 #### `homepage`
@@ -74,7 +80,6 @@ organization or team.
 [module]
 
 homepage = "https://interchain.io/"
-# ...
 ```
 
 #### `repo` (required)
@@ -84,19 +89,101 @@ The repository field should be a URL to the source repository for your module.
 ```toml
 [module]
 
-repo = "https://github.com/cosmos/cosmos-sdk"
-# ...
+repo = "https://GitHub.com/cosmos/cosmos-sdk"
 ```
 
-<!-- 
-	// one-to-one relationships
-		BugTracker BugTracker `json:"bug_tracker" yaml:"bug_tracker" gorm:"foreignKey:module_id"`
+#### `keywords`
 
-		// many-to-many relationships
-		Keywords []Keyword `gorm:"many2many:module_keywords" json:"keywords" yaml:"keywords"`
-		Authors  []User    `gorm:"many2many:module_authors" json:"authors" yaml:"authors"`
-		Owners   []User    `gorm:"many2many:module_owners" json:"owners" yaml:"owners"`
+A list of one or more keywords describing the module.
 
-		// one-to-many relationships
-		Version  ModuleVersion   `gorm:"-" json:"-" yaml:"-"` // current version in manifest
-		Versions []ModuleVersion `gorm:"foreignKey:module_id" json:"versions" yaml:"versions"` -->
+```toml
+[module]
+
+keywords = ["bank", "transfer", "tokens"]
+```
+
+### [bug_tracker]
+
+#### `url`
+
+A URL to a site that provides information or guidance on how to submit or deal
+with security vulnerabilities and bug reports.
+
+```toml
+[bug_tracker]
+
+url = "https://interchain.io/bugs"
+```
+
+#### `contact`
+
+An email address to submit bug reports and security vulnerabilities to.
+
+```toml
+[bug_tracker]
+
+contact = "bugs@interchain.io"
+```
+
+### [[authors]]
+
+#### `name` (required)
+
+The list of authors represents people or organizations that are considered the
+"authors" of the module. A module may consist one or more authors, where each
+author must have a unique name, typically their GitHub handle. However, the exact
+meaning is open to interpretation — it may list the original or primary authors,
+current maintainers, or owners of the package.
+
+```toml
+[[authors]]
+
+name = "alexanderbez"
+
+[[authors]]
+
+name = "fedekunze"
+```
+
+#### `email`
+
+An optional email address to provide alongside an author's name.
+
+```toml
+[[authors]]
+
+# ...
+email = "alexanderbez@email.com"
+
+[[authors]]
+
+# ...
+email = "fedekunze@email.com"
+```
+
+### [version]
+
+#### `version` (required)
+
+The module version to be published. It is recommended publishers and authors follow
+[Semantic Versioning](https://semver.org/). It is also recommend that you use
+version numbers with three numeric parts such as 1.0.0 rather than 1.0.
+
+```toml
+[version]
+
+version = "v1.0.0"
+```
+
+#### `sdk_compat`
+
+An optional Cosmos SDK version compatibility may be provided. This value is optional
+and arbitrary. The value could signal a single compatible version or a range of
+versions.
+
+```toml
+[version]
+
+# ...
+sdk_compat = "v0.40.x"
+```
