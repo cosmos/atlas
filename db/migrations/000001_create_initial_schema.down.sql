@@ -31,4 +31,8 @@ DROP TABLE IF EXISTS module_authors CASCADE;
 -- Drop the module_owners table
 --
 DROP TABLE IF EXISTS module_owners CASCADE;
+--
+-- Drop the user_tokens table
+--
+DROP TABLE IF EXISTS user_tokens CASCADE;
 COMMIT;
