@@ -58,7 +58,7 @@ CREATE INDEX IF NOT EXISTS idx_modules_tsvector ON modules USING GIN(
 CREATE extension IF NOT EXISTS "uuid-ossp";
 CREATE TABLE IF NOT EXISTS user_tokens (
     id SERIAL PRIMARY KEY,
-    token uuid DEFAULT uuid_generate_v4 () UNIQUE NOT NULL,
+    token uuid UNIQUE NOT NULL,
     user_id INT NOT NULL,
     revoked BOOL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL,

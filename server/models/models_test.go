@@ -609,6 +609,40 @@ func (mts *ModelsTestSuite) TestModuleSearch() {
 	}
 }
 
+func (mts *ModelsTestSuite) TestUserTokens() {
+	resetDB(mts.T(), mts.m)
+
+	u := models.User{
+		Name:              "foo",
+		GithubUserID:      models.NewNullInt64(12345),
+		GithubAccessToken: models.NewNullString("access_token"),
+		Email:             models.NewNullString("foo@email.com"),
+		AvatarURL:         "https://avatars.com/myavatar.jpg",
+		GravatarID:        "gravatar_id",
+	}
+
+	record, err := u.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
+
+	token1, err := record.CreateToken(mts.gormDB)
+	mts.Require().NoError(err)
+	mts.Require().NotEmpty(token1.Token)
+
+	token2, err := record.CreateToken(mts.gormDB)
+	mts.Require().NoError(err)
+	mts.Require().NotEmpty(token2.Token)
+
+	mts.Require().NotEqual(token1.Token, token2.Token)
+
+	tokens, err := record.GetTokens(mts.gormDB)
+	mts.Require().NoError(err)
+	mts.Require().Len(tokens, 2)
+
+	token2, err = models.RevokeToken(mts.gormDB, token2.ID)
+	mts.Require().NoError(err)
+	mts.Require().True(token2.Revoked)
+}
+
 func (mts *ModelsTestSuite) TestUserUpsert() {
 	resetDB(mts.T(), mts.m)
 

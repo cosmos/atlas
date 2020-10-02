@@ -161,3 +161,68 @@ func GetAllUsers(db *gorm.DB, cursor uint, limit int) ([]User, error) {
 
 	return users, nil
 }
+
+// RevokeToken revokes a token by it's ID. It returns an error upon failure.
+func RevokeToken(db *gorm.DB, id uint) (UserToken, error) {
+	var token UserToken
+	err := db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.First(&token, id).Error; err != nil {
+			return fmt.Errorf("failed to fetch token: %w", err)
+		}
+
+		token.Revoked = true
+		if err := tx.Save(&token).Error; err != nil {
+			return fmt.Errorf("failed to revoke token: %w", err)
+		}
+
+		// commit tx
+		return nil
+	})
+	if err != nil {
+		return UserToken{}, err
+	}
+
+	return token, nil
+}
+
+// BeforeCreate will create and set the UserToken UUID.
+func (ut *UserToken) BeforeCreate(tx *gorm.DB) error {
+	ut.Token = uuid.NewV4()
+	return nil
+}
+
+// CreateToken creates a new UserToken for a given User model. It returns an
+// error upon failure.
+func (u User) CreateToken(db *gorm.DB) (UserToken, error) {
+	token := UserToken{UserID: u.ID}
+
+	err := db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&token).Error; err != nil {
+			return fmt.Errorf("failed to create token: %w", err)
+		}
+
+		if err := tx.Model(&u).Association("Tokens").Append(&token); err != nil {
+			return fmt.Errorf("failed to assign token to user: %w", err)
+		}
+
+		// commit tx
+		return nil
+	})
+	if err != nil {
+		return UserToken{}, err
+	}
+
+	return token, nil
+}
+
+// GetTokens returns all UserToken records for a given User record. It returns
+// an error upon failure.
+func (u User) GetTokens(db *gorm.DB) ([]UserToken, error) {
+	var tokens []UserToken
+
+	if err := db.Model(&u).Association("Tokens").Find(&tokens); err != nil {
+		return nil, fmt.Errorf("failed to fetch user tokens: %w", err)
+	}
+
+	return tokens, nil
+}

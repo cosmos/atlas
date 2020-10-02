@@ -338,7 +338,7 @@ func (s *Service) GetAllModules() http.HandlerFunc {
 	}
 }
 
-// GetModuleVersions implements a request handler to retreive a module's set of
+// GetModuleVersions implements a request handler to retrieve a module's set of
 // versions by ID.
 func (s *Service) GetModuleVersions() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
@@ -366,7 +366,7 @@ func (s *Service) GetModuleVersions() http.HandlerFunc {
 	}
 }
 
-// GetModuleAuthors implements a request handler to retreive a module's set of
+// GetModuleAuthors implements a request handler to retrieve a module's set of
 // authors by ID.
 func (s *Service) GetModuleAuthors() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
@@ -394,7 +394,7 @@ func (s *Service) GetModuleAuthors() http.HandlerFunc {
 	}
 }
 
-// GetModuleKeywords implements a request handler to retreive a module's set of
+// GetModuleKeywords implements a request handler to retrieve a module's set of
 // keywords by ID.
 func (s *Service) GetModuleKeywords() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
@@ -532,7 +532,7 @@ func (s *Service) StartSession() http.Handler {
 // executed. A session cookie will be saved and sent to the client. A user record
 // will also be upserted.
 func (s *Service) AuthorizeSession() http.Handler {
-	return github.StateHandler(s.cookieCfg, github.CallbackHandler(s.oauth2Cfg, http.HandlerFunc(s.authorizeHandler()), nil))
+	return github.StateHandler(s.cookieCfg, github.CallbackHandler(s.oauth2Cfg, s.authorizeHandler(), nil))
 }
 
 func (s *Service) authorizeHandler() http.HandlerFunc {

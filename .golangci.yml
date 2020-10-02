@@ -1,0 +1,20 @@
+linters:
+  enable:
+    - bodyclose
+    - asciicheck
+    - dogsled
+    - goimports
+    - interfacer
+    - misspell
+    - nakedret
+    - prealloc
+    - unconvert
+    - unparam
+    - whitespace
+
+linters-settings:
+  dogsled:
+    max-blank-identifiers: 3
+  maligned:
+    # print struct with more effective memory layout or not, false by default
+    suggest-new: true
