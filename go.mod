@@ -15,6 +15,7 @@ require (
 	github.com/knadh/koanf v0.13.0
 	github.com/lib/pq v1.8.0
 	github.com/rs/zerolog v1.20.0
+	github.com/satori/go.uuid v1.2.0
 	github.com/stretchr/testify v1.6.1
 	github.com/urfave/cli/v2 v2.2.0
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a // indirect
