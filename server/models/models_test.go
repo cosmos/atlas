@@ -699,6 +699,35 @@ func (mts *ModelsTestSuite) TestUserUpsert() {
 	}
 }
 
+func (mts *ModelsTestSuite) TestGetUserModules() {
+	resetDB(mts.T(), mts.m)
+
+	mod := models.Module{
+		Name: "x/bank",
+		Team: "cosmonauts",
+		Repo: "https://github.com/cosmos/cosmos-sdk",
+		Authors: []models.User{
+			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
+		},
+		Version: models.ModuleVersion{Version: "v1.0.0"},
+		Keywords: []models.Keyword{
+			{Name: "tokens"}, {Name: "transfer"},
+		},
+		BugTracker: models.BugTracker{
+			URL:     models.NewNullString("cosmonauts.com"),
+			Contact: models.NewNullString("contact@cosmonauts.com"),
+		},
+	}
+
+	record, err := mod.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
+
+	mods, err := models.GetUserModules(mts.gormDB, record.Authors[0].ID)
+	mts.Require().NoError(err)
+	mts.Require().Len(mods, 1)
+	mts.Require().Equal(mods[0], record)
+}
+
 func (mts *ModelsTestSuite) TestGetUserByID() {
 	resetDB(mts.T(), mts.m)
 
