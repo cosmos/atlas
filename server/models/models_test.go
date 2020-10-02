@@ -609,6 +609,96 @@ func (mts *ModelsTestSuite) TestModuleSearch() {
 	}
 }
 
+func (mts *ModelsTestSuite) TestUserUpsert() {
+	resetDB(mts.T(), mts.m)
+
+	testCases := []struct {
+		name      string
+		user      models.User
+		expectErr bool
+	}{
+		{
+			"valid user",
+			models.User{
+				Name:              "foo",
+				GithubUserID:      models.NewNullInt64(12345),
+				GithubAccessToken: models.NewNullString("access_token"),
+				Email:             models.NewNullString("foo@email.com"),
+				AvatarURL:         "https://avatars.com/myavatar.jpg",
+				GravatarID:        "gravatar_id",
+			},
+			false,
+		},
+		{
+			"updated user github id",
+			models.User{
+				Name:              "foo",
+				GithubUserID:      models.NewNullInt64(67899),
+				GithubAccessToken: models.NewNullString("access_token"),
+				Email:             models.NewNullString("foo@email.com"),
+				AvatarURL:         "https://avatars.com/myavatar.jpg",
+				GravatarID:        "gravatar_id",
+			},
+			false,
+		},
+		{
+			"updated user email",
+			models.User{
+				Name:              "foo",
+				GithubUserID:      models.NewNullInt64(12345),
+				GithubAccessToken: models.NewNullString("access_token"),
+				Email:             models.NewNullString("newfoo@email.com"),
+				AvatarURL:         "https://avatars.com/myavatar.jpg",
+				GravatarID:        "gravatar_id",
+			},
+			false,
+		},
+		{
+			"updated user avatar url",
+			models.User{
+				Name:              "foo",
+				GithubUserID:      models.NewNullInt64(12345),
+				GithubAccessToken: models.NewNullString("access_token"),
+				Email:             models.NewNullString("foo@email.com"),
+				AvatarURL:         "https://avatars.com/mynewavatar.jpg",
+				GravatarID:        "gravatar_id",
+			},
+			false,
+		},
+		{
+			"updated user gravatar id",
+			models.User{
+				Name:              "foo",
+				GithubUserID:      models.NewNullInt64(12345),
+				GithubAccessToken: models.NewNullString("access_token"),
+				Email:             models.NewNullString("foo@email.com"),
+				AvatarURL:         "https://avatars.com/myavatar.jpg",
+				GravatarID:        "new_gravatar_id",
+			},
+			false,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+
+		mts.Run(tc.name, func() {
+			record, err := tc.user.Upsert(mts.gormDB)
+			if tc.expectErr {
+				mts.Require().Error(err)
+			} else {
+				mts.Require().NoError(err)
+				mts.Require().Equal(tc.user.Name, record.Name)
+				mts.Require().Equal(tc.user.Email, record.Email)
+				mts.Require().Equal(tc.user.GithubUserID, record.GithubUserID)
+				mts.Require().Equal(tc.user.GithubAccessToken, record.GithubAccessToken)
+				mts.Require().Equal(tc.user.AvatarURL, record.AvatarURL)
+				mts.Require().Equal(tc.user.GravatarID, record.GravatarID)
+			}
+		})
+	}
+}
+
 func (mts *ModelsTestSuite) TestGetUserByID() {
 	resetDB(mts.T(), mts.m)
 

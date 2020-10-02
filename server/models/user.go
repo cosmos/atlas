@@ -6,24 +6,40 @@ import (
 	"errors"
 	"fmt"
 
+	uuid "github.com/satori/go.uuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
-// User defines an entity that contributes to a Module type.
-type User struct {
-	gorm.Model
+type (
+	// UserToken defines a user created API token.
+	UserToken struct {
+		gorm.Model
 
-	Name              string         `json:"name" yaml:"name"`
-	GithubUserID      sql.NullInt64  `json:"-" yaml:"-"`
-	GithubAccessToken sql.NullString `json:"-" yaml:"-"`
-	Email             sql.NullString `json:"-" yaml:"-"`
-	URL               string         `json:"url" yaml:"url"`
-	AvatarURL         string         `json:"avatar_url" yaml:"avatar_url"`
-	GravatarID        string         `json:"gravatar_id" yaml:"gravatar_id"`
+		UserID  uint      `json:"user_id" yaml:"user_id"`
+		Token   uuid.UUID `json:"token" yaml:"token"`
+		Revoked bool      `json:"revoked" yaml:"revoked"`
+	}
 
-	Modules []Module `gorm:"many2many:module_authors" json:"-" yaml:"-"`
-}
+	// User defines an entity that contributes to a Module type.
+	User struct {
+		gorm.Model
+
+		Name              string         `json:"name" yaml:"name"`
+		GithubUserID      sql.NullInt64  `json:"-" yaml:"-"`
+		GithubAccessToken sql.NullString `json:"-" yaml:"-"`
+		Email             sql.NullString `json:"-" yaml:"-"`
+		URL               string         `json:"url" yaml:"url"`
+		AvatarURL         string         `json:"avatar_url" yaml:"avatar_url"`
+		GravatarID        string         `json:"gravatar_id" yaml:"gravatar_id"`
+
+		// many-to-many relationships
+		Modules []Module `gorm:"many2many:module_authors" json:"-" yaml:"-"`
+
+		// one-to-many relationships
+		Tokens []UserToken `gorm:"foreignKey:user_id" json:"-" yaml:"-"`
+	}
+)
 
 // MarshalJSON implements custom JSON marshaling for the User model.
 func (u User) MarshalJSON() ([]byte, error) {
@@ -69,7 +85,7 @@ func (u User) Upsert(db *gorm.DB) (User, error) {
 		}
 
 		if err := tx.Model(&record).Updates(User{
-			Name:              u.Name,
+			Email:             u.Email,
 			GithubUserID:      u.GithubUserID,
 			GithubAccessToken: u.GithubAccessToken,
 			AvatarURL:         u.AvatarURL,
