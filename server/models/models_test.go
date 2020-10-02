@@ -632,7 +632,7 @@ func (mts *ModelsTestSuite) TestUserTokens() {
 	mts.Require().NoError(err)
 	mts.Require().NotEmpty(token2.Token)
 
-	mts.Require().NotEqual(token1.Token, token2.Token)
+	mts.Require().NotEqual(token1, token2)
 
 	tokens, err := record.GetTokens(mts.gormDB)
 	mts.Require().NoError(err)
@@ -641,6 +641,10 @@ func (mts *ModelsTestSuite) TestUserTokens() {
 	token2, err = models.RevokeToken(mts.gormDB, token2.ID)
 	mts.Require().NoError(err)
 	mts.Require().True(token2.Revoked)
+
+	token, err := models.UserToken{Token: token1.Token}.Query(mts.gormDB)
+	mts.Require().NoError(err)
+	mts.Require().Equal(token1, token)
 }
 
 func (mts *ModelsTestSuite) TestUserUpsert() {

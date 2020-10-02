@@ -191,25 +191,27 @@ func (ut *UserToken) BeforeCreate(tx *gorm.DB) error {
 	return nil
 }
 
+// Query performs a query for a UserToken record where the search criteria is
+// defined by the receiver object. The resulting record, if it exists, is
+// returned. If the query fails or the record does not exist, an error is returned.
+func (ut UserToken) Query(db *gorm.DB) (UserToken, error) {
+	var record UserToken
+
+	if err := db.Where(ut).First(&record).Error; err != nil {
+		return UserToken{}, fmt.Errorf("failed to query user token: %w", err)
+	}
+
+	return record, nil
+}
+
 // CreateToken creates a new UserToken for a given User model. It returns an
 // error upon failure.
 func (u User) CreateToken(db *gorm.DB) (UserToken, error) {
 	token := UserToken{UserID: u.ID}
 
-	err := db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(&token).Error; err != nil {
-			return fmt.Errorf("failed to create token: %w", err)
-		}
-
-		if err := tx.Model(&u).Association("Tokens").Append(&token); err != nil {
-			return fmt.Errorf("failed to assign token to user: %w", err)
-		}
-
-		// commit tx
-		return nil
-	})
-	if err != nil {
-		return UserToken{}, err
+	// Note: The Append call will create a new UserToken record.
+	if err := db.Model(&u).Association("Tokens").Append(&token); err != nil {
+		return UserToken{}, fmt.Errorf("failed to assign token to user: %w", err)
 	}
 
 	return token, nil
