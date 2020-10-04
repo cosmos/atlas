@@ -129,7 +129,7 @@ func (sts *ServiceTestSuite) authorizeRequest(req *http.Request, token, login st
 }
 
 func (sts *ServiceTestSuite) TestSearchModules() {
-	resetDB(sts.T(), sts.m)
+	sts.resetDB()
 
 	teams := []string{"teamA", "teamB", "teamC", "teamD"}
 	bugTrackers := []models.BugTracker{
@@ -235,7 +235,7 @@ func (sts *ServiceTestSuite) TestSearchModules() {
 }
 
 func (sts *ServiceTestSuite) TestGetAllModules() {
-	resetDB(sts.T(), sts.m)
+	sts.resetDB()
 
 	path := fmt.Sprintf("/api/v1/modules?cursor=%d&limit=%d", 0, 10)
 	req, err := http.NewRequest("GET", path, nil)
@@ -310,7 +310,7 @@ func (sts *ServiceTestSuite) TestGetAllModules() {
 }
 
 func (sts *ServiceTestSuite) TestGetModuleByID() {
-	resetDB(sts.T(), sts.m)
+	sts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -363,7 +363,7 @@ func (sts *ServiceTestSuite) TestGetModuleByID() {
 	})
 }
 func (sts *ServiceTestSuite) TestGetModuleVersions() {
-	resetDB(sts.T(), sts.m)
+	sts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -414,7 +414,7 @@ func (sts *ServiceTestSuite) TestGetModuleVersions() {
 }
 
 func (sts *ServiceTestSuite) GetModuleAuthors() {
-	resetDB(sts.T(), sts.m)
+	sts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -465,7 +465,7 @@ func (sts *ServiceTestSuite) GetModuleAuthors() {
 }
 
 func (sts *ServiceTestSuite) GetModuleKeywords() {
-	resetDB(sts.T(), sts.m)
+	sts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -516,7 +516,7 @@ func (sts *ServiceTestSuite) GetModuleKeywords() {
 }
 
 func (sts *ServiceTestSuite) GetUserByID() {
-	resetDB(sts.T(), sts.m)
+	sts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -567,7 +567,7 @@ func (sts *ServiceTestSuite) GetUserByID() {
 }
 
 func (sts *ServiceTestSuite) TestGetUserModules() {
-	resetDB(sts.T(), sts.m)
+	sts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -619,7 +619,7 @@ func (sts *ServiceTestSuite) TestGetUserModules() {
 }
 
 func (sts *ServiceTestSuite) TestGetAllUsers() {
-	resetDB(sts.T(), sts.m)
+	sts.resetDB()
 
 	path := fmt.Sprintf("/api/v1/users?cursor=%d&limit=%d", 0, 10)
 	req, err := http.NewRequest("GET", path, nil)
@@ -694,7 +694,7 @@ func (sts *ServiceTestSuite) TestGetAllUsers() {
 }
 
 func (sts *ServiceTestSuite) TestGetAllKeywords() {
-	resetDB(sts.T(), sts.m)
+	sts.resetDB()
 
 	path := fmt.Sprintf("/api/v1/keywords?cursor=%d&limit=%d", 0, 10)
 	req, err := http.NewRequest("GET", path, nil)
@@ -769,7 +769,7 @@ func (sts *ServiceTestSuite) TestGetAllKeywords() {
 }
 
 func (sts *ServiceTestSuite) TestCreateModule() {
-	resetDB(sts.T(), sts.m)
+	sts.resetDB()
 
 	req, err := http.NewRequest("GET", "/", nil)
 	sts.Require().NoError(err)
@@ -914,7 +914,7 @@ func (sts *ServiceTestSuite) TestCreateModule() {
 }
 
 func (sts *ServiceTestSuite) TestCreateModule_Unauthorized() {
-	resetDB(sts.T(), sts.m)
+	sts.resetDB()
 
 	body := map[string]interface{}{
 		"name": "x/bank",
@@ -944,7 +944,7 @@ func (sts *ServiceTestSuite) TestCreateModule_Unauthorized() {
 }
 
 func (sts *ServiceTestSuite) TestCreateModule_InvalidOwner() {
-	resetDB(sts.T(), sts.m)
+	sts.resetDB()
 
 	req1, err := http.NewRequest("GET", "/", nil)
 	sts.Require().NoError(err)
@@ -1001,10 +1001,10 @@ func (sts *ServiceTestSuite) TestCreateModule_InvalidOwner() {
 	sts.Require().Equal(http.StatusBadRequest, rr.Code, rr.Body.String())
 }
 
-func resetDB(t *testing.T, m *migrate.Migrate) {
-	t.Helper()
+func (sts *ServiceTestSuite) resetDB() {
+	sts.T().Helper()
 
-	require.NoError(t, m.Force(1))
-	require.NoError(t, m.Down())
-	require.NoError(t, m.Up())
+	require.NoError(sts.T(), sts.m.Force(1))
+	require.NoError(sts.T(), sts.m.Down())
+	require.NoError(sts.T(), sts.m.Up())
 }

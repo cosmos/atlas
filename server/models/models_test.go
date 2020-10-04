@@ -715,6 +715,18 @@ func (mts *ModelsTestSuite) TestUserUpsert() {
 			},
 			false,
 		},
+		{
+			"second valid user",
+			models.User{
+				Name:              "bar",
+				GithubUserID:      models.NewNullInt64(567899),
+				GithubAccessToken: models.NewNullString("access_token_bar"),
+				Email:             models.NewNullString("bar@email.com"),
+				AvatarURL:         "https://avatars.com/baravatar.jpg",
+				GravatarID:        "bar_gravatar_id",
+			},
+			false,
+		},
 	}
 
 	for _, tc := range testCases {

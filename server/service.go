@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/dghubble/gologin/v2"
@@ -18,6 +19,7 @@ import (
 	"github.com/gorilla/sessions"
 	_ "github.com/lib/pq"
 	"github.com/rs/zerolog"
+	uuid "github.com/satori/go.uuid"
 	"golang.org/x/oauth2"
 	githuboauth2 "golang.org/x/oauth2/github"
 	"gorm.io/driver/postgres"
@@ -32,12 +34,12 @@ const (
 	methodGET  = "GET"
 	methodPOST = "POST"
 	methodPUT  = "PUT"
-)
 
-const (
-	sessionName      = "atlas_session"
-	sessionUserKey   = "github_id"
-	sessionUserLogin = "github_login"
+	sessionName     = "atlas_session"
+	sessionGithubID = "github_id"
+	sessionUserID   = "user_Id"
+
+	bearerSchema = "Bearer "
 )
 
 // Service defines the encapsulating Atlas service. It wraps a router which is
@@ -209,7 +211,7 @@ func (s *Service) registerV1Routes() {
 // module.
 func (s *Service) UpsertModule() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
-		ghUserID, ok, err := s.authorize(req)
+		authUser, ok, err := s.authorize(req)
 		if err != nil || !ok {
 			respondWithError(w, http.StatusUnauthorized, err)
 			return
@@ -227,11 +229,6 @@ func (s *Service) UpsertModule() http.HandlerFunc {
 		}
 
 		module := ModuleFromRequest(request)
-		publisher, err := models.User{GithubUserID: sql.NullInt64{Int64: ghUserID, Valid: true}}.Query(s.db)
-		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, fmt.Errorf("failed to get publisher: %w", err))
-			return
-		}
 
 		// The publisher must already be an existing owner or must have accepted an
 		// invitation by an existing owner.
@@ -242,7 +239,7 @@ func (s *Service) UpsertModule() http.HandlerFunc {
 			// the module already exists so we check if the publisher is an owner
 			var isOwner bool
 			for i := 0; i < len(record.Owners) && !isOwner; i++ {
-				if record.Owners[i].GithubUserID == publisher.GithubUserID {
+				if record.Owners[i].ID == authUser.ID {
 					isOwner = true
 				}
 			}
@@ -254,7 +251,7 @@ func (s *Service) UpsertModule() http.HandlerFunc {
 
 			module.Owners = record.Owners
 		} else {
-			module.Owners = []models.User{publisher}
+			module.Owners = []models.User{authUser}
 		}
 
 		module, err = module.Upsert(s.db)
@@ -558,7 +555,9 @@ func (s *Service) authorizeHandler() http.HandlerFunc {
 			AvatarURL:         githubUser.GetAvatarURL(),
 			GithubAccessToken: sql.NullString{String: token.AccessToken, Valid: true},
 		}
-		if _, err := user.Upsert(s.db); err != nil {
+
+		record, err := user.Upsert(s.db)
+		if err != nil {
 			respondWithError(w, http.StatusInternalServerError, fmt.Errorf("failed to upsert user: %w", err))
 			return
 		}
@@ -569,8 +568,8 @@ func (s *Service) authorizeHandler() http.HandlerFunc {
 			return
 		}
 
-		session.Values[sessionUserKey] = githubUser.GetID()
-		session.Values[sessionUserLogin] = githubUser.GetLogin()
+		session.Values[sessionGithubID] = githubUser.GetID()
+		session.Values[sessionUserID] = record.ID
 
 		if err = session.Save(req, w); err != nil {
 			respondWithError(w, http.StatusInternalServerError, fmt.Errorf("failed to save session: %w", err))
@@ -593,9 +592,10 @@ func (s *Service) LogoutSession() http.HandlerFunc {
 
 		// Remove session keys and set max age to -1 to trigger the deletion of the
 		// cookie.
-		delete(session.Values, sessionUserKey)
-		delete(session.Values, sessionUserLogin)
+		delete(session.Values, sessionGithubID)
+		delete(session.Values, sessionUserID)
 		session.Options.MaxAge = -1
+
 		if err = session.Save(req, w); err != nil {
 			respondWithError(w, http.StatusInternalServerError, fmt.Errorf("failed to save session: %w", err))
 			return
@@ -606,18 +606,44 @@ func (s *Service) LogoutSession() http.HandlerFunc {
 }
 
 // authorize attempts to authorize the given request against the session cookie
-// store. If the session does not exist or if the session has been deleted, we
-// treat the request as unauthorized.
-func (s *Service) authorize(req *http.Request) (int64, bool, error) {
+// store or a bearer authorization header. If the session cookie does not exist,
+// or the session has been deleted, or the supplied bearer authorization header
+// is invalid, we treat the request as unauthorized and return false. Otherwise,
+// we return the user record ID and true with no error to indicate successful
+// authorization.
+func (s *Service) authorize(req *http.Request) (models.User, bool, error) {
 	session, err := s.sessionStore.Get(req, sessionName)
 	if err != nil {
-		return 0, false, fmt.Errorf("failed to get session: %w", err)
+		return models.User{}, false, fmt.Errorf("failed to get session: %w", err)
 	}
 
-	v, ok := session.Values[sessionUserKey]
-	if !ok {
-		return 0, false, errors.New("unauthorized")
+	var userID uint
+
+	// check for a valid session cookie or bearer authorization header
+	if v, ok := session.Values[sessionUserID]; ok {
+		userID = v.(uint)
+	} else if h := req.Header.Get("Authorization"); strings.HasPrefix(h, bearerSchema) {
+		tokenStr := h[len(bearerSchema):]
+
+		tokenUUID, err := uuid.FromString(tokenStr)
+		if err != nil {
+			return models.User{}, false, fmt.Errorf("failed to get parse token: %w", err)
+		}
+
+		token, err := models.UserToken{Token: tokenUUID, Revoked: false}.Query(s.db)
+		if err != nil {
+			return models.User{}, false, err
+		}
+
+		userID = token.UserID
+	} else {
+		return models.User{}, false, errors.New("unauthorized")
 	}
 
-	return v.(int64), true, nil
+	user, err := models.GetUserByID(s.db, userID)
+	if err != nil {
+		return models.User{}, false, err
+	}
+
+	return user, true, nil
 }
