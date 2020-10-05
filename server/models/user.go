@@ -41,6 +41,26 @@ type (
 	}
 )
 
+// MarshalJSON implements custom JSON marshaling for the UserToken model.
+func (ut UserToken) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		GormModelJSON
+
+		UserID  uint      `json:"user_id" yaml:"user_id"`
+		Token   uuid.UUID `json:"token" yaml:"token"`
+		Revoked bool      `json:"revoked" yaml:"revoked"`
+	}{
+		GormModelJSON: GormModelJSON{
+			ID:        ut.ID,
+			CreatedAt: ut.CreatedAt,
+			UpdatedAt: ut.UpdatedAt,
+		},
+		UserID:  ut.UserID,
+		Token:   ut.Token,
+		Revoked: ut.Revoked,
+	})
+}
+
 // MarshalJSON implements custom JSON marshaling for the User model.
 func (u User) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
@@ -162,27 +182,15 @@ func GetAllUsers(db *gorm.DB, cursor uint, limit int) ([]User, error) {
 	return users, nil
 }
 
-// RevokeToken revokes a token by it's ID. It returns an error upon failure.
-func RevokeToken(db *gorm.DB, id uint) (UserToken, error) {
-	var token UserToken
-	err := db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.First(&token, id).Error; err != nil {
-			return fmt.Errorf("failed to fetch token: %w", err)
-		}
-
-		token.Revoked = true
-		if err := tx.Save(&token).Error; err != nil {
-			return fmt.Errorf("failed to revoke token: %w", err)
-		}
-
-		// commit tx
-		return nil
-	})
-	if err != nil {
-		return UserToken{}, err
+// Revoke revokes a token. It returns an error upon failure.
+func (ut UserToken) Revoke(db *gorm.DB) (UserToken, error) {
+	if err := db.Model(&ut).Updates(UserToken{
+		Revoked: true,
+	}).Error; err != nil {
+		return UserToken{}, fmt.Errorf("failed to revoke user token %w", err)
 	}
 
-	return token, nil
+	return ut, nil
 }
 
 // BeforeCreate will create and set the UserToken UUID.

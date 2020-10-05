@@ -31,9 +31,10 @@ import (
 )
 
 const (
-	methodGET  = "GET"
-	methodPOST = "POST"
-	methodPUT  = "PUT"
+	methodGET    = "GET"
+	methodPOST   = "POST"
+	methodPUT    = "PUT"
+	methodDELETE = "DELETE"
 
 	sessionName     = "atlas_session"
 	sessionGithubID = "github_id"
@@ -189,6 +190,21 @@ func (s *Service) registerV1Routes() {
 		"/modules",
 		mChain.ThenFunc(s.UpsertModule()),
 	).Methods(methodPUT)
+
+	v1Router.Handle(
+		"/user/tokens",
+		mChain.ThenFunc(s.CreateUserToken()),
+	).Methods(methodPUT)
+
+	v1Router.Handle(
+		"/user/tokens",
+		mChain.ThenFunc(s.GetUserTokens()),
+	).Methods(methodGET)
+
+	v1Router.Handle(
+		"/user/tokens/{id:[0-9]+}",
+		mChain.ThenFunc(s.RevokeUserToken()),
+	).Methods(methodDELETE)
 
 	// session routes
 	v1Router.Handle(
@@ -602,6 +618,86 @@ func (s *Service) LogoutSession() http.HandlerFunc {
 		}
 
 		http.Redirect(w, req, "/", http.StatusFound)
+	}
+}
+
+// CreateUserToken implements a request handler that creates a new API token for
+// the authenticated user.
+func (s *Service) CreateUserToken() http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		authUser, ok, err := s.authorize(req)
+		if err != nil || !ok {
+			respondWithError(w, http.StatusUnauthorized, err)
+			return
+		}
+
+		token, err := authUser.CreateToken(s.db)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		respondWithJSON(w, http.StatusOK, token)
+	}
+}
+
+// GetUserTokens implements a request handler returning all of an authenticated
+// user's tokens.
+func (s *Service) GetUserTokens() http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		authUser, ok, err := s.authorize(req)
+		if err != nil || !ok {
+			respondWithError(w, http.StatusUnauthorized, err)
+			return
+		}
+
+		tokens, err := authUser.GetTokens(s.db)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		respondWithJSON(w, http.StatusOK, tokens)
+	}
+}
+
+// RevokeUserToken implements a request handler revoking a specific token from
+// the authorized user.
+func (s *Service) RevokeUserToken() http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		authUser, ok, err := s.authorize(req)
+		if err != nil || !ok {
+			respondWithError(w, http.StatusUnauthorized, err)
+			return
+		}
+
+		params := mux.Vars(req)
+		idStr := params["id"]
+
+		id, err := strconv.ParseUint(idStr, 10, 64)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, fmt.Errorf("invalid module ID: %w", err))
+			return
+		}
+
+		token, err := models.UserToken{Model: gorm.Model{ID: uint(id)}, UserID: authUser.ID, Revoked: false}.Query(s.db)
+		if err != nil {
+			code := http.StatusInternalServerError
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				code = http.StatusNotFound
+			}
+
+			respondWithError(w, code, err)
+			return
+		}
+
+		token, err = token.Revoke(s.db)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		respondWithJSON(w, http.StatusOK, token)
 	}
 }
 

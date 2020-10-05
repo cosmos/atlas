@@ -638,7 +638,7 @@ func (mts *ModelsTestSuite) TestUserTokens() {
 	mts.Require().NoError(err)
 	mts.Require().Len(tokens, 2)
 
-	token2, err = models.RevokeToken(mts.gormDB, token2.ID)
+	token2, err = token2.Revoke(mts.gormDB)
 	mts.Require().NoError(err)
 	mts.Require().True(token2.Revoked)
 
