@@ -691,7 +691,7 @@ func (s *Service) RevokeUserToken() http.HandlerFunc {
 			return
 		}
 
-		token, err := models.UserToken{Model: gorm.Model{ID: uint(id)}, UserID: authUser.ID, Revoked: false}.Query(s.db)
+		token, err := models.QueryUserToken(s.db, map[string]interface{}{"id": id, "user_id": authUser.ID, "revoked": false})
 		if err != nil {
 			code := http.StatusInternalServerError
 			if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -737,7 +737,7 @@ func (s *Service) authorize(req *http.Request) (models.User, bool, error) {
 			return models.User{}, false, fmt.Errorf("failed to get parse token: %w", err)
 		}
 
-		token, err := models.UserToken{Token: tokenUUID, Revoked: false}.Query(s.db)
+		token, err := models.QueryUserToken(s.db, map[string]interface{}{"token": tokenUUID.String(), "revoked": false})
 		if err != nil {
 			return models.User{}, false, err
 		}
