@@ -623,6 +623,7 @@ func (mts *ModelsTestSuite) TestUserTokens() {
 
 	record, err := u.Upsert(mts.gormDB)
 	mts.Require().NoError(err)
+	mts.Require().Equal(int64(0), record.CountTokens(mts.gormDB))
 
 	token1, err := record.CreateToken(mts.gormDB)
 	mts.Require().NoError(err)
@@ -632,6 +633,7 @@ func (mts *ModelsTestSuite) TestUserTokens() {
 	mts.Require().NoError(err)
 	mts.Require().NotEmpty(token2.Token)
 
+	mts.Require().Equal(int64(2), record.CountTokens(mts.gormDB))
 	mts.Require().NotEqual(token1, token2)
 
 	tokens, err := record.GetTokens(mts.gormDB)

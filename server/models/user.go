@@ -236,3 +236,8 @@ func (u User) GetTokens(db *gorm.DB) ([]UserToken, error) {
 
 	return tokens, nil
 }
+
+// CountTokens returns the total number of API tokens belonging to a User.
+func (u User) CountTokens(db *gorm.DB) int64 {
+	return db.Model(&u).Association("Tokens").Count()
+}

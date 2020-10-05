@@ -43,6 +43,11 @@ const (
 	bearerSchema = "Bearer "
 )
 
+var (
+	// MaxTokens defines the maximum number of API tokens a user can create.
+	MaxTokens int64 = 100
+)
+
 // Service defines the encapsulating Atlas service. It wraps a router which is
 // responsible for handling API requests with a given controller that interacts
 // with Atlas models. The Service is responsible for establishing a database
@@ -628,6 +633,12 @@ func (s *Service) CreateUserToken() http.HandlerFunc {
 		authUser, ok, err := s.authorize(req)
 		if err != nil || !ok {
 			respondWithError(w, http.StatusUnauthorized, err)
+			return
+		}
+
+		numTokens := authUser.CountTokens(s.db)
+		if numTokens >= MaxTokens {
+			respondWithError(w, http.StatusBadRequest, errors.New("maximum number of user API tokens reached"))
 			return
 		}
 

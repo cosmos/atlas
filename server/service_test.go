@@ -1017,18 +1017,24 @@ func (sts *ServiceTestSuite) TestCreateUserToken() {
 	sts.Require().NoError(err)
 
 	req = sts.authorizeRequest(req, "test_token1", "test_user1", 123456)
+	req.Method = methodPUT
 	req.URL = unAuthReq.URL
 
-	for i := 0; i < 25; i++ {
+	for i := int64(0); i < MaxTokens; i++ {
 		rr = httptest.NewRecorder()
 		sts.service.router.ServeHTTP(rr, req)
 		sts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
 
 		var ut map[string]interface{}
-		sts.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &ut))
+		sts.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &ut), rr.Body.String())
 		sts.Require().NotEmpty(ut["token"])
 		sts.Require().Equal(1, int(ut["user_id"].(float64)))
 	}
+
+	// max tokens reached
+	rr = httptest.NewRecorder()
+	sts.service.router.ServeHTTP(rr, req)
+	sts.Require().Equal(http.StatusBadRequest, rr.Code, rr.Body.String())
 }
 
 func (sts *ServiceTestSuite) TestGetUserTokens() {
