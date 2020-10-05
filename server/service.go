@@ -742,6 +742,11 @@ func (s *Service) authorize(req *http.Request) (models.User, bool, error) {
 			return models.User{}, false, err
 		}
 
+		token, err = token.IncrCount(s.db)
+		if err != nil {
+			return models.User{}, false, err
+		}
+
 		userID = token.UserID
 	} else {
 		return models.User{}, false, errors.New("unauthorized")

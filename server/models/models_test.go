@@ -629,6 +629,13 @@ func (mts *ModelsTestSuite) TestUserTokens() {
 	mts.Require().NoError(err)
 	mts.Require().NotEmpty(token1.Token)
 
+	mts.Require().Equal(uint(0), token1.Count)
+	for i := 0; i < 25; i++ {
+		token1, err = token1.IncrCount(mts.gormDB)
+		mts.Require().NoError(err)
+		mts.Require().Equal(uint(i+1), token1.Count)
+	}
+
 	token2, err := record.CreateToken(mts.gormDB)
 	mts.Require().NoError(err)
 	mts.Require().NotEmpty(token2.Token)

@@ -19,6 +19,7 @@ type (
 		UserID  uint      `json:"user_id" yaml:"user_id"`
 		Token   uuid.UUID `json:"token" yaml:"token"`
 		Revoked bool      `json:"revoked" yaml:"revoked"`
+		Count   uint      `json:"count" yaml:"count"`
 	}
 
 	// User defines an entity that contributes to a Module type.
@@ -49,6 +50,7 @@ func (ut UserToken) MarshalJSON() ([]byte, error) {
 		UserID  uint      `json:"user_id" yaml:"user_id"`
 		Token   uuid.UUID `json:"token" yaml:"token"`
 		Revoked bool      `json:"revoked" yaml:"revoked"`
+		Count   uint      `json:"count" yaml:"count"`
 	}{
 		GormModelJSON: GormModelJSON{
 			ID:        ut.ID,
@@ -58,6 +60,7 @@ func (ut UserToken) MarshalJSON() ([]byte, error) {
 		UserID:  ut.UserID,
 		Token:   ut.Token,
 		Revoked: ut.Revoked,
+		Count:   ut.Count,
 	})
 }
 
@@ -187,7 +190,18 @@ func (ut UserToken) Revoke(db *gorm.DB) (UserToken, error) {
 	if err := db.Model(&ut).Updates(UserToken{
 		Revoked: true,
 	}).Error; err != nil {
-		return UserToken{}, fmt.Errorf("failed to revoke user token %w", err)
+		return UserToken{}, fmt.Errorf("failed to revoke user token: %w", err)
+	}
+
+	return ut, nil
+}
+
+// IncrCount increments a token's count. It returns an error upon failure.
+func (ut UserToken) IncrCount(db *gorm.DB) (UserToken, error) {
+	if err := db.Model(&ut).Updates(UserToken{
+		Count: ut.Count + 1,
+	}).Error; err != nil {
+		return UserToken{}, fmt.Errorf("failed to increment user token count: %w", err)
 	}
 
 	return ut, nil
