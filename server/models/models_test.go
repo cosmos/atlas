@@ -609,6 +609,184 @@ func (mts *ModelsTestSuite) TestModuleSearch() {
 	}
 }
 
+func (mts *ModelsTestSuite) TestUserTokens() {
+	resetDB(mts.T(), mts.m)
+
+	u := models.User{
+		Name:              "foo",
+		GithubUserID:      models.NewNullInt64(12345),
+		GithubAccessToken: models.NewNullString("access_token"),
+		Email:             models.NewNullString("foo@email.com"),
+		AvatarURL:         "https://avatars.com/myavatar.jpg",
+		GravatarID:        "gravatar_id",
+	}
+
+	record, err := u.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
+	mts.Require().Equal(int64(0), record.CountTokens(mts.gormDB))
+
+	token1, err := record.CreateToken(mts.gormDB)
+	mts.Require().NoError(err)
+	mts.Require().NotEmpty(token1.Token)
+
+	mts.Require().Equal(uint(0), token1.Count)
+	for i := 0; i < 25; i++ {
+		token1, err = token1.IncrCount(mts.gormDB)
+		mts.Require().NoError(err)
+		mts.Require().Equal(uint(i+1), token1.Count)
+	}
+
+	token2, err := record.CreateToken(mts.gormDB)
+	mts.Require().NoError(err)
+	mts.Require().NotEmpty(token2.Token)
+
+	mts.Require().Equal(int64(2), record.CountTokens(mts.gormDB))
+	mts.Require().NotEqual(token1, token2)
+
+	tokens, err := record.GetTokens(mts.gormDB)
+	mts.Require().NoError(err)
+	mts.Require().Len(tokens, 2)
+
+	token2, err = token2.Revoke(mts.gormDB)
+	mts.Require().NoError(err)
+	mts.Require().True(token2.Revoked)
+
+	token, err := models.QueryUserToken(mts.gormDB, map[string]interface{}{"token": token1.Token.String()})
+	mts.Require().NoError(err)
+	mts.Require().Equal(token1, token)
+}
+
+func (mts *ModelsTestSuite) TestUserUpsert() {
+	resetDB(mts.T(), mts.m)
+
+	testCases := []struct {
+		name      string
+		user      models.User
+		expectErr bool
+	}{
+		{
+			"valid user",
+			models.User{
+				Name:              "foo",
+				GithubUserID:      models.NewNullInt64(12345),
+				GithubAccessToken: models.NewNullString("access_token"),
+				Email:             models.NewNullString("foo@email.com"),
+				AvatarURL:         "https://avatars.com/myavatar.jpg",
+				GravatarID:        "gravatar_id",
+			},
+			false,
+		},
+		{
+			"updated user github id",
+			models.User{
+				Name:              "foo",
+				GithubUserID:      models.NewNullInt64(67899),
+				GithubAccessToken: models.NewNullString("access_token"),
+				Email:             models.NewNullString("foo@email.com"),
+				AvatarURL:         "https://avatars.com/myavatar.jpg",
+				GravatarID:        "gravatar_id",
+			},
+			false,
+		},
+		{
+			"updated user email",
+			models.User{
+				Name:              "foo",
+				GithubUserID:      models.NewNullInt64(12345),
+				GithubAccessToken: models.NewNullString("access_token"),
+				Email:             models.NewNullString("newfoo@email.com"),
+				AvatarURL:         "https://avatars.com/myavatar.jpg",
+				GravatarID:        "gravatar_id",
+			},
+			false,
+		},
+		{
+			"updated user avatar url",
+			models.User{
+				Name:              "foo",
+				GithubUserID:      models.NewNullInt64(12345),
+				GithubAccessToken: models.NewNullString("access_token"),
+				Email:             models.NewNullString("foo@email.com"),
+				AvatarURL:         "https://avatars.com/mynewavatar.jpg",
+				GravatarID:        "gravatar_id",
+			},
+			false,
+		},
+		{
+			"updated user gravatar id",
+			models.User{
+				Name:              "foo",
+				GithubUserID:      models.NewNullInt64(12345),
+				GithubAccessToken: models.NewNullString("access_token"),
+				Email:             models.NewNullString("foo@email.com"),
+				AvatarURL:         "https://avatars.com/myavatar.jpg",
+				GravatarID:        "new_gravatar_id",
+			},
+			false,
+		},
+		{
+			"second valid user",
+			models.User{
+				Name:              "bar",
+				GithubUserID:      models.NewNullInt64(567899),
+				GithubAccessToken: models.NewNullString("access_token_bar"),
+				Email:             models.NewNullString("bar@email.com"),
+				AvatarURL:         "https://avatars.com/baravatar.jpg",
+				GravatarID:        "bar_gravatar_id",
+			},
+			false,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+
+		mts.Run(tc.name, func() {
+			record, err := tc.user.Upsert(mts.gormDB)
+			if tc.expectErr {
+				mts.Require().Error(err)
+			} else {
+				mts.Require().NoError(err)
+				mts.Require().Equal(tc.user.Name, record.Name)
+				mts.Require().Equal(tc.user.Email, record.Email)
+				mts.Require().Equal(tc.user.GithubUserID, record.GithubUserID)
+				mts.Require().Equal(tc.user.GithubAccessToken, record.GithubAccessToken)
+				mts.Require().Equal(tc.user.AvatarURL, record.AvatarURL)
+				mts.Require().Equal(tc.user.GravatarID, record.GravatarID)
+			}
+		})
+	}
+}
+
+func (mts *ModelsTestSuite) TestGetUserModules() {
+	resetDB(mts.T(), mts.m)
+
+	mod := models.Module{
+		Name: "x/bank",
+		Team: "cosmonauts",
+		Repo: "https://github.com/cosmos/cosmos-sdk",
+		Authors: []models.User{
+			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
+		},
+		Version: models.ModuleVersion{Version: "v1.0.0"},
+		Keywords: []models.Keyword{
+			{Name: "tokens"}, {Name: "transfer"},
+		},
+		BugTracker: models.BugTracker{
+			URL:     models.NewNullString("cosmonauts.com"),
+			Contact: models.NewNullString("contact@cosmonauts.com"),
+		},
+	}
+
+	record, err := mod.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
+
+	mods, err := models.GetUserModules(mts.gormDB, record.Authors[0].ID)
+	mts.Require().NoError(err)
+	mts.Require().Len(mods, 1)
+	mts.Require().Equal(mods[0], record)
+}
+
 func (mts *ModelsTestSuite) TestGetUserByID() {
 	resetDB(mts.T(), mts.m)
 

@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMPTZ NOT NULL,
     deleted_at TIMESTAMPTZ
 );
-CREATE INDEX idx_users_deleted_at ON users(deleted_at timestamptz_ops);
+CREATE INDEX IF NOT EXISTS idx_users_deleted_at ON users(deleted_at timestamptz_ops);
 -- 
 -- Create the keywords table
 -- 
@@ -26,8 +26,8 @@ CREATE TABLE IF NOT EXISTS keywords (
     updated_at TIMESTAMPTZ NOT NULL,
     deleted_at TIMESTAMPTZ
 );
-CREATE INDEX idx_keywords_deleted_at ON keywords(deleted_at timestamptz_ops);
-CREATE INDEX idx_keywords_tsvector ON keywords USING GIN(to_tsvector('english', name));
+CREATE INDEX IF NOT EXISTS idx_keywords_deleted_at ON keywords(deleted_at timestamptz_ops);
+CREATE INDEX IF NOT EXISTS idx_keywords_tsvector ON keywords USING GIN(to_tsvector('english', name));
 -- 
 -- Create the modules table
 -- 
@@ -45,13 +45,30 @@ CREATE TABLE IF NOT EXISTS modules (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_modules_name_team ON modules(name, team);
 CREATE INDEX IF NOT EXISTS idx_modules_team ON modules(team);
-CREATE INDEX idx_modules_deleted_at ON modules(deleted_at timestamptz_ops);
-CREATE INDEX idx_modules_tsvector ON modules USING GIN(
+CREATE INDEX IF NOT EXISTS idx_modules_deleted_at ON modules(deleted_at timestamptz_ops);
+CREATE INDEX IF NOT EXISTS idx_modules_tsvector ON modules USING GIN(
     to_tsvector(
         'english',
         name || ' ' || team || ' ' || description
     )
 );
+-- 
+-- Create the user_tokens table
+-- 
+CREATE extension IF NOT EXISTS "uuid-ossp";
+CREATE TABLE IF NOT EXISTS user_tokens (
+    id SERIAL PRIMARY KEY,
+    token uuid UNIQUE NOT NULL,
+    user_id INT NOT NULL,
+    revoked BOOL DEFAULT FALSE,
+    count INT,
+    created_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL,
+    deleted_at TIMESTAMPTZ,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_user_tokens_user_id ON user_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_tokens_deleted_at ON user_tokens(deleted_at timestamptz_ops);
 -- 
 -- Create the module_versions table
 -- 
@@ -66,8 +83,8 @@ CREATE TABLE IF NOT EXISTS module_versions (
     FOREIGN KEY (module_id) REFERENCES modules(id) ON DELETE CASCADE
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_module_versions_version_module_id ON module_versions(version, module_id);
-CREATE INDEX IF NOT EXISTS idx_module_versions_version ON module_versions(module_id);
-CREATE INDEX idx_module_versions_deleted_at ON module_versions(deleted_at timestamptz_ops);
+CREATE INDEX IF NOT EXISTS idx_module_versions_module_id ON module_versions(module_id);
+CREATE INDEX IF NOT EXISTS idx_module_versions_deleted_at ON module_versions(deleted_at timestamptz_ops);
 -- 
 -- Create the bug_trackers table
 -- 
@@ -82,7 +99,7 @@ CREATE TABLE IF NOT EXISTS bug_trackers (
     FOREIGN KEY (module_id) REFERENCES modules(id) ON DELETE CASCADE
 );
 CREATE UNIQUE INDEX IF NOT EXISTS module_id_idx ON bug_trackers(module_id);
-CREATE INDEX idx_bug_trackers_deleted_at ON bug_trackers(deleted_at timestamptz_ops);
+CREATE INDEX IF NOT EXISTS idx_bug_trackers_deleted_at ON bug_trackers(deleted_at timestamptz_ops);
 -- 
 -- Create a relationship between the keywords and modules tables
 -- 

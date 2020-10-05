@@ -129,7 +129,7 @@ func (sts *ServiceTestSuite) authorizeRequest(req *http.Request, token, login st
 }
 
 func (sts *ServiceTestSuite) TestSearchModules() {
-	resetDB(sts.T(), sts.m)
+	sts.resetDB()
 
 	teams := []string{"teamA", "teamB", "teamC", "teamD"}
 	bugTrackers := []models.BugTracker{
@@ -235,7 +235,7 @@ func (sts *ServiceTestSuite) TestSearchModules() {
 }
 
 func (sts *ServiceTestSuite) TestGetAllModules() {
-	resetDB(sts.T(), sts.m)
+	sts.resetDB()
 
 	path := fmt.Sprintf("/api/v1/modules?cursor=%d&limit=%d", 0, 10)
 	req, err := http.NewRequest("GET", path, nil)
@@ -310,7 +310,7 @@ func (sts *ServiceTestSuite) TestGetAllModules() {
 }
 
 func (sts *ServiceTestSuite) TestGetModuleByID() {
-	resetDB(sts.T(), sts.m)
+	sts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -363,7 +363,7 @@ func (sts *ServiceTestSuite) TestGetModuleByID() {
 	})
 }
 func (sts *ServiceTestSuite) TestGetModuleVersions() {
-	resetDB(sts.T(), sts.m)
+	sts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -414,7 +414,7 @@ func (sts *ServiceTestSuite) TestGetModuleVersions() {
 }
 
 func (sts *ServiceTestSuite) GetModuleAuthors() {
-	resetDB(sts.T(), sts.m)
+	sts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -465,7 +465,7 @@ func (sts *ServiceTestSuite) GetModuleAuthors() {
 }
 
 func (sts *ServiceTestSuite) GetModuleKeywords() {
-	resetDB(sts.T(), sts.m)
+	sts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -516,7 +516,7 @@ func (sts *ServiceTestSuite) GetModuleKeywords() {
 }
 
 func (sts *ServiceTestSuite) GetUserByID() {
-	resetDB(sts.T(), sts.m)
+	sts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -567,7 +567,7 @@ func (sts *ServiceTestSuite) GetUserByID() {
 }
 
 func (sts *ServiceTestSuite) TestGetUserModules() {
-	resetDB(sts.T(), sts.m)
+	sts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -619,7 +619,7 @@ func (sts *ServiceTestSuite) TestGetUserModules() {
 }
 
 func (sts *ServiceTestSuite) TestGetAllUsers() {
-	resetDB(sts.T(), sts.m)
+	sts.resetDB()
 
 	path := fmt.Sprintf("/api/v1/users?cursor=%d&limit=%d", 0, 10)
 	req, err := http.NewRequest("GET", path, nil)
@@ -694,7 +694,7 @@ func (sts *ServiceTestSuite) TestGetAllUsers() {
 }
 
 func (sts *ServiceTestSuite) TestGetAllKeywords() {
-	resetDB(sts.T(), sts.m)
+	sts.resetDB()
 
 	path := fmt.Sprintf("/api/v1/keywords?cursor=%d&limit=%d", 0, 10)
 	req, err := http.NewRequest("GET", path, nil)
@@ -769,7 +769,7 @@ func (sts *ServiceTestSuite) TestGetAllKeywords() {
 }
 
 func (sts *ServiceTestSuite) TestCreateModule() {
-	resetDB(sts.T(), sts.m)
+	sts.resetDB()
 
 	req, err := http.NewRequest("GET", "/", nil)
 	sts.Require().NoError(err)
@@ -914,7 +914,7 @@ func (sts *ServiceTestSuite) TestCreateModule() {
 }
 
 func (sts *ServiceTestSuite) TestCreateModule_Unauthorized() {
-	resetDB(sts.T(), sts.m)
+	sts.resetDB()
 
 	body := map[string]interface{}{
 		"name": "x/bank",
@@ -944,7 +944,7 @@ func (sts *ServiceTestSuite) TestCreateModule_Unauthorized() {
 }
 
 func (sts *ServiceTestSuite) TestCreateModule_InvalidOwner() {
-	resetDB(sts.T(), sts.m)
+	sts.resetDB()
 
 	req1, err := http.NewRequest("GET", "/", nil)
 	sts.Require().NoError(err)
@@ -1001,10 +1001,143 @@ func (sts *ServiceTestSuite) TestCreateModule_InvalidOwner() {
 	sts.Require().Equal(http.StatusBadRequest, rr.Code, rr.Body.String())
 }
 
-func resetDB(t *testing.T, m *migrate.Migrate) {
-	t.Helper()
+func (sts *ServiceTestSuite) TestCreateUserToken() {
+	sts.resetDB()
 
-	require.NoError(t, m.Force(1))
-	require.NoError(t, m.Down())
-	require.NoError(t, m.Up())
+	unAuthReq, err := http.NewRequest(methodPUT, "/api/v1/user/tokens", nil)
+	sts.Require().NoError(err)
+
+	// unauthenticated
+	rr := httptest.NewRecorder()
+	sts.service.router.ServeHTTP(rr, unAuthReq)
+	sts.Require().Equal(http.StatusUnauthorized, rr.Code, rr.Body.String())
+
+	// authenticated
+	req, err := http.NewRequest(methodGET, "/", nil)
+	sts.Require().NoError(err)
+
+	req = sts.authorizeRequest(req, "test_token1", "test_user1", 123456)
+	req.Method = methodPUT
+	req.URL = unAuthReq.URL
+
+	for i := int64(0); i < MaxTokens; i++ {
+		rr = httptest.NewRecorder()
+		sts.service.router.ServeHTTP(rr, req)
+		sts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
+
+		var ut map[string]interface{}
+		sts.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &ut), rr.Body.String())
+		sts.Require().NotEmpty(ut["token"])
+		sts.Require().Equal(1, int(ut["user_id"].(float64)))
+	}
+
+	// max tokens reached
+	rr = httptest.NewRecorder()
+	sts.service.router.ServeHTTP(rr, req)
+	sts.Require().Equal(http.StatusBadRequest, rr.Code, rr.Body.String())
+}
+
+func (sts *ServiceTestSuite) TestGetUserTokens() {
+	sts.resetDB()
+
+	unAuthReq, err := http.NewRequest(methodGET, "/api/v1/user/tokens", nil)
+	sts.Require().NoError(err)
+
+	// unauthenticated
+	rr := httptest.NewRecorder()
+	sts.service.router.ServeHTTP(rr, unAuthReq)
+	sts.Require().Equal(http.StatusUnauthorized, rr.Code, rr.Body.String())
+
+	// authenticated
+	req, err := http.NewRequest(methodGET, "/", nil)
+	sts.Require().NoError(err)
+
+	req = sts.authorizeRequest(req, "test_token1", "test_user1", 123456)
+	req.Method = methodPUT
+	req.URL = unAuthReq.URL
+
+	for i := 0; i < 25; i++ {
+		rr = httptest.NewRecorder()
+		sts.service.router.ServeHTTP(rr, req)
+		sts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
+
+		var ut map[string]interface{}
+		sts.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &ut))
+		sts.Require().NotEmpty(ut["token"])
+		sts.Require().Equal(1, int(ut["user_id"].(float64)))
+	}
+
+	req.Method = methodGET
+
+	rr = httptest.NewRecorder()
+	sts.service.router.ServeHTTP(rr, req)
+	sts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
+
+	var tokens []map[string]interface{}
+	sts.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &tokens))
+	sts.Require().Len(tokens, 25)
+}
+
+func (sts *ServiceTestSuite) TestRevokeUserToken() {
+	sts.resetDB()
+
+	unAuthReq, err := http.NewRequest(methodDELETE, "/api/v1/user/tokens/1", nil)
+	sts.Require().NoError(err)
+
+	// unauthenticated
+	rr := httptest.NewRecorder()
+	sts.service.router.ServeHTTP(rr, unAuthReq)
+	sts.Require().Equal(http.StatusUnauthorized, rr.Code, rr.Body.String())
+
+	// authenticated
+	req, err := http.NewRequest(methodGET, "/", nil)
+	sts.Require().NoError(err)
+
+	createURL, err := url.Parse("/api/v1/user/tokens")
+	sts.Require().NoError(err)
+
+	req = sts.authorizeRequest(req, "test_token1", "test_user1", 123456)
+	req.Method = methodPUT
+	req.URL = createURL
+
+	for i := 0; i < 25; i++ {
+		rr = httptest.NewRecorder()
+		sts.service.router.ServeHTTP(rr, req)
+		sts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
+
+		var ut map[string]interface{}
+		sts.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &ut))
+		sts.Require().NotEmpty(ut["token"])
+		sts.Require().Equal(1, int(ut["user_id"].(float64)))
+	}
+
+	req.Method = methodDELETE
+	req.URL = unAuthReq.URL
+
+	rr = httptest.NewRecorder()
+	sts.service.router.ServeHTTP(rr, req)
+	sts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
+
+	var ut map[string]interface{}
+	sts.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &ut))
+	sts.Require().NotEmpty(ut["token"])
+	sts.Require().True(ut["revoked"].(bool))
+
+	// attempt to revoke an non-existant token
+	revokeURL, err := url.Parse("/api/v1/user/tokens/100")
+	sts.Require().NoError(err)
+
+	req.URL = revokeURL
+
+	rr = httptest.NewRecorder()
+	sts.service.router.ServeHTTP(rr, req)
+	sts.Require().Equal(http.StatusNotFound, rr.Code, rr.Body.String())
+}
+
+func (sts *ServiceTestSuite) resetDB() {
+	sts.T().Helper()
+
+	require.NoError(sts.T(), sts.m.Force(1))
+	require.NoError(sts.T(), sts.m.Down())
+	require.NoError(sts.T(), sts.m.Up())
 }
