@@ -651,7 +651,7 @@ func (mts *ModelsTestSuite) TestUserTokens() {
 	mts.Require().NoError(err)
 	mts.Require().True(token2.Revoked)
 
-	token, err := models.QueryUserToken(mts.gormDB, map[string]interface{}{"token": token1.Token})
+	token, err := models.QueryUserToken(mts.gormDB, map[string]interface{}{"token": token1.Token.String()})
 	mts.Require().NoError(err)
 	mts.Require().Equal(token1, token)
 }
