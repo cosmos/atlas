@@ -276,14 +276,13 @@ func (m Module) Upsert(db *gorm.DB) (Module, error) {
 	return record, nil
 }
 
-// Query performs a query for a Module record where the search criteria is
-// defined by the receiver object. The resulting record, if it exists, is
-// returned. If the query fails or the record does not exist, an error is
-// returned.
-func (m Module) Query(db *gorm.DB) (Module, error) {
+// QueryModule performs a query for a Module record. The resulting record, if it
+// exists, is returned. If the query fails or the record does not exist, an error
+// is returned.
+func QueryModule(db *gorm.DB, query map[string]interface{}) (Module, error) {
 	var record Module
 
-	if err := db.Preload(clause.Associations).Where(m).First(&record).Error; err != nil {
+	if err := db.Preload(clause.Associations).Where(query).First(&record).Error; err != nil {
 		return Module{}, fmt.Errorf("failed to query module: %w", err)
 	}
 

@@ -255,7 +255,7 @@ func (s *Service) UpsertModule() http.HandlerFunc {
 		// invitation by an existing owner.
 		//
 		// TODO: Handle invitations to allow other users to update existing modules.
-		record, err := models.Module{Name: module.Name, Team: module.Team}.Query(s.db)
+		record, err := models.QueryModule(s.db, map[string]interface{}{"name": module.Name, "team": module.Team})
 		if err == nil {
 			// the module already exists so we check if the publisher is an owner
 			var isOwner bool

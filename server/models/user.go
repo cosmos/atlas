@@ -124,7 +124,7 @@ func (u User) Upsert(db *gorm.DB) (User, error) {
 		return User{}, err
 	}
 
-	return User{Name: u.Name}.Query(db)
+	return QueryUser(db, map[string]interface{}{"name": u.Name})
 }
 
 // GetUserByID returns a User by ID. If the user doesn't exist or if the
@@ -159,13 +159,13 @@ func GetUserModules(db *gorm.DB, id uint) ([]Module, error) {
 	return modules, nil
 }
 
-// Query performs a query for a User record where the search criteria is defined
-// by the receiver object. The resulting record, if it exists, is returned. If
-// the query fails or the record does not exist, an error is returned.
-func (u User) Query(db *gorm.DB) (User, error) {
+// QueryUser performs a query for a User record. The resulting record, if it exists,
+// is returned. If the query fails or the record does not exist, an error is
+// returned.
+func QueryUser(db *gorm.DB, query map[string]interface{}) (User, error) {
 	var record User
 
-	if err := db.Where(u).First(&record).Error; err != nil {
+	if err := db.Where(query).First(&record).Error; err != nil {
 		return User{}, fmt.Errorf("failed to query user: %w", err)
 	}
 
