@@ -24,7 +24,7 @@ func NewApp() *cli.App {
 	app.Version = getVersion()
 	app.Commands = []*cli.Command{
 		startServerCommand(),
-		loginCommand(),
+		LoginCommand(),
 	}
 
 	return app

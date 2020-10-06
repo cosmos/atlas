@@ -3,6 +3,7 @@ package cmd
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"strings"
@@ -24,22 +25,38 @@ type (
 	}
 )
 
-func loginCommand() *cli.Command {
+// LoginCommand returns a login CLI command handler.
+func LoginCommand() *cli.Command {
 	return &cli.Command{
 		Name: "login",
 		Usage: `Save an API token from the Atlas registry locally. It a token is not specified, it will
 read from stdin.`,
 		ArgsUsage: "[token]",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "dir",
+				Aliases: []string{"d"},
+				Value:   path.Join(os.Getenv("HOME"), ".atlas"),
+				Usage:   "Directory to look for the root Atlas configuration",
+			},
+		},
 		Action: func(ctx *cli.Context) error {
 			var token string
 
 			if ctx.NArg() > 0 {
 				token = ctx.Args().Get(0)
 			} else {
-				reader := bufio.NewReader(os.Stdin)
+				var reader io.Reader
+				if v := ctx.Context.Value(cmdReaderKey); v != nil {
+					reader = v.(io.Reader)
+				} else {
+					reader = os.Stdin
+				}
+
+				buffReader := bufio.NewReader(reader)
 
 				// TODO: Add prompt.
-				input, err := reader.ReadString('\n')
+				input, err := buffReader.ReadString('\n')
 				if err != nil {
 					return fmt.Errorf("failed to read input: %w", err)
 				}
@@ -47,7 +64,7 @@ read from stdin.`,
 				token = strings.TrimSuffix(input, "\n")
 			}
 
-			dir := path.Join(os.Getenv("HOME"), ".atlas")
+			dir := ctx.String("dir")
 			if err := os.MkdirAll(dir, 0700); err != nil {
 				return err
 			}
@@ -66,7 +83,7 @@ read from stdin.`,
 				return err
 			}
 
-			_, _ = color.New(color.FgCyan).Fprintln(os.Stderr, "login token successfully saved!")
+			_, _ = color.New(color.FgCyan).Fprintln(ctx.App.Writer, "login token successfully saved!")
 			return nil
 		},
 	}
