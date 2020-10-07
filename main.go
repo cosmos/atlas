@@ -18,7 +18,7 @@ func main() {
 	app := cmd.NewApp()
 
 	if err := app.Run(os.Args); err != nil {
-		fmt.Printf("failed to start CLI: %s", err)
+		fmt.Println(err.Error())
 		os.Exit(1)
 	}
 }
