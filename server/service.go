@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -70,8 +71,13 @@ type Service struct {
 func NewService(logger zerolog.Logger, cfg config.Config) (*Service, error) {
 	dbLogger := NewDBLogger(logger).LogMode(gormlogger.Silent)
 
+	sessionKey, err := base64.StdEncoding.DecodeString(cfg.String(config.FlagSessionKey))
+	if err != nil {
+		return nil, fmt.Errorf("failed to base64 decode session key: %w", err)
+	}
+
 	cookieCfg := gologin.DefaultCookieConfig
-	sessionStore := sessions.NewCookieStore([]byte(cfg.String(config.FlagSessionKey)), nil)
+	sessionStore := sessions.NewCookieStore(sessionKey, nil)
 	sessionStore.Options.HttpOnly = true
 	sessionStore.Options.Secure = true
 	sessionStore.Options.MaxAge = 3600 * 24 * 7 // 1 week

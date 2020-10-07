@@ -34,6 +34,6 @@ http_write_timeout = ""
 # locally mimicking a non-production environment. Must be (true|false).
 dev = false
 
-# Session key used to encrypt and authenticate user session cookies. It is
-# recommended to use a key with 32 or 64 bytes.
+# The base64 encoded session key used to encrypt and authenticate user session
+# cookies. It is recommended to use a key with 32 or 64 bytes.
 session_key = ""
