@@ -238,18 +238,18 @@ func (s *Service) UpsertModule() http.HandlerFunc {
 			return
 		}
 
-		var request ModuleRequest
+		var request Manifest
 		if err := json.NewDecoder(req.Body).Decode(&request); err != nil {
 			respondWithError(w, http.StatusBadRequest, fmt.Errorf("failed to read request: %w", err))
 			return
 		}
 
 		if err := s.validate.Struct(request); err != nil {
-			respondWithError(w, http.StatusBadRequest, fmt.Errorf("invalid request: %w", transformValidationError(err)))
+			respondWithError(w, http.StatusBadRequest, fmt.Errorf("invalid request: %w", TransformValidationError(err)))
 			return
 		}
 
-		module := ModuleFromRequest(request)
+		module := ModuleFromManifest(request)
 
 		// The publisher must already be an existing owner or must have accepted an
 		// invitation by an existing owner.

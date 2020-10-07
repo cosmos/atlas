@@ -39,7 +39,9 @@ func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	_, _ = w.Write(response)
 }
 
-func transformValidationError(err error) error {
+// TransformValidationError accepts an error from validation and attempts to
+// transform the error message to a more human-readable format.
+func TransformValidationError(err error) error {
 	if _, ok := err.(*validator.InvalidValidationError); ok {
 		return err
 	}

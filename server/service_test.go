@@ -768,7 +768,7 @@ func (sts *ServiceTestSuite) TestGetAllKeywords() {
 	sts.Require().Equal(uint(25), cursor)
 }
 
-func (sts *ServiceTestSuite) TestCreateModule() {
+func (sts *ServiceTestSuite) TestUpsertModule() {
 	sts.resetDB()
 
 	req, err := http.NewRequest("GET", "/", nil)
@@ -791,29 +791,42 @@ func (sts *ServiceTestSuite) TestCreateModule() {
 		},
 		{
 			name: "invalid team",
-			body: map[string]interface{}{"name": "x/bank"},
+			body: map[string]interface{}{
+				"module": map[string]interface{}{
+					"name": "x/bank",
+				},
+			},
 			code: http.StatusBadRequest,
 		},
 		{
 			name: "missing repo",
-			body: map[string]interface{}{"name": "x/bank", "team": "cosmonauts"},
+			body: map[string]interface{}{
+				"module": map[string]interface{}{
+					"name": "x/bank",
+					"team": "cosmonauts",
+				},
+			},
 			code: http.StatusBadRequest,
 		},
 		{
 			name: "missing authors",
 			body: map[string]interface{}{
-				"name": "x/bank",
-				"team": "cosmonauts",
-				"repo": "https://github.com/cosmos/cosmos-sdk",
+				"module": map[string]interface{}{
+					"name": "x/bank",
+					"team": "cosmonauts",
+					"repo": "https://github.com/cosmos/cosmos-sdk",
+				},
 			},
 			code: http.StatusBadRequest,
 		},
 		{
 			name: "missing version",
 			body: map[string]interface{}{
-				"name": "x/bank",
-				"team": "cosmonauts",
-				"repo": "https://github.com/cosmos/cosmos-sdk",
+				"module": map[string]interface{}{
+					"name": "x/bank",
+					"team": "cosmonauts",
+					"repo": "https://github.com/cosmos/cosmos-sdk",
+				},
 				"authors": []map[string]interface{}{
 					{
 						"name": "foo", "email": "foo@email.com",
@@ -825,9 +838,12 @@ func (sts *ServiceTestSuite) TestCreateModule() {
 		{
 			name: "duplicate authors",
 			body: map[string]interface{}{
-				"name": "x/bank",
-				"team": "cosmonauts",
-				"repo": "https://github.com/cosmos/cosmos-sdk",
+				"module": map[string]interface{}{
+					"name":     "x/bank",
+					"team":     "cosmonauts",
+					"repo":     "https://github.com/cosmos/cosmos-sdk",
+					"keywords": []string{"tokens"},
+				},
 				"authors": []map[string]interface{}{
 					{
 						"name": "foo", "email": "foo@email.com",
@@ -839,7 +855,6 @@ func (sts *ServiceTestSuite) TestCreateModule() {
 				"version": map[string]interface{}{
 					"version": "v1.0.0",
 				},
-				"keywords": []string{"tokens"},
 				"bug_tracker": map[string]interface{}{
 					"url":     "https://cosmonauts.com",
 					"contact": "contact@cosmonauts.com",
@@ -850,9 +865,12 @@ func (sts *ServiceTestSuite) TestCreateModule() {
 		{
 			name: "duplicate keywords",
 			body: map[string]interface{}{
-				"name": "x/bank",
-				"team": "cosmonauts",
-				"repo": "https://github.com/cosmos/cosmos-sdk",
+				"module": map[string]interface{}{
+					"name":     "x/bank",
+					"team":     "cosmonauts",
+					"repo":     "https://github.com/cosmos/cosmos-sdk",
+					"keywords": []string{"tokens", "tokens"},
+				},
 				"authors": []map[string]interface{}{
 					{
 						"name": "foo", "email": "foo@email.com",
@@ -861,7 +879,6 @@ func (sts *ServiceTestSuite) TestCreateModule() {
 				"version": map[string]interface{}{
 					"version": "v1.0.0",
 				},
-				"keywords": []string{"tokens", "tokens"},
 				"bug_tracker": map[string]interface{}{
 					"url":     "https://cosmonauts.com",
 					"contact": "contact@cosmonauts.com",
@@ -872,9 +889,12 @@ func (sts *ServiceTestSuite) TestCreateModule() {
 		{
 			name: "valid module",
 			body: map[string]interface{}{
-				"name": "x/bank",
-				"team": "cosmonauts",
-				"repo": "https://github.com/cosmos/cosmos-sdk",
+				"module": map[string]interface{}{
+					"name":     "x/bank",
+					"team":     "cosmonauts",
+					"repo":     "https://github.com/cosmos/cosmos-sdk",
+					"keywords": []string{"tokens"},
+				},
 				"authors": []map[string]interface{}{
 					{
 						"name": "foo", "email": "foo@email.com",
@@ -883,7 +903,6 @@ func (sts *ServiceTestSuite) TestCreateModule() {
 				"version": map[string]interface{}{
 					"version": "v1.0.0",
 				},
-				"keywords": []string{"tokens"},
 				"bug_tracker": map[string]interface{}{
 					"url":     "https://cosmonauts.com",
 					"contact": "contact@cosmonauts.com",
@@ -959,9 +978,12 @@ func (sts *ServiceTestSuite) TestCreateModule_InvalidOwner() {
 	sts.Require().NoError(err)
 
 	body := map[string]interface{}{
-		"name": "x/bank",
-		"team": "cosmonauts",
-		"repo": "https://github.com/cosmos/cosmos-sdk",
+		"module": map[string]interface{}{
+			"name":     "x/bank",
+			"team":     "cosmonauts",
+			"repo":     "https://github.com/cosmos/cosmos-sdk",
+			"keywords": []string{"tokens"},
+		},
 		"authors": []map[string]interface{}{
 			{
 				"name": "foo", "email": "foo@email.com",
@@ -970,7 +992,6 @@ func (sts *ServiceTestSuite) TestCreateModule_InvalidOwner() {
 		"version": map[string]interface{}{
 			"version": "v1.0.0",
 		},
-		"keywords": []string{"tokens"},
 		"bug_tracker": map[string]interface{}{
 			"url":     "https://cosmonauts.com",
 			"contact": "contact@cosmonauts.com",
