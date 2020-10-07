@@ -659,6 +659,16 @@ func (s *Service) GetUserModules() http.HandlerFunc {
 
 // GetAllKeywords implements a request handler returning a paginated set of
 // keywords.
+// @Summary Return a paginated set of all keywords
+// @Tags keywords
+// @Accept  json
+// @Produce  json
+// @Param cursor query int true "pagination cursor"  default(0)
+// @Param limit query int true "pagination limit"  default(100)
+// @Success 200 {array} models.KeywordJSON
+// @Failure 400 {object} ErrResponse
+// @Failure 500 {object} ErrResponse
+// @Router /keywords [get]
 func (s *Service) GetAllKeywords() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		cursor, limit, err := parsePagination(req)
