@@ -24,7 +24,7 @@ func TestLoginCommand_Stdin(t *testing.T) {
 	credsPath := path.Join(tmpDir, ".atlas", "credentials")
 
 	ctx := cmd.ContextWithReader(context.Background(), mockIn)
-	require.NoError(t, cmd.ExecCmd(ctx, app, []string{"atlas", "login", "-d", tmpDir}))
+	require.NoError(t, cmd.ExecTestCmd(ctx, app, []string{"atlas", "login", "-d", tmpDir}))
 	require.Contains(t, mockOut.String(), "login token successfully saved", mockOut.String())
 
 	var creds cmd.Credentials
@@ -46,7 +46,7 @@ func TestLoginCommand_Arg(t *testing.T) {
 	credsPath := path.Join(tmpDir, ".atlas", "credentials")
 
 	ctx := cmd.ContextWithReader(context.Background(), mockIn)
-	require.NoError(t, cmd.ExecCmd(ctx, app, []string{"atlas", "login", "-d", tmpDir, fakeToken}))
+	require.NoError(t, cmd.ExecTestCmd(ctx, app, []string{"atlas", "login", "-d", tmpDir, fakeToken}))
 	require.Contains(t, mockOut.String(), "login token successfully saved", mockOut.String())
 
 	var creds cmd.Credentials

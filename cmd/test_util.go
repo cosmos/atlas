@@ -38,7 +38,7 @@ func ApplyMockIO(app *cli.App) (BufferReader, BufferWriter) {
 
 // ExecCmd executes a command in a test environment with a given Context and set
 // of arguments. If an error occurs, it is written to the App's ErrWriter.
-func ExecCmd(ctx context.Context, app *cli.App, args []string) error {
+func ExecTestCmd(ctx context.Context, app *cli.App, args []string) error {
 	err := app.RunContext(ctx, args)
 	if err != nil {
 		fmt.Fprintln(app.ErrWriter, err.Error())
