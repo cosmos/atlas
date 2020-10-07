@@ -5,6 +5,15 @@ import (
 	"os/signal"
 )
 
+func mustGetwd() string {
+	dir, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+
+	return dir
+}
+
 func trapSignal(cleanupFunc func()) {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)

@@ -23,8 +23,9 @@ func NewApp() *cli.App {
 	app.Usage = "A Cosmos SDK module registry framework"
 	app.Version = getVersion()
 	app.Commands = []*cli.Command{
-		startServerCommand(),
+		StartServerCommand(),
 		LoginCommand(),
+		PublishCommand(),
 	}
 
 	return app

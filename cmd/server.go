@@ -18,7 +18,9 @@ import (
 	"github.com/cosmos/atlas/server"
 )
 
-func startServerCommand() *cli.Command {
+// StartServerCommand returns a CLI command handler responsible for starting
+// the Atlas service daemon.
+func StartServerCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "server",
 		Usage: "Start the atlas server",

@@ -36,8 +36,8 @@ read from stdin.`,
 			&cli.StringFlag{
 				Name:    "dir",
 				Aliases: []string{"d"},
-				Value:   path.Join(os.Getenv("HOME"), ".atlas"),
-				Usage:   "Directory to look for the root Atlas configuration",
+				Value:   os.Getenv("HOME"),
+				Usage:   "The root directory for Atlas configuration",
 			},
 		},
 		Action: func(ctx *cli.Context) error {
@@ -64,7 +64,7 @@ read from stdin.`,
 				token = strings.TrimSuffix(input, "\n")
 			}
 
-			dir := ctx.String("dir")
+			dir := path.Join(ctx.String("dir"), ".atlas")
 			if err := os.MkdirAll(dir, 0700); err != nil {
 				return err
 			}
@@ -83,8 +83,18 @@ read from stdin.`,
 				return err
 			}
 
-			_, _ = color.New(color.FgCyan).Fprintln(ctx.App.Writer, "login token successfully saved!")
+			_, _ = color.New(color.FgGreen).Fprintf(ctx.App.Writer, "login token successfully saved to %s\n", dir)
 			return nil
 		},
 	}
+}
+
+func parseCredentials(credsPath string) (Credentials, error) {
+	var creds Credentials
+
+	if _, err := toml.DecodeFile(credsPath, &creds); err != nil {
+		return Credentials{}, fmt.Errorf("failed to read credentials: %w", err)
+	}
+
+	return creds, nil
 }

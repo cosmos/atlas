@@ -21,11 +21,11 @@ func TestLoginCommand_Stdin(t *testing.T) {
 
 	// create a temporary directory to write credentials to
 	tmpDir := t.TempDir()
-	credsPath := path.Join(tmpDir, "credentials")
+	credsPath := path.Join(tmpDir, ".atlas", "credentials")
 
 	ctx := cmd.ContextWithReader(context.Background(), mockIn)
 	require.NoError(t, app.RunContext(ctx, []string{"atlas", "login", "-d", tmpDir}))
-	require.Contains(t, mockOut.String(), "login token successfully saved!", mockOut.String())
+	require.Contains(t, mockOut.String(), "login token successfully saved", mockOut.String())
 
 	var creds cmd.Credentials
 
@@ -43,11 +43,11 @@ func TestLoginCommand_Arg(t *testing.T) {
 
 	// create a temporary directory to write credentials to
 	tmpDir := t.TempDir()
-	credsPath := path.Join(tmpDir, "credentials")
+	credsPath := path.Join(tmpDir, ".atlas", "credentials")
 
 	ctx := cmd.ContextWithReader(context.Background(), mockIn)
 	require.NoError(t, app.RunContext(ctx, []string{"atlas", "login", "-d", tmpDir, fakeToken}))
-	require.Contains(t, mockOut.String(), "login token successfully saved!", mockOut.String())
+	require.Contains(t, mockOut.String(), "login token successfully saved", mockOut.String())
 
 	var creds cmd.Credentials
 
