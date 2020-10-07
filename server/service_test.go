@@ -81,14 +81,19 @@ func (sts *ServiceTestSuite) SetupSuite() {
 	sessionStore.Options.HttpOnly = true
 	sessionStore.Options.Secure = false
 
+	sqlDB, _ := gormDB.DB()
+	healthChecker, err := CreateHealthChecker(sqlDB, true)
+	sts.Require().NoError(err)
+
 	service := &Service{
-		logger:       zerolog.New(ioutil.Discard).With().Timestamp().Logger(),
-		db:           gormDB,
-		validate:     validator.New(),
-		router:       mux.NewRouter(),
-		sessionStore: sessionStore,
-		cookieCfg:    gologin.DebugOnlyCookieConfig,
-		oauth2Cfg:    &oauth2.Config{},
+		logger:        zerolog.New(ioutil.Discard).With().Timestamp().Logger(),
+		db:            gormDB,
+		validate:      validator.New(),
+		router:        mux.NewRouter(),
+		healthChecker: healthChecker,
+		sessionStore:  sessionStore,
+		cookieCfg:     gologin.DebugOnlyCookieConfig,
+		oauth2Cfg:     &oauth2.Config{},
 	}
 
 	service.registerV1Routes()
@@ -126,6 +131,20 @@ func (sts *ServiceTestSuite) authorizeRequest(req *http.Request, token, login st
 	sts.Require().Equal(http.StatusFound, rr.Code)
 
 	return req
+}
+
+func (sts *ServiceTestSuite) TestHealth() {
+	sts.resetDB()
+
+	req, err := http.NewRequest("GET", "/api/v1/health", nil)
+	sts.Require().NoError(err)
+
+	response := sts.executeRequest(req)
+	sts.Require().Equal(http.StatusOK, response.Code)
+
+	var health map[string]interface{}
+	sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &health))
+	sts.Require().Equal(health["status"], "ok")
 }
 
 func (sts *ServiceTestSuite) TestSearchModules() {
