@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/urfave/cli/v2"
 )
@@ -22,6 +23,8 @@ func NewApp() *cli.App {
 	app.Name = "Atlas CLI"
 	app.Usage = "A Cosmos SDK module registry framework"
 	app.Version = getVersion()
+	app.Writer = os.Stdout
+	app.ErrWriter = os.Stderr
 	app.Commands = []*cli.Command{
 		StartServerCommand(),
 		LoginCommand(),

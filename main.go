@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
+	"github.com/fatih/color"
 	"github.com/joho/godotenv"
 
 	"github.com/cosmos/atlas/cmd"
@@ -18,7 +18,7 @@ func main() {
 	app := cmd.NewApp()
 
 	if err := app.Run(os.Args); err != nil {
-		fmt.Println(err.Error())
+		_, _ = color.New(color.FgRed).Fprintln(app.ErrWriter, err.Error())
 		os.Exit(1)
 	}
 }
