@@ -8,10 +8,10 @@ import (
 // Client should not rely on decoding into this type as the Results is an
 // interface.
 type PaginationResponse struct {
-	Limit   int         `json:"limit" yaml:"limit"`
-	Cursor  uint        `json:"cursor" yaml:"cursor"`
-	Count   int         `json:"count" yaml:"count"`
-	Results interface{} `json:"results" yaml:"results"`
+	Limit   int         `json:"limit"`
+	Cursor  uint        `json:"cursor"`
+	Count   int         `json:"count"`
+	Results interface{} `json:"results"`
 }
 
 func NewPaginationResponse(count, limit int, cursor uint, results interface{}) PaginationResponse {
@@ -23,74 +23,78 @@ func NewPaginationResponse(count, limit int, cursor uint, results interface{}) P
 	}
 }
 
-// UserRequest defines a type wrapper for defining User model data in a request.
-type UserRequest struct {
-	Name  string `json:"name" yaml:"name" validate:"required"`
-	Email string `json:"email" yaml:"email" validate:"omitempty,email"`
-}
+type (
+	// ModuleManifest defines the primary module fields in a module's manifest.
+	ModuleManifest struct {
+		Name          string   `json:"name" toml:"name" validate:"required"`
+		Team          string   `json:"team" toml:"team" validate:"required"`
+		Repo          string   `json:"repo" toml:"repo" validate:"required,url"`
+		Keywords      []string `json:"keywords" toml:"keywords" validate:"omitempty,gt=0,unique,dive,gt=0"`
+		Description   string   `json:"description" toml:"description"`
+		Homepage      string   `json:"homepage" toml:"homepage" validate:"omitempty,url"`
+		Documentation string   `json:"documentation" toml:"documentation" validate:"omitempty,url"`
+	}
 
-// BugTrackerRequest defines a type wrapper for defining BugTracker model data
-// in a request.
-type BugTrackerRequest struct {
-	URL     string `json:"url" yaml:"url" validate:"required,url"`
-	Contact string `json:"contact" yaml:"contact" validate:"required,email"`
-}
+	// AuthorsManifest defines author information in a module's manifest.
+	AuthorsManifest struct {
+		Name  string `json:"name" toml:"name" validate:"required"`
+		Email string `json:"email" toml:"email" validate:"omitempty,email"`
+	}
 
-// ModuleVersion defines a type wrapper for defining a ModuleVersion model data
-// in a request.
-type ModuleVersion struct {
-	Version   string `json:"version" yaml:"version" validate:"required"`
-	SDKCompat string `json:"sdk_compat" yaml:"sdk_compat"`
-}
+	// BugTackerManifest defines the bug tracker information in a module's manifest.
+	BugTackerManifest struct {
+		URL     string `json:"url" toml:"url" validate:"omitempty,url"`
+		Contact string `json:"contact" toml:"contact" validate:"omitempty,email"`
+	}
 
-// ModuleRequest defines a type wrapper for defining Module model data in a
-// request.
-type ModuleRequest struct {
-	Name        string             `json:"name" yaml:"name" validate:"required"`
-	Team        string             `json:"team" yaml:"team" validate:"required"`
-	Repo        string             `json:"repo" yaml:"repo" validate:"required,url"`
-	Version     ModuleVersion      `json:"version" yaml:"version" validate:"required,dive"`
-	Authors     []UserRequest      `json:"authors" yaml:"authors" validate:"required,gt=0,unique=Name,dive"`
-	Description string             `json:"description" yaml:"description"`
-	Homepage    string             `json:"homepage" yaml:"homepage" validate:"omitempty,url"`
-	BugTracker  *BugTrackerRequest `json:"bug_tracker" yaml:"bug_tracker" validate:"omitempty,dive"`
-	Keywords    []string           `json:"keywords" yaml:"keywords" validate:"omitempty,gt=0,unique,dive,gt=0"`
-}
+	// VersionManifest defines the version information in a module's manifest.
+	VersionManifest struct {
+		Version   string `json:"version" toml:"version" validate:"required"`
+		SDKCompat string `json:"sdk_compat" toml:"sdk_compat"`
+	}
 
-// ModuleFromRequest converts a ModuleRequest to a Module model.
-func ModuleFromRequest(req ModuleRequest) models.Module {
-	authors := make([]models.User, len(req.Authors))
-	for i, a := range req.Authors {
+	// Manifest defines a Cosmos SDK module manifest. It translates directly into
+	// a Module model.
+	Manifest struct {
+		Module     ModuleManifest    `json:"module" toml:"module"`
+		BugTracker BugTackerManifest `json:"bug_tracker" toml:"bug_tracker" validate:"omitempty,dive"`
+		Authors    []AuthorsManifest `json:"authors" toml:"authors" validate:"required,gt=0,unique=Name,dive"`
+		Version    VersionManifest   `json:"version" toml:"version" validate:"required,dive"`
+	}
+)
+
+// ModuleFromManifest converts a Manifest to a Module model.
+func ModuleFromManifest(manifest Manifest) models.Module {
+	authors := make([]models.User, len(manifest.Authors))
+	for i, a := range manifest.Authors {
 		authors[i] = models.User{Name: a.Name, Email: models.NewNullString(a.Email)}
 	}
 
-	keywords := make([]models.Keyword, len(req.Keywords))
-	for i, k := range req.Keywords {
+	keywords := make([]models.Keyword, len(manifest.Module.Keywords))
+	for i, k := range manifest.Module.Keywords {
 		keywords[i] = models.Keyword{Name: k}
 	}
 
-	bugTracker := models.BugTracker{}
-	if req.BugTracker != nil {
-		bugTracker = models.BugTracker{
-			URL:     models.NewNullString(req.BugTracker.URL),
-			Contact: models.NewNullString(req.BugTracker.Contact),
-		}
+	bugTracker := models.BugTracker{
+		URL:     models.NewNullString(manifest.BugTracker.URL),
+		Contact: models.NewNullString(manifest.BugTracker.Contact),
 	}
 
 	modVer := models.ModuleVersion{
-		Version:   req.Version.Version,
-		SDKCompat: models.NewNullString(req.Version.SDKCompat),
+		Version:   manifest.Version.Version,
+		SDKCompat: models.NewNullString(manifest.Version.SDKCompat),
 	}
 
 	return models.Module{
-		Name:        req.Name,
-		Team:        req.Team,
-		Repo:        req.Repo,
-		Version:     modVer,
-		Description: req.Description,
-		Homepage:    req.Homepage,
-		Authors:     authors,
-		Keywords:    keywords,
-		BugTracker:  bugTracker,
+		Name:          manifest.Module.Name,
+		Team:          manifest.Module.Team,
+		Repo:          manifest.Module.Repo,
+		Description:   manifest.Module.Description,
+		Documentation: manifest.Module.Documentation,
+		Homepage:      manifest.Module.Homepage,
+		Version:       modVer,
+		Authors:       authors,
+		Keywords:      keywords,
+		BugTracker:    bugTracker,
 	}
 }
