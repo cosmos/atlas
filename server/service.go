@@ -149,7 +149,10 @@ func (s *Service) registerV1Routes() {
 	// build middleware chain
 	mChain := buildMiddleware(s.logger)
 
-	v1Router.HandleFunc("/health", handlers.NewJSONHandlerFunc(s.healthChecker, nil))
+	v1Router.Handle(
+		"/health",
+		mChain.Then(handlers.NewJSONHandlerFunc(s.healthChecker, nil)),
+	).Methods(methodGET)
 
 	// unauthenticated routes
 	v1Router.Handle(
