@@ -68,7 +68,7 @@ Typically, this is a Markdown file hosted in the module's root directory in GitH
 ```toml
 [module]
 
-documentation = "https://GitHub.com/cosmos/cosmos-sdk/blob/master/x/slashing/readme.md"
+documentation = "https://github.com/cosmos/cosmos-sdk/blob/master/x/slashing/readme.md"
 ```
 
 #### `homepage`
@@ -89,7 +89,7 @@ The repository field should be a URL to the source repository for your module.
 ```toml
 [module]
 
-repo = "https://GitHub.com/cosmos/cosmos-sdk"
+repo = "https://github.com/cosmos/cosmos-sdk"
 ```
 
 #### `keywords`
