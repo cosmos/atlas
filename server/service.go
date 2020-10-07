@@ -23,6 +23,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/rs/zerolog"
 	uuid "github.com/satori/go.uuid"
+	httpswagger "github.com/swaggo/http-swagger"
 	"golang.org/x/oauth2"
 	githuboauth2 "golang.org/x/oauth2/github"
 	"gorm.io/driver/postgres"
@@ -31,6 +32,9 @@ import (
 
 	"github.com/cosmos/atlas/config"
 	"github.com/cosmos/atlas/server/models"
+
+	// api docs
+	_ "github.com/cosmos/atlas/docs/api"
 )
 
 const (
@@ -50,6 +54,16 @@ var (
 	// MaxTokens defines the maximum number of API tokens a user can create.
 	MaxTokens int64 = 100
 )
+
+// @title Atlas API
+// @version 1.0
+// @description Atlas Cosmos SDK module registry API documentation.
+
+// @BasePath /api/v1
+
+// @securityDefinitions.apikey APIKeyAuth
+// @in header
+// @name Authorization
 
 // Service defines the encapsulating Atlas service. It wraps a router which is
 // responsible for handling API requests with a given controller that interacts
@@ -117,6 +131,10 @@ func NewService(logger zerolog.Logger, cfg config.Config) (*Service, error) {
 	}
 
 	service.registerV1Routes()
+
+	// mount swagger API documentation
+	service.router.PathPrefix("/").Handler(httpswagger.WrapHandler)
+
 	return service, nil
 }
 
@@ -155,6 +173,7 @@ func (s *Service) registerV1Routes() {
 	// build middleware chain
 	mChain := buildMiddleware(s.logger)
 
+	// define and register the health endpoint
 	v1Router.Handle(
 		"/health",
 		mChain.Then(handlers.NewJSONHandlerFunc(s.healthChecker, nil)),
@@ -251,6 +270,16 @@ func (s *Service) registerV1Routes() {
 
 // UpsertModule implements a request handler to create or update a Cosmos SDK
 // module.
+// @Summary Publish a Cosmos SDK module
+// @Tags modules
+// @Accept  json
+// @Produce  json
+// @Param manifest body Manifest true "module manifest"
+// @Success 200 {object} models.ModuleJSON
+// @Failure 400 {object} ErrResponse
+// @Failure 500 {object} ErrResponse
+// @Security APIKeyAuth
+// @Router /modules [put]
 func (s *Service) UpsertModule() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		authUser, ok, err := s.authorize(req)
@@ -307,6 +336,16 @@ func (s *Service) UpsertModule() http.HandlerFunc {
 }
 
 // GetModuleByID implements a request handler to retrieve a module by ID.
+// @Summary Get a Cosmos SDK module by ID
+// @Tags modules
+// @Accept  json
+// @Produce  json
+// @Param id path int true "module ID"
+// @Success 200 {object} models.ModuleJSON
+// @Failure 400 {object} ErrResponse
+// @Failure 404 {object} ErrResponse
+// @Failure 500 {object} ErrResponse
+// @Router /modules/{id} [get]
 func (s *Service) GetModuleByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		params := mux.Vars(req)
@@ -335,6 +374,17 @@ func (s *Service) GetModuleByID() http.HandlerFunc {
 
 // SearchModules implements a request handler to retrieve a set of module objects
 // by search criteria.
+// @Summary Search for Cosmos SDK modules by name, team, description and keywords
+// @Tags modules
+// @Accept  json
+// @Produce  json
+// @Param cursor query int true "pagination cursor"  default(0)
+// @Param limit query int true "pagination limit"  default(100)
+// @Param q query string true "search criteria"
+// @Success 200 {array} models.ModuleJSON
+// @Failure 400 {object} ErrResponse
+// @Failure 500 {object} ErrResponse
+// @Router /modules/search [get]
 func (s *Service) SearchModules() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		cursor, limit, err := parsePagination(req)
@@ -358,6 +408,16 @@ func (s *Service) SearchModules() http.HandlerFunc {
 
 // GetAllModules implements a request handler returning a paginated set of
 // modules.
+// @Summary Return a paginated set of all Cosmos SDK modules
+// @Tags modules
+// @Accept  json
+// @Produce  json
+// @Param cursor query int true "pagination cursor"  default(0)
+// @Param limit query int true "pagination limit"  default(100)
+// @Success 200 {array} models.ModuleJSON
+// @Failure 400 {object} ErrResponse
+// @Failure 500 {object} ErrResponse
+// @Router /modules [get]
 func (s *Service) GetAllModules() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		cursor, limit, err := parsePagination(req)
@@ -379,6 +439,16 @@ func (s *Service) GetAllModules() http.HandlerFunc {
 
 // GetModuleVersions implements a request handler to retrieve a module's set of
 // versions by ID.
+// @Summary Get all versions for a Cosmos SDK module by ID
+// @Tags modules
+// @Accept  json
+// @Produce  json
+// @Param id path int true "module ID"
+// @Success 200 {array} models.ModuleVersionJSON
+// @Failure 400 {object} ErrResponse
+// @Failure 404 {object} ErrResponse
+// @Failure 500 {object} ErrResponse
+// @Router /modules/{id}/versions [get]
 func (s *Service) GetModuleVersions() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		params := mux.Vars(req)
@@ -407,6 +477,16 @@ func (s *Service) GetModuleVersions() http.HandlerFunc {
 
 // GetModuleAuthors implements a request handler to retrieve a module's set of
 // authors by ID.
+// @Summary Get all authors for a Cosmos SDK module by ID
+// @Tags modules
+// @Accept  json
+// @Produce  json
+// @Param id path int true "module ID"
+// @Success 200 {array} models.UserJSON
+// @Failure 400 {object} ErrResponse
+// @Failure 404 {object} ErrResponse
+// @Failure 500 {object} ErrResponse
+// @Router /modules/{id}/authors [get]
 func (s *Service) GetModuleAuthors() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		params := mux.Vars(req)
@@ -435,6 +515,16 @@ func (s *Service) GetModuleAuthors() http.HandlerFunc {
 
 // GetModuleKeywords implements a request handler to retrieve a module's set of
 // keywords by ID.
+// @Summary Get all keywords for a Cosmos SDK module by ID
+// @Tags modules
+// @Accept  json
+// @Produce  json
+// @Param id path int true "module ID"
+// @Success 200 {array} models.KeywordJSON
+// @Failure 400 {object} ErrResponse
+// @Failure 404 {object} ErrResponse
+// @Failure 500 {object} ErrResponse
+// @Router /modules/{id}/keywords [get]
 func (s *Service) GetModuleKeywords() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		params := mux.Vars(req)
@@ -462,6 +552,16 @@ func (s *Service) GetModuleKeywords() http.HandlerFunc {
 }
 
 // GetUserByID implements a request handler to retrieve a user by ID.
+// @Summary Get a user by ID
+// @Tags users
+// @Accept  json
+// @Produce  json
+// @Param id path int true "user ID"
+// @Success 200 {object} models.UserJSON
+// @Failure 400 {object} ErrResponse
+// @Failure 404 {object} ErrResponse
+// @Failure 500 {object} ErrResponse
+// @Router /users/{id} [get]
 func (s *Service) GetUserByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		params := mux.Vars(req)
@@ -490,6 +590,16 @@ func (s *Service) GetUserByID() http.HandlerFunc {
 
 // GetAllUsers implements a request handler returning a paginated set of
 // users.
+// @Summary Return a paginated set of all users
+// @Tags users
+// @Accept  json
+// @Produce  json
+// @Param cursor query int true "pagination cursor"  default(0)
+// @Param limit query int true "pagination limit"  default(100)
+// @Success 200 {array} models.UserJSON
+// @Failure 400 {object} ErrResponse
+// @Failure 500 {object} ErrResponse
+// @Router /users [get]
 func (s *Service) GetAllUsers() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		cursor, limit, err := parsePagination(req)
@@ -511,6 +621,16 @@ func (s *Service) GetAllUsers() http.HandlerFunc {
 
 // GetUserModules implements a request handler to retrieve a set of modules
 // authored by a given user by ID.
+// @Summary Return a paginated set of all Cosmos SDK modules by user ID
+// @Tags users
+// @Accept  json
+// @Produce  json
+// @Param id path int true "user ID"
+// @Success 200 {array} models.ModuleJSON
+// @Failure 400 {object} ErrResponse
+// @Failure 404 {object} ErrResponse
+// @Failure 500 {object} ErrResponse
+// @Router /users/{id}/modules [get]
 func (s *Service) GetUserModules() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		params := mux.Vars(req)
