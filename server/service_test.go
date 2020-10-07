@@ -81,7 +81,9 @@ func (sts *ServiceTestSuite) SetupSuite() {
 	sessionStore.Options.HttpOnly = true
 	sessionStore.Options.Secure = false
 
-	sqlDB, _ := gormDB.DB()
+	sqlDB, err := gormDB.DB()
+	sts.Require().NoError(err)
+
 	healthChecker, err := CreateHealthChecker(sqlDB, true)
 	sts.Require().NoError(err)
 
