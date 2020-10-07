@@ -1,5 +1,7 @@
 # Atlas
 
+![GitHub Logo](./images/atlas_logo.png)
+
 ![Build, Test and Cover](https://github.com/cosmos/atlas/workflows/Build,%20Test%20and%20Cover/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/cosmos/atlas)](https://goreportcard.com/report/github.com/cosmos/atlas)
 [![codecov](https://codecov.io/gh/cosmos/atlas/branch/main/graph/badge.svg)](https://codecov.io/gh/cosmos/atlas)
