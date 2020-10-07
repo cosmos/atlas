@@ -22,6 +22,16 @@ type (
 		Count   uint      `json:"count" yaml:"count"`
 	}
 
+	// UserJSON defines the JSON-encodeable type for a User.
+	UserJSON struct {
+		GormModelJSON
+
+		Name       string `json:"name" yaml:"name"`
+		URL        string `json:"url" yaml:"url"`
+		AvatarURL  string `json:"avatar_url" yaml:"avatar_url"`
+		GravatarID string `json:"gravatar_id" yaml:"gravatar_id"`
+	}
+
 	// User defines an entity that contributes to a Module type.
 	User struct {
 		gorm.Model
@@ -66,14 +76,7 @@ func (ut UserToken) MarshalJSON() ([]byte, error) {
 
 // MarshalJSON implements custom JSON marshaling for the User model.
 func (u User) MarshalJSON() ([]byte, error) {
-	return json.Marshal(struct {
-		GormModelJSON
-
-		Name       string `json:"name" yaml:"name"`
-		URL        string `json:"url" yaml:"url"`
-		AvatarURL  string `json:"avatar_url" yaml:"avatar_url"`
-		GravatarID string `json:"gravatar_id" yaml:"gravatar_id"`
-	}{
+	return json.Marshal(UserJSON{
 		GormModelJSON: GormModelJSON{
 			ID:        u.ID,
 			CreatedAt: u.CreatedAt,
