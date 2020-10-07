@@ -7,7 +7,10 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/InVisionApp/go-health/v2"
+	"github.com/InVisionApp/go-health/v2/checkers"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -53,4 +56,35 @@ func TransformValidationError(err error) error {
 	}
 
 	return errors.New(strings.Join(msgs, "; "))
+}
+
+// CreateHealthChecker returns a health checker instance with all checkers
+// registered.
+func CreateHealthChecker(db checkers.SQLPinger, disableLog bool) (*health.Health, error) {
+	h := health.New()
+	if disableLog {
+		h.DisableLogging()
+	}
+
+	sqlCheck, err := checkers.NewSQL(&checkers.SQLConfig{
+		Pinger: db,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create SQL health checker: %w", err)
+	}
+
+	if err := h.AddCheck(&health.Config{
+		Name:     "psql-check",
+		Checker:  sqlCheck,
+		Interval: time.Duration(1) * time.Minute,
+		Fatal:    true,
+	}); err != nil {
+		return nil, fmt.Errorf("failed to add health checkers: %w", err)
+	}
+
+	if err := h.Start(); err != nil {
+		return nil, fmt.Errorf("failed to start health checker: %w", err)
+	}
+
+	return h, nil
 }

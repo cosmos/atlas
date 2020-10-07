@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/InVisionApp/go-health/v2"
+	"github.com/InVisionApp/go-health/v2/handlers"
 	"github.com/dghubble/gologin/v2"
 	"github.com/dghubble/gologin/v2/github"
 	oauth2login "github.com/dghubble/gologin/v2/oauth2"
@@ -53,15 +55,16 @@ var (
 // with Atlas models. The Service is responsible for establishing a database
 // connection and managing session cookies.
 type Service struct {
-	logger       zerolog.Logger
-	cfg          config.Config
-	db           *gorm.DB
-	cookieCfg    gologin.CookieConfig
-	sessionStore *sessions.CookieStore
-	oauth2Cfg    *oauth2.Config
-	validate     *validator.Validate
-	router       *mux.Router
-	server       *http.Server
+	logger        zerolog.Logger
+	cfg           config.Config
+	db            *gorm.DB
+	cookieCfg     gologin.CookieConfig
+	sessionStore  *sessions.CookieStore
+	oauth2Cfg     *oauth2.Config
+	validate      *validator.Validate
+	router        *mux.Router
+	healthChecker *health.Health
+	server        *http.Server
 }
 
 func NewService(logger zerolog.Logger, cfg config.Config) (*Service, error) {
@@ -84,14 +87,21 @@ func NewService(logger zerolog.Logger, cfg config.Config) (*Service, error) {
 		return nil, err
 	}
 
+	sqlDB, _ := db.DB()
+	healthChecker, err := CreateHealthChecker(sqlDB, true)
+	if err != nil {
+		return nil, err
+	}
+
 	service := &Service{
-		logger:       logger.With().Str("module", "server").Logger(),
-		cfg:          cfg,
-		db:           db,
-		cookieCfg:    cookieCfg,
-		sessionStore: sessionStore,
-		validate:     validator.New(),
-		router:       mux.NewRouter(),
+		logger:        logger.With().Str("module", "server").Logger(),
+		cfg:           cfg,
+		db:            db,
+		cookieCfg:     cookieCfg,
+		sessionStore:  sessionStore,
+		validate:      validator.New(),
+		router:        mux.NewRouter(),
+		healthChecker: healthChecker,
 		oauth2Cfg: &oauth2.Config{
 			ClientID:     cfg.String(config.FlagGHClientID),
 			ClientSecret: cfg.String(config.FlagGHClientSecret),
@@ -138,6 +148,8 @@ func (s *Service) registerV1Routes() {
 
 	// build middleware chain
 	mChain := buildMiddleware(s.logger)
+
+	v1Router.HandleFunc("/health", handlers.NewJSONHandlerFunc(s.healthChecker, nil))
 
 	// unauthenticated routes
 	v1Router.Handle(
