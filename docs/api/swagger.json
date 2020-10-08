@@ -1,13 +1,9 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "Atlas Cosmos SDK module registry API documentation.",
-        "title": "Atlas API",
         "contact": {},
-        "license": {},
-        "version": "1.0"
+        "license": {}
     },
-    "basePath": "/api/v1",
     "paths": {
         "/keywords": {
             "get": {

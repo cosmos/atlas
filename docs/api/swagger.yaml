@@ -1,4 +1,3 @@
-basePath: /api/v1
 definitions:
   models.BugTracker:
     properties:
@@ -208,10 +207,7 @@ definitions:
     type: object
 info:
   contact: {}
-  description: Atlas Cosmos SDK module registry API documentation.
   license: {}
-  title: Atlas API
-  version: "1.0"
 paths:
   /keywords:
     get:

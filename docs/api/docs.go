@@ -1063,12 +1063,12 @@ type swaggerInfo struct {
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = swaggerInfo{
-	Version:     "1.0",
+	Version:     "",
 	Host:        "",
-	BasePath:    "/api/v1",
+	BasePath:    "",
 	Schemes:     []string{},
-	Title:       "Atlas API",
-	Description: "Atlas Cosmos SDK module registry API documentation.",
+	Title:       "",
+	Description: "",
 }
 
 type s struct{}

@@ -34,7 +34,7 @@ import (
 	"github.com/cosmos/atlas/server/models"
 
 	// api docs
-	_ "github.com/cosmos/atlas/docs/api"
+	"github.com/cosmos/atlas/docs/api"
 )
 
 const (
@@ -48,18 +48,14 @@ const (
 	sessionUserID   = "user_Id"
 
 	bearerSchema = "Bearer "
+
+	v1APIPathPrefix = "/api/v1"
 )
 
 var (
 	// MaxTokens defines the maximum number of API tokens a user can create.
 	MaxTokens int64 = 100
 )
-
-// @title Atlas API
-// @version 1.0
-// @description Atlas Cosmos SDK module registry API documentation.
-
-// @BasePath /api/v1
 
 // @securityDefinitions.apikey APIKeyAuth
 // @in header
@@ -131,9 +127,7 @@ func NewService(logger zerolog.Logger, cfg config.Config) (*Service, error) {
 	}
 
 	service.registerV1Routes()
-
-	// mount swagger API documentation
-	service.router.PathPrefix("/").Handler(httpswagger.WrapHandler)
+	service.registerSwagger(cfg)
 
 	return service, nil
 }
@@ -165,10 +159,28 @@ func (s *Service) Cleanup() {
 	}
 }
 
+func (s *Service) registerSwagger(cfg config.Config) {
+	api.SwaggerInfo.Title = "Atlas API"
+	api.SwaggerInfo.Description = "Atlas Cosmos SDK module registry API documentation."
+	api.SwaggerInfo.Version = "1.0"
+	api.SwaggerInfo.BasePath = v1APIPathPrefix
+
+	if cfg.Bool(config.FlagDev) {
+		api.SwaggerInfo.Host = s.cfg.String(config.FlagListenAddr)
+		api.SwaggerInfo.Schemes = []string{"http"}
+	} else {
+		api.SwaggerInfo.Host = "atlas.cosmos.network"
+		api.SwaggerInfo.Schemes = []string{"https"}
+	}
+
+	// mount swagger API documentation
+	s.router.PathPrefix("/").Handler(httpswagger.WrapHandler)
+}
+
 func (s *Service) registerV1Routes() {
 	// Create a versioned sub-router. All API routes will be mounted under this
 	// sub-router.
-	v1Router := s.router.PathPrefix("/api/v1").Subrouter()
+	v1Router := s.router.PathPrefix(v1APIPathPrefix).Subrouter()
 
 	// build middleware chain
 	mChain := buildMiddleware(s.logger)
