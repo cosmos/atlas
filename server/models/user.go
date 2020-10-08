@@ -12,6 +12,16 @@ import (
 )
 
 type (
+	// UserTokenJSON defines the JSON-encodeable type for a UserToken.
+	UserTokenJSON struct {
+		GormModelJSON
+
+		UserID  uint      `json:"user_id" yaml:"user_id"`
+		Token   uuid.UUID `json:"token" yaml:"token"`
+		Revoked bool      `json:"revoked" yaml:"revoked"`
+		Count   uint      `json:"count" yaml:"count"`
+	}
+
 	// UserToken defines a user created API token.
 	UserToken struct {
 		gorm.Model
@@ -54,14 +64,7 @@ type (
 
 // MarshalJSON implements custom JSON marshaling for the UserToken model.
 func (ut UserToken) MarshalJSON() ([]byte, error) {
-	return json.Marshal(struct {
-		GormModelJSON
-
-		UserID  uint      `json:"user_id" yaml:"user_id"`
-		Token   uuid.UUID `json:"token" yaml:"token"`
-		Revoked bool      `json:"revoked" yaml:"revoked"`
-		Count   uint      `json:"count" yaml:"count"`
-	}{
+	return json.Marshal(UserTokenJSON{
 		GormModelJSON: GormModelJSON{
 			ID:        ut.ID,
 			CreatedAt: ut.CreatedAt,

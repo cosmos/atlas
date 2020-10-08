@@ -277,6 +277,7 @@ func (s *Service) registerV1Routes() {
 // @Param manifest body Manifest true "module manifest"
 // @Success 200 {object} models.ModuleJSON
 // @Failure 400 {object} ErrResponse
+// @Failure 401 {object} ErrResponse
 // @Failure 500 {object} ErrResponse
 // @Security APIKeyAuth
 // @Router /modules [put]
@@ -657,6 +658,116 @@ func (s *Service) GetUserModules() http.HandlerFunc {
 	}
 }
 
+// CreateUserToken implements a request handler that creates a new API token for
+// the authenticated user.
+// @Summary Create a user API token
+// @Tags users
+// @Produce  json
+// @Success 200 {object} models.UserTokenJSON
+// @Failure 400 {object} ErrResponse
+// @Failure 401 {object} ErrResponse
+// @Failure 500 {object} ErrResponse
+// @Router /user/tokens [put]
+func (s *Service) CreateUserToken() http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		authUser, ok, err := s.authorize(req)
+		if err != nil || !ok {
+			respondWithError(w, http.StatusUnauthorized, err)
+			return
+		}
+
+		numTokens := authUser.CountTokens(s.db)
+		if numTokens >= MaxTokens {
+			respondWithError(w, http.StatusBadRequest, errors.New("maximum number of user API tokens reached"))
+			return
+		}
+
+		token, err := authUser.CreateToken(s.db)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		respondWithJSON(w, http.StatusOK, token)
+	}
+}
+
+// GetUserTokens implements a request handler returning all of an authenticated
+// user's tokens.
+// @Summary Get all API tokens by user ID
+// @Tags users
+// @Produce  json
+// @Success 200 {array} models.UserTokenJSON
+// @Failure 401 {object} ErrResponse
+// @Failure 500 {object} ErrResponse
+// @Router /user/tokens [get]
+func (s *Service) GetUserTokens() http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		authUser, ok, err := s.authorize(req)
+		if err != nil || !ok {
+			respondWithError(w, http.StatusUnauthorized, err)
+			return
+		}
+
+		tokens, err := authUser.GetTokens(s.db)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		respondWithJSON(w, http.StatusOK, tokens)
+	}
+}
+
+// RevokeUserToken implements a request handler revoking a specific token from
+// the authorized user.
+// @Summary Revoke a user API token by ID
+// @Tags users
+// @Produce  json
+// @Param id path int true "token ID"
+// @Success 200 {object} models.UserTokenJSON
+// @Failure 400 {object} ErrResponse
+// @Failure 401 {object} ErrResponse
+// @Failure 500 {object} ErrResponse
+// @Router /user/tokens/{id} [delete]
+func (s *Service) RevokeUserToken() http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		authUser, ok, err := s.authorize(req)
+		if err != nil || !ok {
+			respondWithError(w, http.StatusUnauthorized, err)
+			return
+		}
+
+		params := mux.Vars(req)
+		idStr := params["id"]
+
+		id, err := strconv.ParseUint(idStr, 10, 64)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, fmt.Errorf("invalid module ID: %w", err))
+			return
+		}
+
+		token, err := models.QueryUserToken(s.db, map[string]interface{}{"id": id, "user_id": authUser.ID, "revoked": false})
+		if err != nil {
+			code := http.StatusInternalServerError
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				code = http.StatusNotFound
+			}
+
+			respondWithError(w, code, err)
+			return
+		}
+
+		token, err = token.Revoke(s.db)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		respondWithJSON(w, http.StatusOK, token)
+	}
+}
+
 // GetAllKeywords implements a request handler returning a paginated set of
 // keywords.
 // @Summary Return a paginated set of all keywords
@@ -774,92 +885,6 @@ func (s *Service) LogoutSession() http.HandlerFunc {
 		}
 
 		http.Redirect(w, req, "/", http.StatusFound)
-	}
-}
-
-// CreateUserToken implements a request handler that creates a new API token for
-// the authenticated user.
-func (s *Service) CreateUserToken() http.HandlerFunc {
-	return func(w http.ResponseWriter, req *http.Request) {
-		authUser, ok, err := s.authorize(req)
-		if err != nil || !ok {
-			respondWithError(w, http.StatusUnauthorized, err)
-			return
-		}
-
-		numTokens := authUser.CountTokens(s.db)
-		if numTokens >= MaxTokens {
-			respondWithError(w, http.StatusBadRequest, errors.New("maximum number of user API tokens reached"))
-			return
-		}
-
-		token, err := authUser.CreateToken(s.db)
-		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, err)
-			return
-		}
-
-		respondWithJSON(w, http.StatusOK, token)
-	}
-}
-
-// GetUserTokens implements a request handler returning all of an authenticated
-// user's tokens.
-func (s *Service) GetUserTokens() http.HandlerFunc {
-	return func(w http.ResponseWriter, req *http.Request) {
-		authUser, ok, err := s.authorize(req)
-		if err != nil || !ok {
-			respondWithError(w, http.StatusUnauthorized, err)
-			return
-		}
-
-		tokens, err := authUser.GetTokens(s.db)
-		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, err)
-			return
-		}
-
-		respondWithJSON(w, http.StatusOK, tokens)
-	}
-}
-
-// RevokeUserToken implements a request handler revoking a specific token from
-// the authorized user.
-func (s *Service) RevokeUserToken() http.HandlerFunc {
-	return func(w http.ResponseWriter, req *http.Request) {
-		authUser, ok, err := s.authorize(req)
-		if err != nil || !ok {
-			respondWithError(w, http.StatusUnauthorized, err)
-			return
-		}
-
-		params := mux.Vars(req)
-		idStr := params["id"]
-
-		id, err := strconv.ParseUint(idStr, 10, 64)
-		if err != nil {
-			respondWithError(w, http.StatusBadRequest, fmt.Errorf("invalid module ID: %w", err))
-			return
-		}
-
-		token, err := models.QueryUserToken(s.db, map[string]interface{}{"id": id, "user_id": authUser.ID, "revoked": false})
-		if err != nil {
-			code := http.StatusInternalServerError
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				code = http.StatusNotFound
-			}
-
-			respondWithError(w, code, err)
-			return
-		}
-
-		token, err = token.Revoke(s.db)
-		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, err)
-			return
-		}
-
-		respondWithJSON(w, http.StatusOK, token)
 	}
 }
 
