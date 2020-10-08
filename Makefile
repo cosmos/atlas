@@ -33,13 +33,13 @@ install: go.sum
 #                                    Docs                                     #
 ###############################################################################
 
-update-swagger:
+update-swagger-docs:
 	@swag init -g server/service.go -o ./docs/api --generatedTime=false
 
-verify-clean-swagger: update-swagger
+verify-clean-swagger-docs: update-swagger-docs
 	@git diff --quiet docs/api
 
-.PHONY: update-swagger verify-clean-swagger
+.PHONY: update-swagger-docs verify-clean-swagger-docs
 
 ###############################################################################
 #                                 Migrations                                  #
