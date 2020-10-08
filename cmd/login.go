@@ -16,12 +16,12 @@ import (
 type (
 	// Registry defines the registries token value when a user performs a login.
 	Registry struct {
-		Token string `json:"token" yaml:"token"`
+		Token string `json:"token" toml:"token"`
 	}
 
 	// Credentials holds the registry token when a user performs a login.
 	Credentials struct {
-		Registry Registry `json:"registry" yaml:"registry"`
+		Registry Registry `json:"registry" toml:"registry"`
 	}
 )
 
