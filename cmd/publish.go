@@ -53,9 +53,9 @@ func PublishCommand() *cli.Command {
 				Usage:   "The Atlas registry address",
 			},
 			&cli.BoolFlag{
-				Name:  "verify-only",
+				Name:  "dry-run",
 				Value: false,
-				Usage: "Only verify the module manifest without publishing",
+				Usage: "Verify the module manifest without publishing",
 			},
 		},
 		Action: func(ctx *cli.Context) error {
@@ -68,7 +68,7 @@ func PublishCommand() *cli.Command {
 			}
 
 			// verify the contents if requested
-			if ctx.Bool("verify-only") {
+			if ctx.Bool("dry-run") {
 				if err := validate.Struct(manifest); err != nil {
 					return fmt.Errorf("failed to verify manifest: %w", server.TransformValidationError(err))
 				}
