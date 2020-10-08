@@ -30,8 +30,13 @@ func parsePagination(req *http.Request) (uint, int, error) {
 	return uint(cursor), int(limit), nil
 }
 
+// ErrResponse defines an HTTP error response.
+type ErrResponse struct {
+	Error string `json:"error"`
+}
+
 func respondWithError(w http.ResponseWriter, code int, err error) {
-	respondWithJSON(w, code, map[string]string{"error": err.Error()})
+	respondWithJSON(w, code, ErrResponse{err.Error()})
 }
 
 func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {

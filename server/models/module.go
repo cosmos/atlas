@@ -11,6 +11,15 @@ import (
 )
 
 type (
+	// BugTrackerJSON defines the JSON-encodeable type for a ModuleVersion.
+	ModuleVersionJSON struct {
+		GormModelJSON
+
+		Version   string      `json:"version" yaml:"version"`
+		SDKCompat interface{} `json:"sdk_compat" yaml:"sdk_compat"`
+		ModuleID  uint        `json:"module_id" yaml:"module_id"`
+	}
+
 	// ModuleVersion defines a version associated with a unique module.
 	ModuleVersion struct {
 		gorm.Model
@@ -34,6 +43,15 @@ type (
 		UserID   uint `json:"user_id" yaml:"user_id"`
 	}
 
+	// BugTrackerJSON defines the JSON-encodeable type for a BugTracker.
+	BugTrackerJSON struct {
+		GormModelJSON
+
+		URL      interface{} `json:"url" yaml:"url"`
+		Contact  interface{} `json:"contact" yaml:"contact"`
+		ModuleID uint        `json:"module_id" yaml:"module_id"`
+	}
+
 	// BugTracker defines the metadata information for reporting bug reports on a
 	// given Module type.
 	BugTracker struct {
@@ -42,6 +60,23 @@ type (
 		URL      sql.NullString `json:"url" yaml:"url"`
 		Contact  sql.NullString `json:"contact" yaml:"contact"`
 		ModuleID uint           `json:"module_id" yaml:"module_id"`
+	}
+
+	// ModuleJSON defines the JSON-encodeable type for a Module.
+	ModuleJSON struct {
+		GormModelJSON
+
+		Name          string          `json:"name" yaml:"name"`
+		Team          string          `json:"team" yaml:"team"`
+		Description   string          `json:"description" yaml:"description"`
+		Documentation string          `json:"documentation" yaml:"documentation"`
+		Homepage      string          `json:"homepage" yaml:"homepage"`
+		Repo          string          `json:"repo" yaml:"repo"`
+		BugTracker    BugTracker      `json:"bug_tracker" yaml:"bug_tracker"`
+		Keywords      []Keyword       `json:"keywords" yaml:"keywords"`
+		Authors       []User          `json:"authors" yaml:"authors"`
+		Owners        []User          `json:"owners" yaml:"owners"`
+		Versions      []ModuleVersion `json:"versions" yaml:"versions"`
 	}
 
 	// Module defines a Cosmos SDK module.
@@ -75,13 +110,7 @@ type (
 func (mv ModuleVersion) MarshalJSON() ([]byte, error) {
 	sdkCompat, _ := mv.SDKCompat.Value()
 
-	return json.Marshal(struct {
-		GormModelJSON
-
-		Version   string      `json:"version" yaml:"version"`
-		SDKCompat interface{} `json:"sdk_compat" yaml:"sdk_compat"`
-		ModuleID  uint        `json:"module_id" yaml:"module_id"`
-	}{
+	return json.Marshal(ModuleVersionJSON{
 		GormModelJSON: GormModelJSON{
 			ID:        mv.ID,
 			CreatedAt: mv.CreatedAt,
@@ -98,13 +127,7 @@ func (bt BugTracker) MarshalJSON() ([]byte, error) {
 	btURL, _ := bt.URL.Value()
 	btContact, _ := bt.Contact.Value()
 
-	return json.Marshal(struct {
-		GormModelJSON
-
-		URL      interface{} `json:"url" yaml:"url"`
-		Contact  interface{} `json:"contact" yaml:"contact"`
-		ModuleID uint        `json:"module_id" yaml:"module_id"`
-	}{
+	return json.Marshal(BugTrackerJSON{
 		GormModelJSON: GormModelJSON{
 			ID:        bt.ID,
 			CreatedAt: bt.CreatedAt,
@@ -118,21 +141,7 @@ func (bt BugTracker) MarshalJSON() ([]byte, error) {
 
 // MarshalJSON implements custom JSON marshaling for the Module model.
 func (m Module) MarshalJSON() ([]byte, error) {
-	return json.Marshal(struct {
-		GormModelJSON
-
-		Name          string          `json:"name" yaml:"name"`
-		Team          string          `json:"team" yaml:"team"`
-		Description   string          `json:"description" yaml:"description"`
-		Documentation string          `json:"documentation" yaml:"documentation"`
-		Homepage      string          `json:"homepage" yaml:"homepage"`
-		Repo          string          `json:"repo" yaml:"repo"`
-		BugTracker    BugTracker      `json:"bug_tracker" yaml:"bug_tracker"`
-		Keywords      []Keyword       `json:"keywords" yaml:"keywords"`
-		Authors       []User          `json:"authors" yaml:"authors"`
-		Owners        []User          `json:"owners" yaml:"owners"`
-		Versions      []ModuleVersion `json:"versions" yaml:"versions"`
-	}{
+	return json.Marshal(ModuleJSON{
 		GormModelJSON: GormModelJSON{
 			ID:        m.ID,
 			CreatedAt: m.CreatedAt,

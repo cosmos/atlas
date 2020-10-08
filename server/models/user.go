@@ -12,6 +12,16 @@ import (
 )
 
 type (
+	// UserTokenJSON defines the JSON-encodeable type for a UserToken.
+	UserTokenJSON struct {
+		GormModelJSON
+
+		UserID  uint      `json:"user_id" yaml:"user_id"`
+		Token   uuid.UUID `json:"token" yaml:"token"`
+		Revoked bool      `json:"revoked" yaml:"revoked"`
+		Count   uint      `json:"count" yaml:"count"`
+	}
+
 	// UserToken defines a user created API token.
 	UserToken struct {
 		gorm.Model
@@ -20,6 +30,16 @@ type (
 		Token   uuid.UUID `json:"token" yaml:"token"`
 		Revoked bool      `json:"revoked" yaml:"revoked"`
 		Count   uint      `json:"count" yaml:"count"`
+	}
+
+	// UserJSON defines the JSON-encodeable type for a User.
+	UserJSON struct {
+		GormModelJSON
+
+		Name       string `json:"name" yaml:"name"`
+		URL        string `json:"url" yaml:"url"`
+		AvatarURL  string `json:"avatar_url" yaml:"avatar_url"`
+		GravatarID string `json:"gravatar_id" yaml:"gravatar_id"`
 	}
 
 	// User defines an entity that contributes to a Module type.
@@ -44,14 +64,7 @@ type (
 
 // MarshalJSON implements custom JSON marshaling for the UserToken model.
 func (ut UserToken) MarshalJSON() ([]byte, error) {
-	return json.Marshal(struct {
-		GormModelJSON
-
-		UserID  uint      `json:"user_id" yaml:"user_id"`
-		Token   uuid.UUID `json:"token" yaml:"token"`
-		Revoked bool      `json:"revoked" yaml:"revoked"`
-		Count   uint      `json:"count" yaml:"count"`
-	}{
+	return json.Marshal(UserTokenJSON{
 		GormModelJSON: GormModelJSON{
 			ID:        ut.ID,
 			CreatedAt: ut.CreatedAt,
@@ -66,14 +79,7 @@ func (ut UserToken) MarshalJSON() ([]byte, error) {
 
 // MarshalJSON implements custom JSON marshaling for the User model.
 func (u User) MarshalJSON() ([]byte, error) {
-	return json.Marshal(struct {
-		GormModelJSON
-
-		Name       string `json:"name" yaml:"name"`
-		URL        string `json:"url" yaml:"url"`
-		AvatarURL  string `json:"avatar_url" yaml:"avatar_url"`
-		GravatarID string `json:"gravatar_id" yaml:"gravatar_id"`
-	}{
+	return json.Marshal(UserJSON{
 		GormModelJSON: GormModelJSON{
 			ID:        u.ID,
 			CreatedAt: u.CreatedAt,

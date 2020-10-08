@@ -1,0 +1,679 @@
+definitions:
+  models.BugTracker:
+    properties:
+      contact:
+        type: string
+      module_id:
+        type: integer
+      url:
+        type: string
+    type: object
+  models.Keyword:
+    properties:
+      name:
+        type: string
+    type: object
+  models.KeywordJSON:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.ModuleJSON:
+    properties:
+      authors:
+        items:
+          $ref: '#/definitions/models.User'
+        type: array
+      bug_tracker:
+        $ref: '#/definitions/models.BugTracker'
+        type: object
+      created_at:
+        type: string
+      description:
+        type: string
+      documentation:
+        type: string
+      homepage:
+        type: string
+      id:
+        type: integer
+      keywords:
+        items:
+          $ref: '#/definitions/models.Keyword'
+        type: array
+      name:
+        type: string
+      owners:
+        items:
+          $ref: '#/definitions/models.User'
+        type: array
+      repo:
+        type: string
+      team:
+        type: string
+      updated_at:
+        type: string
+      versions:
+        items:
+          $ref: '#/definitions/models.ModuleVersion'
+        type: array
+    type: object
+  models.ModuleVersion:
+    properties:
+      module_id:
+        type: integer
+      sdk_compat:
+        type: string
+      version:
+        type: string
+    type: object
+  models.ModuleVersionJSON:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      module_id:
+        type: integer
+      sdk_compat:
+        type: object
+      updated_at:
+        type: string
+      version:
+        type: string
+    type: object
+  models.User:
+    properties:
+      avatar_url:
+        type: string
+      gravatar_id:
+        type: string
+      name:
+        type: string
+      url:
+        type: string
+    type: object
+  models.UserJSON:
+    properties:
+      avatar_url:
+        type: string
+      created_at:
+        type: string
+      gravatar_id:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      updated_at:
+        type: string
+      url:
+        type: string
+    type: object
+  models.UserTokenJSON:
+    properties:
+      count:
+        type: integer
+      created_at:
+        type: string
+      id:
+        type: integer
+      revoked:
+        type: boolean
+      token:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  server.AuthorsManifest:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  server.BugTackerManifest:
+    properties:
+      contact:
+        type: string
+      url:
+        type: string
+    type: object
+  server.ErrResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  server.Manifest:
+    properties:
+      authors:
+        items:
+          $ref: '#/definitions/server.AuthorsManifest'
+        type: array
+      bug_tracker:
+        $ref: '#/definitions/server.BugTackerManifest'
+        type: object
+      module:
+        $ref: '#/definitions/server.ModuleManifest'
+        type: object
+      version:
+        $ref: '#/definitions/server.VersionManifest'
+        type: object
+    required:
+    - authors
+    - version
+    type: object
+  server.ModuleManifest:
+    properties:
+      description:
+        type: string
+      documentation:
+        type: string
+      homepage:
+        type: string
+      keywords:
+        items:
+          type: string
+        type: array
+      name:
+        type: string
+      repo:
+        type: string
+      team:
+        type: string
+    required:
+    - name
+    - repo
+    - team
+    type: object
+  server.VersionManifest:
+    properties:
+      sdk_compat:
+        type: string
+      version:
+        type: string
+    required:
+    - version
+    type: object
+info:
+  contact: {}
+  license: {}
+paths:
+  /keywords:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - default: 0
+        description: pagination cursor
+        in: query
+        name: cursor
+        required: true
+        type: integer
+      - default: 100
+        description: pagination limit
+        in: query
+        name: limit
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.KeywordJSON'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+      summary: Return a paginated set of all keywords
+      tags:
+      - keywords
+  /modules:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - default: 0
+        description: pagination cursor
+        in: query
+        name: cursor
+        required: true
+        type: integer
+      - default: 100
+        description: pagination limit
+        in: query
+        name: limit
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ModuleJSON'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+      summary: Return a paginated set of all Cosmos SDK modules
+      tags:
+      - modules
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: module manifest
+        in: body
+        name: manifest
+        required: true
+        schema:
+          $ref: '#/definitions/server.Manifest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ModuleJSON'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+      security:
+      - APIKeyAuth: []
+      summary: Publish a Cosmos SDK module
+      tags:
+      - modules
+  /modules/{id}:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: module ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ModuleJSON'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+      summary: Get a Cosmos SDK module by ID
+      tags:
+      - modules
+  /modules/{id}/authors:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: module ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.UserJSON'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+      summary: Get all authors for a Cosmos SDK module by ID
+      tags:
+      - modules
+  /modules/{id}/keywords:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: module ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.KeywordJSON'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+      summary: Get all keywords for a Cosmos SDK module by ID
+      tags:
+      - modules
+  /modules/{id}/versions:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: module ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ModuleVersionJSON'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+      summary: Get all versions for a Cosmos SDK module by ID
+      tags:
+      - modules
+  /modules/search:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - default: 0
+        description: pagination cursor
+        in: query
+        name: cursor
+        required: true
+        type: integer
+      - default: 100
+        description: pagination limit
+        in: query
+        name: limit
+        required: true
+        type: integer
+      - description: search criteria
+        in: query
+        name: q
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ModuleJSON'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+      summary: Search for Cosmos SDK modules by name, team, description and keywords
+      tags:
+      - modules
+  /user/tokens:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.UserTokenJSON'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+      summary: Get all API tokens by user ID
+      tags:
+      - users
+    put:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.UserTokenJSON'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+      summary: Create a user API token
+      tags:
+      - users
+  /user/tokens/{id}:
+    delete:
+      parameters:
+      - description: token ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.UserTokenJSON'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+      summary: Revoke a user API token by ID
+      tags:
+      - users
+  /users:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - default: 0
+        description: pagination cursor
+        in: query
+        name: cursor
+        required: true
+        type: integer
+      - default: 100
+        description: pagination limit
+        in: query
+        name: limit
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.UserJSON'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+      summary: Return a paginated set of all users
+      tags:
+      - users
+  /users/{id}:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: user ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.UserJSON'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+      summary: Get a user by ID
+      tags:
+      - users
+  /users/{id}/modules:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: user ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ModuleJSON'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.ErrResponse'
+      summary: Return a paginated set of all Cosmos SDK modules by user ID
+      tags:
+      - users
+securityDefinitions:
+  APIKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
