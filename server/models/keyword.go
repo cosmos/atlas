@@ -12,14 +12,14 @@ type (
 	KeywordJSON struct {
 		GormModelJSON
 
-		Name string `json:"name" yaml:"name"`
+		Name string `json:"name"`
 	}
 
 	// Keyword defines a module keyword, where a module can have one or more keywords.
 	Keyword struct {
 		gorm.Model
 
-		Name string `json:"name" yaml:"name"`
+		Name string `json:"name"`
 	}
 )
 

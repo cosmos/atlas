@@ -15,41 +15,41 @@ type (
 	ModuleVersionJSON struct {
 		GormModelJSON
 
-		Version   string      `json:"version" yaml:"version"`
-		SDKCompat interface{} `json:"sdk_compat" yaml:"sdk_compat"`
-		ModuleID  uint        `json:"module_id" yaml:"module_id"`
+		Version   string      `json:"version"`
+		SDKCompat interface{} `json:"sdk_compat"`
+		ModuleID  uint        `json:"module_id"`
 	}
 
 	// ModuleVersion defines a version associated with a unique module.
 	ModuleVersion struct {
 		gorm.Model
 
-		Version   string         `json:"version" yaml:"version"`
-		SDKCompat sql.NullString `json:"sdk_compat" yaml:"sdk_compat"`
-		ModuleID  uint           `json:"module_id" yaml:"module_id"`
+		Version   string         `json:"version"`
+		SDKCompat sql.NullString `json:"sdk_compat"`
+		ModuleID  uint           `json:"module_id"`
 	}
 
 	// ModuleKeywords defines the type relationship between a module and all the
 	// associated keywords.
 	ModuleKeywords struct {
-		ModuleID  uint `json:"module_id" yaml:"module_id"`
-		KeywordID uint `json:"keyword_id" yaml:"keyword_id"`
+		ModuleID  uint `json:"module_id"`
+		KeywordID uint `json:"keyword_id"`
 	}
 
 	// ModuleAuthors defines the type relationship between a module and all the
 	// associated authors.
 	ModuleAuthors struct {
-		ModuleID uint `json:"module_id" yaml:"module_id"`
-		UserID   uint `json:"user_id" yaml:"user_id"`
+		ModuleID uint `json:"module_id"`
+		UserID   uint `json:"user_id"`
 	}
 
 	// BugTrackerJSON defines the JSON-encodeable type for a BugTracker.
 	BugTrackerJSON struct {
 		GormModelJSON
 
-		URL      interface{} `json:"url" yaml:"url"`
-		Contact  interface{} `json:"contact" yaml:"contact"`
-		ModuleID uint        `json:"module_id" yaml:"module_id"`
+		URL      interface{} `json:"url"`
+		Contact  interface{} `json:"contact"`
+		ModuleID uint        `json:"module_id"`
 	}
 
 	// BugTracker defines the metadata information for reporting bug reports on a
@@ -57,26 +57,26 @@ type (
 	BugTracker struct {
 		gorm.Model
 
-		URL      sql.NullString `json:"url" yaml:"url"`
-		Contact  sql.NullString `json:"contact" yaml:"contact"`
-		ModuleID uint           `json:"module_id" yaml:"module_id"`
+		URL      sql.NullString `json:"url"`
+		Contact  sql.NullString `json:"contact"`
+		ModuleID uint           `json:"module_id"`
 	}
 
 	// ModuleJSON defines the JSON-encodeable type for a Module.
 	ModuleJSON struct {
 		GormModelJSON
 
-		Name          string          `json:"name" yaml:"name"`
-		Team          string          `json:"team" yaml:"team"`
-		Description   string          `json:"description" yaml:"description"`
-		Documentation string          `json:"documentation" yaml:"documentation"`
-		Homepage      string          `json:"homepage" yaml:"homepage"`
-		Repo          string          `json:"repo" yaml:"repo"`
-		BugTracker    BugTracker      `json:"bug_tracker" yaml:"bug_tracker"`
-		Keywords      []Keyword       `json:"keywords" yaml:"keywords"`
-		Authors       []User          `json:"authors" yaml:"authors"`
-		Owners        []User          `json:"owners" yaml:"owners"`
-		Versions      []ModuleVersion `json:"versions" yaml:"versions"`
+		Name          string          `json:"name"`
+		Team          string          `json:"team"`
+		Description   string          `json:"description"`
+		Documentation string          `json:"documentation"`
+		Homepage      string          `json:"homepage"`
+		Repo          string          `json:"repo"`
+		BugTracker    BugTracker      `json:"bug_tracker"`
+		Keywords      []Keyword       `json:"keywords"`
+		Authors       []User          `json:"authors"`
+		Owners        []User          `json:"owners"`
+		Versions      []ModuleVersion `json:"versions"`
 	}
 
 	// Module defines a Cosmos SDK module.
@@ -84,25 +84,25 @@ type (
 	Module struct {
 		gorm.Model
 
-		Name string `gorm:"not null;default:null" json:"name" yaml:"name"`
-		Team string `gorm:"not null;default:null" json:"team" yaml:"team"`
+		Name string `gorm:"not null;default:null" json:"name"`
+		Team string `gorm:"not null;default:null" json:"team"`
 
-		Description   string `json:"description" yaml:"description"`
-		Documentation string `json:"documentation" yaml:"documentation"`
-		Homepage      string `json:"homepage" yaml:"homepage"`
-		Repo          string `gorm:"not null;default:null" json:"repo" yaml:"repo"`
+		Description   string `json:"description"`
+		Documentation string `json:"documentation"`
+		Homepage      string `json:"homepage"`
+		Repo          string `gorm:"not null;default:null" json:"repo"`
 
 		// one-to-one relationships
-		BugTracker BugTracker `json:"bug_tracker" yaml:"bug_tracker" gorm:"foreignKey:module_id"`
+		BugTracker BugTracker `json:"bug_tracker" gorm:"foreignKey:module_id"`
 
 		// many-to-many relationships
-		Keywords []Keyword `gorm:"many2many:module_keywords" json:"keywords" yaml:"keywords"`
-		Authors  []User    `gorm:"many2many:module_authors" json:"authors" yaml:"authors"`
-		Owners   []User    `gorm:"many2many:module_owners" json:"owners" yaml:"owners"`
+		Keywords []Keyword `gorm:"many2many:module_keywords" json:"keywords"`
+		Authors  []User    `gorm:"many2many:module_authors" json:"authors"`
+		Owners   []User    `gorm:"many2many:module_owners" json:"owners"`
 
 		// one-to-many relationships
-		Version  ModuleVersion   `gorm:"-" json:"-" yaml:"-"` // current version in manifest
-		Versions []ModuleVersion `gorm:"foreignKey:module_id" json:"versions" yaml:"versions"`
+		Version  ModuleVersion   `gorm:"-" json:"-"` // current version in manifest
+		Versions []ModuleVersion `gorm:"foreignKey:module_id" json:"versions"`
 	}
 )
 

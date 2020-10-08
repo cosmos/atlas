@@ -16,49 +16,49 @@ type (
 	UserTokenJSON struct {
 		GormModelJSON
 
-		UserID  uint      `json:"user_id" yaml:"user_id"`
-		Token   uuid.UUID `json:"token" yaml:"token"`
-		Revoked bool      `json:"revoked" yaml:"revoked"`
-		Count   uint      `json:"count" yaml:"count"`
+		UserID  uint      `json:"user_id"`
+		Token   uuid.UUID `json:"token"`
+		Revoked bool      `json:"revoked"`
+		Count   uint      `json:"count"`
 	}
 
 	// UserToken defines a user created API token.
 	UserToken struct {
 		gorm.Model
 
-		UserID  uint      `json:"user_id" yaml:"user_id"`
-		Token   uuid.UUID `json:"token" yaml:"token"`
-		Revoked bool      `json:"revoked" yaml:"revoked"`
-		Count   uint      `json:"count" yaml:"count"`
+		UserID  uint      `json:"user_id"`
+		Token   uuid.UUID `json:"token"`
+		Revoked bool      `json:"revoked"`
+		Count   uint      `json:"count"`
 	}
 
 	// UserJSON defines the JSON-encodeable type for a User.
 	UserJSON struct {
 		GormModelJSON
 
-		Name       string `json:"name" yaml:"name"`
-		URL        string `json:"url" yaml:"url"`
-		AvatarURL  string `json:"avatar_url" yaml:"avatar_url"`
-		GravatarID string `json:"gravatar_id" yaml:"gravatar_id"`
+		Name       string `json:"name"`
+		URL        string `json:"url"`
+		AvatarURL  string `json:"avatar_url"`
+		GravatarID string `json:"gravatar_id"`
 	}
 
 	// User defines an entity that contributes to a Module type.
 	User struct {
 		gorm.Model
 
-		Name              string         `json:"name" yaml:"name"`
-		GithubUserID      sql.NullInt64  `json:"-" yaml:"-"`
-		GithubAccessToken sql.NullString `json:"-" yaml:"-"`
-		Email             sql.NullString `json:"-" yaml:"-"`
-		URL               string         `json:"url" yaml:"url"`
-		AvatarURL         string         `json:"avatar_url" yaml:"avatar_url"`
-		GravatarID        string         `json:"gravatar_id" yaml:"gravatar_id"`
+		Name              string         `json:"name"`
+		GithubUserID      sql.NullInt64  `json:"-"`
+		GithubAccessToken sql.NullString `json:"-"`
+		Email             sql.NullString `json:"-"`
+		URL               string         `json:"url"`
+		AvatarURL         string         `json:"avatar_url"`
+		GravatarID        string         `json:"gravatar_id"`
 
 		// many-to-many relationships
-		Modules []Module `gorm:"many2many:module_authors" json:"-" yaml:"-"`
+		Modules []Module `gorm:"many2many:module_authors" json:"-"`
 
 		// one-to-many relationships
-		Tokens []UserToken `gorm:"foreignKey:user_id" json:"-" yaml:"-"`
+		Tokens []UserToken `gorm:"foreignKey:user_id" json:"-"`
 	}
 )
 
