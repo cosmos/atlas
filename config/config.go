@@ -6,7 +6,8 @@ import (
 
 // Configuration values that may be provided in a configuration file, as
 // environment variables or via CLI flags. Note, not all configurations may be
-// passed as CLI flags.
+// passed as CLI flags. All keys are dot delimitated except for environment
+// variables which are snake-cased and must be prefixed with ATLAS_*.
 const (
 	FlagConfig           = "config"
 	FlagLogLevel         = "log.level"
