@@ -41,8 +41,8 @@ via Github OAuth and persisting modules and relevant data to PostgreSQL.
 ### Server
 
 In order to start the Atlas server, you must provide a series of configuration
-values that may be defined in environment variables, a configuration file or via
-CLI flags (in order of precedence). See the sample [env](./.env.sample) or
+values that may be defined in environment variables, a (TOML) configuration file
+or via CLI flags (in order of precedence). See the sample [env](./.env.sample) or
 [config](./config.sample.toml) files for all possible configurations.
 
 ```shel
@@ -55,6 +55,7 @@ Note:
 root directory. Any explicit environment variables defined will override those
 defined in this file.
 2. Certain configuration values are not exposed or able to be provided via CLI flags.
+3. All environment variables must be prefixed with `ATLAS_*`.
 
 See `--help` for further documentation.
 
