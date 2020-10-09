@@ -1,4 +1,4 @@
-package server
+package middleware
 
 import (
 	"net/http"
@@ -9,14 +9,14 @@ import (
 	"github.com/rs/zerolog/hlog"
 )
 
-func buildMiddleware(logger zerolog.Logger) alice.Chain {
+func Build(logger zerolog.Logger) alice.Chain {
 	mChain := alice.New()
-	mChain = addRequestLoggingMiddleware(mChain, logger)
+	mChain = AddRequestLoggingMiddleware(mChain, logger)
 
 	return mChain
 }
 
-func addRequestLoggingMiddleware(mChain alice.Chain, logger zerolog.Logger) alice.Chain {
+func AddRequestLoggingMiddleware(mChain alice.Chain, logger zerolog.Logger) alice.Chain {
 	mChain = mChain.Append(hlog.NewHandler(logger))
 	mChain = mChain.Append(hlog.AccessHandler(func(r *http.Request, status, size int, duration time.Duration) {
 		hlog.FromRequest(r).Info().

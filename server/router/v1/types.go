@@ -1,27 +1,8 @@
-package server
+package v1
 
 import (
 	"github.com/cosmos/atlas/server/models"
 )
-
-// PaginationResponse defines a generic type encapsulating a paginated response.
-// Client should not rely on decoding into this type as the Results is an
-// interface.
-type PaginationResponse struct {
-	Limit   int         `json:"limit"`
-	Cursor  uint        `json:"cursor"`
-	Count   int         `json:"count"`
-	Results interface{} `json:"results"`
-}
-
-func NewPaginationResponse(count, limit int, cursor uint, results interface{}) PaginationResponse {
-	return PaginationResponse{
-		Limit:   limit,
-		Cursor:  cursor,
-		Count:   count,
-		Results: results,
-	}
-}
 
 type (
 	// ModuleManifest defines the primary module fields in a module's manifest.

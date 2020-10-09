@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/cosmos/atlas/cmd"
-	"github.com/cosmos/atlas/server"
+	v1 "github.com/cosmos/atlas/server/router/v1"
 )
 
 func TestPublishCommand_DryRun_Valid(t *testing.T) {
@@ -18,8 +18,8 @@ func TestPublishCommand_DryRun_Valid(t *testing.T) {
 	mockIn, mockOut := cmd.ApplyMockIO(app)
 	ctx := cmd.ContextWithReader(context.Background(), mockIn)
 
-	manifest := server.Manifest{
-		Module: server.ModuleManifest{
+	manifest := v1.Manifest{
+		Module: v1.ModuleManifest{
 			Name:          "x/test",
 			Team:          "test_team",
 			Repo:          "https://github.com/test/test-repo",
@@ -28,15 +28,15 @@ func TestPublishCommand_DryRun_Valid(t *testing.T) {
 			Homepage:      "https://testmodule.com",
 			Documentation: "https://github.com/test/test-repo/blob/master/x/test/readme.md",
 		},
-		BugTracker: server.BugTackerManifest{
+		BugTracker: v1.BugTackerManifest{
 			URL:     "https://testmodule.com/bugs",
 			Contact: "bugs@testmodule.com",
 		},
-		Authors: []server.AuthorsManifest{
+		Authors: []v1.AuthorsManifest{
 			{Name: "test_author1", Email: "testauthor1@testmodule.com"},
 			{Name: "test_author2", Email: "testauthor2@testmodule.com"},
 		},
-		Version: server.VersionManifest{
+		Version: v1.VersionManifest{
 			Version:   "v1.0.0",
 			SDKCompat: "v0.40.x",
 		},
@@ -66,8 +66,8 @@ func TestPublishCommand_DryRun_Invalid(t *testing.T) {
 	mockIn, mockOut := cmd.ApplyMockIO(app)
 	ctx := cmd.ContextWithReader(context.Background(), mockIn)
 
-	manifest := server.Manifest{
-		Module: server.ModuleManifest{
+	manifest := v1.Manifest{
+		Module: v1.ModuleManifest{
 			Team:          "test_team",
 			Repo:          "https://github.com/test/test-repo",
 			Keywords:      []string{"tokens", "transfer"},
@@ -75,15 +75,15 @@ func TestPublishCommand_DryRun_Invalid(t *testing.T) {
 			Homepage:      "https://testmodule.com",
 			Documentation: "https://github.com/test/test-repo/blob/master/x/test/readme.md",
 		},
-		BugTracker: server.BugTackerManifest{
+		BugTracker: v1.BugTackerManifest{
 			URL:     "bad_url",
 			Contact: "testmodule.com",
 		},
-		Authors: []server.AuthorsManifest{
+		Authors: []v1.AuthorsManifest{
 			{Email: "testauthor1@testmodule.com"},
 			{Name: "test_author2", Email: "testauthor2@testmodule.com"},
 		},
-		Version: server.VersionManifest{
+		Version: v1.VersionManifest{
 			Version:   "v1.0.0",
 			SDKCompat: "v0.40.x",
 		},
