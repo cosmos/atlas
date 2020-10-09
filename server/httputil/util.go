@@ -14,6 +14,7 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+// Common HTTP methods and header values
 const (
 	MethodGET    = "GET"
 	MethodPOST   = "POST"
@@ -42,6 +43,8 @@ func NewPaginationResponse(count, limit int, cursor uint, results interface{}) P
 	}
 }
 
+// ParsePagination parses pagination values (cursor and limit) from an HTTP
+// request returning an error upon failure.
 func ParsePagination(req *http.Request) (uint, int, error) {
 	cursorStr := req.URL.Query().Get("cursor")
 	cursor, err := strconv.ParseUint(cursorStr, 10, 64)
@@ -63,10 +66,14 @@ type ErrResponse struct {
 	Error string `json:"error"`
 }
 
+// RespondWithError provides an auxiliary function to handle all failed HTTP
+// requests.
 func RespondWithError(w http.ResponseWriter, code int, err error) {
 	RespondWithJSON(w, code, ErrResponse{err.Error()})
 }
 
+// RespondWithJSON provides an auxiliary function to return an HTTP response
+// with JSON content and an HTTP status code.
 func RespondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	response, _ := json.Marshal(payload)
 
