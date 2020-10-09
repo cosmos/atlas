@@ -13,7 +13,7 @@ import (
 	"github.com/cosmos/atlas/server"
 )
 
-func TestPublishCommand_VerifyOnly_Valid(t *testing.T) {
+func TestPublishCommand_DryRun_Valid(t *testing.T) {
 	app := cmd.NewApp()
 	mockIn, mockOut := cmd.ApplyMockIO(app)
 	ctx := cmd.ContextWithReader(context.Background(), mockIn)
@@ -57,11 +57,11 @@ func TestPublishCommand_VerifyOnly_Valid(t *testing.T) {
 	require.NoError(t, encoder.Encode(manifest))
 
 	// execute command and verify output
-	require.NoError(t, cmd.ExecTestCmd(ctx, app, []string{"atlas", "publish", "-m", manifestPath, "--verify-only"}))
+	require.NoError(t, cmd.ExecTestCmd(ctx, app, []string{"atlas", "publish", "-m", manifestPath, "--dry-run"}))
 	require.Contains(t, mockOut.String(), "manifest successfully verified!", mockOut.String())
 }
 
-func TestPublishCommand_VerifyOnly_Invalid(t *testing.T) {
+func TestPublishCommand_DryRun_Invalid(t *testing.T) {
 	app := cmd.NewApp()
 	mockIn, mockOut := cmd.ApplyMockIO(app)
 	ctx := cmd.ContextWithReader(context.Background(), mockIn)
@@ -104,6 +104,6 @@ func TestPublishCommand_VerifyOnly_Invalid(t *testing.T) {
 	require.NoError(t, encoder.Encode(manifest))
 
 	// execute command and verify output
-	require.Error(t, cmd.ExecTestCmd(ctx, app, []string{"atlas", "publish", "-m", manifestPath, "--verify-only"}))
+	require.Error(t, cmd.ExecTestCmd(ctx, app, []string{"atlas", "publish", "-m", manifestPath, "--dry-run"}))
 	require.Contains(t, mockOut.String(), "failed to verify manifest", mockOut.String())
 }

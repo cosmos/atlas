@@ -3,8 +3,10 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"strings"
 
 	"github.com/urfave/cli/v2"
@@ -45,4 +47,19 @@ func ExecTestCmd(ctx context.Context, app *cli.App, args []string) error {
 	}
 
 	return err
+}
+
+// FlagSetFromCmdFlags returns a reference to a stdlib FlagSet given a slice of
+// command flags.
+func FlagSetFromCmdFlags(name string, flags []cli.Flag) (*flag.FlagSet, error) {
+	set := flag.NewFlagSet(name, flag.ContinueOnError)
+
+	for _, f := range flags {
+		if err := f.Apply(set); err != nil {
+			return nil, err
+		}
+	}
+
+	set.SetOutput(ioutil.Discard)
+	return set, nil
 }
