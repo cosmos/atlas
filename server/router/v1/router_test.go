@@ -1,4 +1,4 @@
-package server
+package v1
 
 import (
 	"bytes"
@@ -18,7 +18,6 @@ import (
 	"github.com/dghubble/gologin/v2"
 	"github.com/dghubble/gologin/v2/github"
 	oauth2login "github.com/dghubble/gologin/v2/oauth2"
-	"github.com/go-playground/validator/v10"
 	"github.com/golang-migrate/migrate/v4"
 	migratepg "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -34,35 +33,36 @@ import (
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
 
+	"github.com/cosmos/atlas/server/httputil"
 	"github.com/cosmos/atlas/server/models"
 )
 
-type ServiceTestSuite struct {
+type RouterTestSuite struct {
 	suite.Suite
 
-	m       *migrate.Migrate
-	db      *sql.DB
-	gormDB  *gorm.DB
-	service *Service
+	m      *migrate.Migrate
+	db     *sql.DB
+	mux    *mux.Router
+	router *Router
 }
 
 // SetupSuite executes once before the suite's tests are executed.
-func (sts *ServiceTestSuite) SetupSuite() {
+func (rts *RouterTestSuite) SetupSuite() {
 	migrationsPath := os.Getenv("ATLAS_MIGRATIONS_DIR")
-	sts.Require().NotEmpty(migrationsPath)
+	rts.Require().NotEmpty(migrationsPath)
 
 	connStr := os.Getenv("ATLAS_TEST_DATABASE_URL")
-	sts.Require().NotEmpty(connStr)
+	rts.Require().NotEmpty(connStr)
 
 	db, err := sql.Open("postgres", connStr)
-	sts.Require().NoError(err)
-	sts.Require().NoError(db.Ping())
+	rts.Require().NoError(err)
+	rts.Require().NoError(db.Ping())
 
 	driver, err := migratepg.WithInstance(db, &migratepg.Config{})
-	sts.Require().NoError(err)
+	rts.Require().NoError(err)
 
 	m, err := migrate.NewWithDatabaseInstance(fmt.Sprintf("file:///%s", migrationsPath), "postgres", driver)
-	sts.Require().NoError(err)
+	rts.Require().NoError(err)
 
 	gormDB, err := gorm.Open(
 		postgres.Open(connStr),
@@ -75,82 +75,75 @@ func (sts *ServiceTestSuite) SetupSuite() {
 			},
 		},
 	)
-	sts.Require().NoError(err)
+	rts.Require().NoError(err)
 
 	sessionStore := sessions.NewCookieStore([]byte("service_test"), nil)
 	sessionStore.Options.HttpOnly = true
 	sessionStore.Options.Secure = false
 
-	sqlDB, err := gormDB.DB()
-	sts.Require().NoError(err)
+	router, err := NewRouter(
+		zerolog.New(ioutil.Discard).With().Timestamp().Logger(),
+		gormDB,
+		gologin.DebugOnlyCookieConfig,
+		sessionStore,
+		&oauth2.Config{},
+	)
+	rts.Require().NoError(err)
 
-	healthChecker, err := CreateHealthChecker(sqlDB, true)
-	sts.Require().NoError(err)
+	mux := mux.NewRouter()
+	router.Register(mux, V1APIPathPrefix)
 
-	service := &Service{
-		logger:        zerolog.New(ioutil.Discard).With().Timestamp().Logger(),
-		db:            gormDB,
-		validate:      validator.New(),
-		router:        mux.NewRouter(),
-		healthChecker: healthChecker,
-		sessionStore:  sessionStore,
-		cookieCfg:     gologin.DebugOnlyCookieConfig,
-		oauth2Cfg:     &oauth2.Config{},
-	}
-
-	service.registerV1Routes()
-
-	sts.m = m
-	sts.db = db
-	sts.gormDB = gormDB
-	sts.service = service
+	rts.m = m
+	rts.db = db
+	rts.router = router
+	rts.mux = mux
 }
 
 // TearDownSuite executes after all the suite's test have finished.
-func (mts *ServiceTestSuite) TearDownSuite() {
+func (mts *RouterTestSuite) TearDownSuite() {
 	mts.Require().NoError(mts.db.Close())
 }
 
 func TestServiceTestSuite(t *testing.T) {
-	suite.Run(t, new(ServiceTestSuite))
+	suite.Run(t, new(RouterTestSuite))
 }
 
-func (sts *ServiceTestSuite) executeRequest(req *http.Request) *httptest.ResponseRecorder {
+func (rts *RouterTestSuite) executeRequest(req *http.Request) *httptest.ResponseRecorder {
 	rr := httptest.NewRecorder()
-	sts.service.router.ServeHTTP(rr, req)
+	rts.mux.ServeHTTP(rr, req)
 
 	return rr
 }
 
-func (sts *ServiceTestSuite) authorizeRequest(req *http.Request, token, login string, id int64) *http.Request {
+func (rts *RouterTestSuite) authorizeRequest(req *http.Request, token, login string, id int64) *http.Request {
 	rr := httptest.NewRecorder()
 
 	ctx := oauth2login.WithToken(context.Background(), &oauth2.Token{AccessToken: token})
 	ctx = github.WithUser(ctx, &gogithub.User{Login: &login, ID: &id})
 	req = req.WithContext(ctx)
 
-	sts.service.authorizeHandler().ServeHTTP(rr, req)
-	sts.Require().Equal(http.StatusFound, rr.Code)
+	rts.router.authorizeHandler().ServeHTTP(rr, req)
+	rts.Require().Equal(http.StatusFound, rr.Code)
 
 	return req
 }
 
-func (sts *ServiceTestSuite) TestHealth() {
-	sts.resetDB()
+func (rts *RouterTestSuite) TestHealth() {
+	rts.resetDB()
 
 	req, err := http.NewRequest("GET", "/api/v1/health", nil)
-	sts.Require().NoError(err)
+	rts.Require().NoError(err)
 
-	response := sts.executeRequest(req)
-	sts.Require().Equal(http.StatusOK, response.Code)
+	response := rts.executeRequest(req)
+	rts.Require().Equal(http.StatusOK, response.Code)
 
 	var health map[string]interface{}
-	sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &health))
-	sts.Require().Equal(health["status"], "ok")
+	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &health))
+	rts.Require().Equal(health["status"], "ok")
 }
 
-func (sts *ServiceTestSuite) TestSearchModules() {
-	sts.resetDB()
+func (rts *RouterTestSuite) TestSearchModules() {
+	rts.resetDB()
 
 	teams := []string{"teamA", "teamB", "teamC", "teamD"}
 	bugTrackers := []models.BugTracker{
@@ -193,8 +186,8 @@ func (sts *ServiceTestSuite) TestSearchModules() {
 			BugTracker: randBugTracker,
 		}
 
-		_, err := mod.Upsert(sts.gormDB)
-		sts.Require().NoError(err)
+		_, err := mod.Upsert(rts.router.db)
+		rts.Require().NoError(err)
 	}
 
 	testCases := []struct {
@@ -233,40 +226,40 @@ func (sts *ServiceTestSuite) TestSearchModules() {
 	for _, tc := range testCases {
 		tc := tc
 
-		sts.Run(tc.name, func() {
+		rts.Run(tc.name, func() {
 			path := fmt.Sprintf("/api/v1/modules/search?cursor=%d&limit=%d&q=%s", tc.cursor, tc.limit, tc.query)
 			req, err := http.NewRequest("GET", path, nil)
-			sts.Require().NoError(err)
+			rts.Require().NoError(err)
 
-			response := sts.executeRequest(req)
+			response := rts.executeRequest(req)
 
-			var pr PaginationResponse
-			sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
+			var pr httputil.PaginationResponse
+			rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
 
-			sts.Require().Equal(tc.cursor, pr.Cursor)
-			sts.Require().Equal(tc.limit, pr.Limit)
-			sts.Require().Equal(len(tc.expected), len(pr.Results.([]interface{})))
+			rts.Require().Equal(tc.cursor, pr.Cursor)
+			rts.Require().Equal(tc.limit, pr.Limit)
+			rts.Require().Equal(len(tc.expected), len(pr.Results.([]interface{})))
 
 			for _, iFace := range pr.Results.([]interface{}) {
 				m := iFace.(map[string]interface{})
-				sts.Require().Contains(tc.expected, m["name"])
+				rts.Require().Contains(tc.expected, m["name"])
 			}
 		})
 	}
 }
 
-func (sts *ServiceTestSuite) TestGetAllModules() {
-	sts.resetDB()
+func (rts *RouterTestSuite) TestGetAllModules() {
+	rts.resetDB()
 
 	path := fmt.Sprintf("/api/v1/modules?cursor=%d&limit=%d", 0, 10)
 	req, err := http.NewRequest("GET", path, nil)
-	sts.Require().NoError(err)
+	rts.Require().NoError(err)
 
-	response := sts.executeRequest(req)
+	response := rts.executeRequest(req)
 
-	var pr PaginationResponse
-	sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
-	sts.Require().Empty(pr.Results)
+	var pr httputil.PaginationResponse
+	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
+	rts.Require().Empty(pr.Results)
 
 	for i := 0; i < 25; i++ {
 		mod := models.Module{
@@ -286,52 +279,52 @@ func (sts *ServiceTestSuite) TestGetAllModules() {
 			},
 		}
 
-		_, err := mod.Upsert(sts.gormDB)
-		sts.Require().NoError(err)
+		_, err := mod.Upsert(rts.router.db)
+		rts.Require().NoError(err)
 	}
 
 	// first page (full)
 	path = fmt.Sprintf("/api/v1/modules?cursor=%d&limit=%d", 0, 10)
 	req, err = http.NewRequest("GET", path, nil)
-	sts.Require().NoError(err)
+	rts.Require().NoError(err)
 
-	response = sts.executeRequest(req)
-	sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
-	sts.Require().Len(pr.Results, 10)
+	response = rts.executeRequest(req)
+	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
+	rts.Require().Len(pr.Results, 10)
 
 	mods := pr.Results.([]interface{})
 	cursor := uint(mods[len(mods)-1].(map[string]interface{})["id"].(float64))
-	sts.Require().Equal(uint(10), cursor)
+	rts.Require().Equal(uint(10), cursor)
 
 	// second page (full)
 	path = fmt.Sprintf("/api/v1/modules?cursor=%d&limit=%d", cursor, 10)
 	req, err = http.NewRequest("GET", path, nil)
-	sts.Require().NoError(err)
+	rts.Require().NoError(err)
 
-	response = sts.executeRequest(req)
-	sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
-	sts.Require().Len(pr.Results, 10)
+	response = rts.executeRequest(req)
+	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
+	rts.Require().Len(pr.Results, 10)
 
 	mods = pr.Results.([]interface{})
 	cursor = uint(mods[len(mods)-1].(map[string]interface{})["id"].(float64))
-	sts.Require().Equal(uint(20), cursor)
+	rts.Require().Equal(uint(20), cursor)
 
 	// third page (partially full)
 	path = fmt.Sprintf("/api/v1/modules?cursor=%d&limit=%d", cursor, 10)
 	req, err = http.NewRequest("GET", path, nil)
-	sts.Require().NoError(err)
+	rts.Require().NoError(err)
 
-	response = sts.executeRequest(req)
-	sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
-	sts.Require().Len(pr.Results, 5)
+	response = rts.executeRequest(req)
+	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
+	rts.Require().Len(pr.Results, 5)
 
 	mods = pr.Results.([]interface{})
 	cursor = uint(mods[len(mods)-1].(map[string]interface{})["id"].(float64))
-	sts.Require().Equal(uint(25), cursor)
+	rts.Require().Equal(uint(25), cursor)
 }
 
-func (sts *ServiceTestSuite) TestGetModuleByID() {
-	sts.resetDB()
+func (rts *RouterTestSuite) TestGetModuleByID() {
+	rts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -350,41 +343,41 @@ func (sts *ServiceTestSuite) TestGetModuleByID() {
 		},
 	}
 
-	mod, err := mod.Upsert(sts.gormDB)
-	sts.Require().NoError(err)
+	mod, err := mod.Upsert(rts.router.db)
+	rts.Require().NoError(err)
 
-	sts.Run("no module exists", func() {
+	rts.Run("no module exists", func() {
 		path := fmt.Sprintf("/api/v1/modules/%d", mod.ID+1)
 		req, err := http.NewRequest("GET", path, nil)
-		sts.Require().NoError(err)
+		rts.Require().NoError(err)
 
-		response := sts.executeRequest(req)
+		response := rts.executeRequest(req)
 
 		var body map[string]interface{}
-		sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
-		sts.Require().Equal(http.StatusNotFound, response.Code)
-		sts.Require().NotEmpty(body["error"])
+		rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
+		rts.Require().Equal(http.StatusNotFound, response.Code)
+		rts.Require().NotEmpty(body["error"])
 	})
 
-	sts.Run("module exists", func() {
+	rts.Run("module exists", func() {
 		path := fmt.Sprintf("/api/v1/modules/%d", mod.ID)
 		req, err := http.NewRequest("GET", path, nil)
-		sts.Require().NoError(err)
+		rts.Require().NoError(err)
 
-		response := sts.executeRequest(req)
+		response := rts.executeRequest(req)
 
 		var body map[string]interface{}
-		sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
-		sts.Require().Equal(http.StatusOK, response.Code)
-		sts.Require().Equal(mod.Name, body["name"])
-		sts.Require().Equal(mod.Team, body["team"])
-		sts.Require().Equal(mod.Description, body["description"])
-		sts.Require().Equal(mod.Homepage, body["homepage"])
-		sts.Require().Equal(mod.Documentation, body["documentation"])
+		rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
+		rts.Require().Equal(http.StatusOK, response.Code)
+		rts.Require().Equal(mod.Name, body["name"])
+		rts.Require().Equal(mod.Team, body["team"])
+		rts.Require().Equal(mod.Description, body["description"])
+		rts.Require().Equal(mod.Homepage, body["homepage"])
+		rts.Require().Equal(mod.Documentation, body["documentation"])
 	})
 }
-func (sts *ServiceTestSuite) TestGetModuleVersions() {
-	sts.resetDB()
+func (rts *RouterTestSuite) TestGetModuleVersions() {
+	rts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -403,39 +396,39 @@ func (sts *ServiceTestSuite) TestGetModuleVersions() {
 		},
 	}
 
-	mod, err := mod.Upsert(sts.gormDB)
-	sts.Require().NoError(err)
+	mod, err := mod.Upsert(rts.router.db)
+	rts.Require().NoError(err)
 
-	sts.Run("no module exists", func() {
+	rts.Run("no module exists", func() {
 		path := fmt.Sprintf("/api/v1/modules/%d/versions", mod.ID+1)
 		req, err := http.NewRequest("GET", path, nil)
-		sts.Require().NoError(err)
+		rts.Require().NoError(err)
 
-		response := sts.executeRequest(req)
+		response := rts.executeRequest(req)
 
 		var body map[string]interface{}
-		sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
-		sts.Require().Equal(http.StatusNotFound, response.Code)
-		sts.Require().NotEmpty(body["error"])
+		rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
+		rts.Require().Equal(http.StatusNotFound, response.Code)
+		rts.Require().NotEmpty(body["error"])
 	})
 
-	sts.Run("module exists", func() {
+	rts.Run("module exists", func() {
 		path := fmt.Sprintf("/api/v1/modules/%d/versions", mod.ID)
 		req, err := http.NewRequest("GET", path, nil)
-		sts.Require().NoError(err)
+		rts.Require().NoError(err)
 
-		response := sts.executeRequest(req)
+		response := rts.executeRequest(req)
 
 		var body []interface{}
-		sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
-		sts.Require().Equal(http.StatusOK, response.Code)
-		sts.Require().Len(body, 1)
-		sts.Require().Equal("v1.0.0", body[0].(map[string]interface{})["version"])
+		rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
+		rts.Require().Equal(http.StatusOK, response.Code)
+		rts.Require().Len(body, 1)
+		rts.Require().Equal("v1.0.0", body[0].(map[string]interface{})["version"])
 	})
 }
 
-func (sts *ServiceTestSuite) GetModuleAuthors() {
-	sts.resetDB()
+func (rts *RouterTestSuite) GetModuleAuthors() {
+	rts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -454,39 +447,39 @@ func (sts *ServiceTestSuite) GetModuleAuthors() {
 		},
 	}
 
-	mod, err := mod.Upsert(sts.gormDB)
-	sts.Require().NoError(err)
+	mod, err := mod.Upsert(rts.router.db)
+	rts.Require().NoError(err)
 
-	sts.Run("no module exists", func() {
+	rts.Run("no module exists", func() {
 		path := fmt.Sprintf("/api/v1/modules/%d/authors", mod.ID+1)
 		req, err := http.NewRequest("GET", path, nil)
-		sts.Require().NoError(err)
+		rts.Require().NoError(err)
 
-		response := sts.executeRequest(req)
+		response := rts.executeRequest(req)
 
 		var body map[string]interface{}
-		sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
-		sts.Require().Equal(http.StatusNotFound, response.Code)
-		sts.Require().NotEmpty(body["error"])
+		rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
+		rts.Require().Equal(http.StatusNotFound, response.Code)
+		rts.Require().NotEmpty(body["error"])
 	})
 
-	sts.Run("module exists", func() {
+	rts.Run("module exists", func() {
 		path := fmt.Sprintf("/api/v1/modules/%d/authors", mod.ID)
 		req, err := http.NewRequest("GET", path, nil)
-		sts.Require().NoError(err)
+		rts.Require().NoError(err)
 
-		response := sts.executeRequest(req)
+		response := rts.executeRequest(req)
 
 		var body []interface{}
-		sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
-		sts.Require().Equal(http.StatusOK, response.Code)
-		sts.Require().Len(body, 1)
-		sts.Require().Equal("foo", body[0].(map[string]interface{})["name"])
+		rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
+		rts.Require().Equal(http.StatusOK, response.Code)
+		rts.Require().Len(body, 1)
+		rts.Require().Equal("foo", body[0].(map[string]interface{})["name"])
 	})
 }
 
-func (sts *ServiceTestSuite) GetModuleKeywords() {
-	sts.resetDB()
+func (rts *RouterTestSuite) GetModuleKeywords() {
+	rts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -505,39 +498,39 @@ func (sts *ServiceTestSuite) GetModuleKeywords() {
 		},
 	}
 
-	mod, err := mod.Upsert(sts.gormDB)
-	sts.Require().NoError(err)
+	mod, err := mod.Upsert(rts.router.db)
+	rts.Require().NoError(err)
 
-	sts.Run("no module exists", func() {
+	rts.Run("no module exists", func() {
 		path := fmt.Sprintf("/api/v1/modules/%d/keywords", mod.ID+1)
 		req, err := http.NewRequest("GET", path, nil)
-		sts.Require().NoError(err)
+		rts.Require().NoError(err)
 
-		response := sts.executeRequest(req)
+		response := rts.executeRequest(req)
 
 		var body map[string]interface{}
-		sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
-		sts.Require().Equal(http.StatusNotFound, response.Code)
-		sts.Require().NotEmpty(body["error"])
+		rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
+		rts.Require().Equal(http.StatusNotFound, response.Code)
+		rts.Require().NotEmpty(body["error"])
 	})
 
-	sts.Run("module exists", func() {
+	rts.Run("module exists", func() {
 		path := fmt.Sprintf("/api/v1/modules/%d/keywords", mod.ID)
 		req, err := http.NewRequest("GET", path, nil)
-		sts.Require().NoError(err)
+		rts.Require().NoError(err)
 
-		response := sts.executeRequest(req)
+		response := rts.executeRequest(req)
 
 		var body []interface{}
-		sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
-		sts.Require().Equal(http.StatusOK, response.Code)
-		sts.Require().Len(body, 1)
-		sts.Require().Equal("tokens", body[0].(map[string]interface{})["name"])
+		rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
+		rts.Require().Equal(http.StatusOK, response.Code)
+		rts.Require().Len(body, 1)
+		rts.Require().Equal("tokens", body[0].(map[string]interface{})["name"])
 	})
 }
 
-func (sts *ServiceTestSuite) GetUserByID() {
-	sts.resetDB()
+func (rts *RouterTestSuite) GetUserByID() {
+	rts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -556,39 +549,39 @@ func (sts *ServiceTestSuite) GetUserByID() {
 		},
 	}
 
-	mod, err := mod.Upsert(sts.gormDB)
-	sts.Require().NoError(err)
+	mod, err := mod.Upsert(rts.router.db)
+	rts.Require().NoError(err)
 
-	sts.Run("no user exists", func() {
+	rts.Run("no user exists", func() {
 		path := fmt.Sprintf("/api/v1/users/%d", mod.Authors[0].ID+1)
 		req, err := http.NewRequest("GET", path, nil)
-		sts.Require().NoError(err)
+		rts.Require().NoError(err)
 
-		response := sts.executeRequest(req)
+		response := rts.executeRequest(req)
 
 		var body map[string]interface{}
-		sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
-		sts.Require().Equal(http.StatusNotFound, response.Code)
-		sts.Require().NotEmpty(body["error"])
+		rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
+		rts.Require().Equal(http.StatusNotFound, response.Code)
+		rts.Require().NotEmpty(body["error"])
 	})
 
-	sts.Run("user exists", func() {
+	rts.Run("user exists", func() {
 		path := fmt.Sprintf("/api/v1/users/%d", mod.Authors[0].ID)
 		req, err := http.NewRequest("GET", path, nil)
-		sts.Require().NoError(err)
+		rts.Require().NoError(err)
 
-		response := sts.executeRequest(req)
+		response := rts.executeRequest(req)
 
 		var body map[string]interface{}
-		sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
-		sts.Require().Equal(http.StatusOK, response.Code)
-		sts.Require().Equal(mod.Authors[0].Name, body["name"])
-		sts.Require().Equal(mod.Authors[0].Email, body["email"])
+		rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
+		rts.Require().Equal(http.StatusOK, response.Code)
+		rts.Require().Equal(mod.Authors[0].Name, body["name"])
+		rts.Require().Equal(mod.Authors[0].Email, body["email"])
 	})
 }
 
-func (sts *ServiceTestSuite) TestGetUserModules() {
-	sts.resetDB()
+func (rts *RouterTestSuite) TestGetUserModules() {
+	rts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -607,50 +600,50 @@ func (sts *ServiceTestSuite) TestGetUserModules() {
 		},
 	}
 
-	mod, err := mod.Upsert(sts.gormDB)
-	sts.Require().NoError(err)
+	mod, err := mod.Upsert(rts.router.db)
+	rts.Require().NoError(err)
 
-	sts.Run("no user exists", func() {
+	rts.Run("no user exists", func() {
 		path := fmt.Sprintf("/api/v1/users/%d/modules", mod.Authors[0].ID+1)
 		req, err := http.NewRequest("GET", path, nil)
-		sts.Require().NoError(err)
+		rts.Require().NoError(err)
 
-		response := sts.executeRequest(req)
+		response := rts.executeRequest(req)
 
 		var body map[string]interface{}
-		sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
-		sts.Require().Equal(http.StatusNotFound, response.Code)
-		sts.Require().NotEmpty(body["error"])
+		rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
+		rts.Require().Equal(http.StatusNotFound, response.Code)
+		rts.Require().NotEmpty(body["error"])
 	})
 
-	sts.Run("user exists", func() {
+	rts.Run("user exists", func() {
 		path := fmt.Sprintf("/api/v1/users/%d/modules", mod.Authors[0].ID)
 		req, err := http.NewRequest("GET", path, nil)
-		sts.Require().NoError(err)
+		rts.Require().NoError(err)
 
-		response := sts.executeRequest(req)
+		response := rts.executeRequest(req)
 
 		var body []interface{}
-		sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
-		sts.Require().Equal(http.StatusOK, response.Code)
-		sts.Require().Len(body, 1)
-		sts.Require().Equal(mod.Name, body[0].(map[string]interface{})["name"])
-		sts.Require().Equal(mod.Team, body[0].(map[string]interface{})["team"])
+		rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &body))
+		rts.Require().Equal(http.StatusOK, response.Code)
+		rts.Require().Len(body, 1)
+		rts.Require().Equal(mod.Name, body[0].(map[string]interface{})["name"])
+		rts.Require().Equal(mod.Team, body[0].(map[string]interface{})["team"])
 	})
 }
 
-func (sts *ServiceTestSuite) TestGetAllUsers() {
-	sts.resetDB()
+func (rts *RouterTestSuite) TestGetAllUsers() {
+	rts.resetDB()
 
 	path := fmt.Sprintf("/api/v1/users?cursor=%d&limit=%d", 0, 10)
 	req, err := http.NewRequest("GET", path, nil)
-	sts.Require().NoError(err)
+	rts.Require().NoError(err)
 
-	response := sts.executeRequest(req)
+	response := rts.executeRequest(req)
 
-	var pr PaginationResponse
-	sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
-	sts.Require().Empty(pr.Results)
+	var pr httputil.PaginationResponse
+	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
+	rts.Require().Empty(pr.Results)
 
 	for i := 0; i < 25; i++ {
 		mod := models.Module{
@@ -670,62 +663,62 @@ func (sts *ServiceTestSuite) TestGetAllUsers() {
 			},
 		}
 
-		_, err := mod.Upsert(sts.gormDB)
-		sts.Require().NoError(err)
+		_, err := mod.Upsert(rts.router.db)
+		rts.Require().NoError(err)
 	}
 
 	// first page (full)
 	path = fmt.Sprintf("/api/v1/users?cursor=%d&limit=%d", 0, 10)
 	req, err = http.NewRequest("GET", path, nil)
-	sts.Require().NoError(err)
+	rts.Require().NoError(err)
 
-	response = sts.executeRequest(req)
-	sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
-	sts.Require().Len(pr.Results, 10)
+	response = rts.executeRequest(req)
+	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
+	rts.Require().Len(pr.Results, 10)
 
 	users := pr.Results.([]interface{})
 	cursor := uint(users[len(users)-1].(map[string]interface{})["id"].(float64))
-	sts.Require().Equal(uint(10), cursor)
+	rts.Require().Equal(uint(10), cursor)
 
 	// second page (full)
 	path = fmt.Sprintf("/api/v1/users?cursor=%d&limit=%d", cursor, 10)
 	req, err = http.NewRequest("GET", path, nil)
-	sts.Require().NoError(err)
+	rts.Require().NoError(err)
 
-	response = sts.executeRequest(req)
-	sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
-	sts.Require().Len(pr.Results, 10)
+	response = rts.executeRequest(req)
+	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
+	rts.Require().Len(pr.Results, 10)
 
 	users = pr.Results.([]interface{})
 	cursor = uint(users[len(users)-1].(map[string]interface{})["id"].(float64))
-	sts.Require().Equal(uint(20), cursor)
+	rts.Require().Equal(uint(20), cursor)
 
 	// third page (partially full)
 	path = fmt.Sprintf("/api/v1/users?cursor=%d&limit=%d", cursor, 10)
 	req, err = http.NewRequest("GET", path, nil)
-	sts.Require().NoError(err)
+	rts.Require().NoError(err)
 
-	response = sts.executeRequest(req)
-	sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
-	sts.Require().Len(pr.Results, 5)
+	response = rts.executeRequest(req)
+	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
+	rts.Require().Len(pr.Results, 5)
 
 	users = pr.Results.([]interface{})
 	cursor = uint(users[len(users)-1].(map[string]interface{})["id"].(float64))
-	sts.Require().Equal(uint(25), cursor)
+	rts.Require().Equal(uint(25), cursor)
 }
 
-func (sts *ServiceTestSuite) TestGetAllKeywords() {
-	sts.resetDB()
+func (rts *RouterTestSuite) TestGetAllKeywords() {
+	rts.resetDB()
 
 	path := fmt.Sprintf("/api/v1/keywords?cursor=%d&limit=%d", 0, 10)
 	req, err := http.NewRequest("GET", path, nil)
-	sts.Require().NoError(err)
+	rts.Require().NoError(err)
 
-	response := sts.executeRequest(req)
+	response := rts.executeRequest(req)
 
-	var pr PaginationResponse
-	sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
-	sts.Require().Empty(pr.Results)
+	var pr httputil.PaginationResponse
+	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
+	rts.Require().Empty(pr.Results)
 
 	for i := 0; i < 25; i++ {
 		mod := models.Module{
@@ -745,60 +738,60 @@ func (sts *ServiceTestSuite) TestGetAllKeywords() {
 			},
 		}
 
-		_, err := mod.Upsert(sts.gormDB)
-		sts.Require().NoError(err)
+		_, err := mod.Upsert(rts.router.db)
+		rts.Require().NoError(err)
 	}
 
 	// first page (full)
 	path = fmt.Sprintf("/api/v1/keywords?cursor=%d&limit=%d", 0, 10)
 	req, err = http.NewRequest("GET", path, nil)
-	sts.Require().NoError(err)
+	rts.Require().NoError(err)
 
-	response = sts.executeRequest(req)
-	sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
-	sts.Require().Len(pr.Results, 10)
+	response = rts.executeRequest(req)
+	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
+	rts.Require().Len(pr.Results, 10)
 
 	keywords := pr.Results.([]interface{})
 	cursor := uint(keywords[len(keywords)-1].(map[string]interface{})["id"].(float64))
-	sts.Require().Equal(uint(10), cursor)
+	rts.Require().Equal(uint(10), cursor)
 
 	// second page (full)
 	path = fmt.Sprintf("/api/v1/keywords?cursor=%d&limit=%d", cursor, 10)
 	req, err = http.NewRequest("GET", path, nil)
-	sts.Require().NoError(err)
+	rts.Require().NoError(err)
 
-	response = sts.executeRequest(req)
-	sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
-	sts.Require().Len(pr.Results, 10)
+	response = rts.executeRequest(req)
+	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
+	rts.Require().Len(pr.Results, 10)
 
 	keywords = pr.Results.([]interface{})
 	cursor = uint(keywords[len(keywords)-1].(map[string]interface{})["id"].(float64))
-	sts.Require().Equal(uint(20), cursor)
+	rts.Require().Equal(uint(20), cursor)
 
 	// third page (partially full)
 	path = fmt.Sprintf("/api/v1/keywords?cursor=%d&limit=%d", cursor, 10)
 	req, err = http.NewRequest("GET", path, nil)
-	sts.Require().NoError(err)
+	rts.Require().NoError(err)
 
-	response = sts.executeRequest(req)
-	sts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
-	sts.Require().Len(pr.Results, 5)
+	response = rts.executeRequest(req)
+	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
+	rts.Require().Len(pr.Results, 5)
 
 	keywords = pr.Results.([]interface{})
 	cursor = uint(keywords[len(keywords)-1].(map[string]interface{})["id"].(float64))
-	sts.Require().Equal(uint(25), cursor)
+	rts.Require().Equal(uint(25), cursor)
 }
 
-func (sts *ServiceTestSuite) TestUpsertModule() {
-	sts.resetDB()
+func (rts *RouterTestSuite) TestUpsertModule() {
+	rts.resetDB()
 
 	req, err := http.NewRequest("GET", "/", nil)
-	sts.Require().NoError(err)
+	rts.Require().NoError(err)
 
-	req = sts.authorizeRequest(req, "test_token", "test_user", 12345)
+	req = rts.authorizeRequest(req, "test_token", "test_user", 12345)
 
 	upsertURL, err := url.Parse("/api/v1/modules")
-	sts.Require().NoError(err)
+	rts.Require().NoError(err)
 
 	testCases := []struct {
 		name string
@@ -936,25 +929,25 @@ func (sts *ServiceTestSuite) TestUpsertModule() {
 	for _, tc := range testCases {
 		tc := tc
 
-		sts.Run(tc.name, func() {
+		rts.Run(tc.name, func() {
 			bz, err := json.Marshal(tc.body)
-			sts.Require().NoError(err)
+			rts.Require().NoError(err)
 
-			req.Method = methodPUT
+			req.Method = httputil.MethodPUT
 			req.URL = upsertURL
 			req.Body = ioutil.NopCloser(bytes.NewBuffer(bz))
 			req.ContentLength = int64(len(bz))
 
 			rr := httptest.NewRecorder()
-			sts.service.router.ServeHTTP(rr, req)
+			rts.mux.ServeHTTP(rr, req)
 
-			sts.Require().Equal(tc.code, rr.Code, rr.Body.String())
+			rts.Require().Equal(tc.code, rr.Code, rr.Body.String())
 		})
 	}
 }
 
-func (sts *ServiceTestSuite) TestCreateModule_Unauthorized() {
-	sts.resetDB()
+func (rts *RouterTestSuite) TestCreateModule_Unauthorized() {
+	rts.resetDB()
 
 	body := map[string]interface{}{
 		"name": "x/bank",
@@ -974,29 +967,29 @@ func (sts *ServiceTestSuite) TestCreateModule_Unauthorized() {
 	}
 
 	bz, err := json.Marshal(body)
-	sts.Require().NoError(err)
+	rts.Require().NoError(err)
 
 	req, err := http.NewRequest("PUT", "/api/v1/modules", bytes.NewBuffer(bz))
-	sts.Require().NoError(err)
+	rts.Require().NoError(err)
 
-	response := sts.executeRequest(req)
-	sts.Require().Equal(http.StatusUnauthorized, response.Code)
+	response := rts.executeRequest(req)
+	rts.Require().Equal(http.StatusUnauthorized, response.Code)
 }
 
-func (sts *ServiceTestSuite) TestCreateModule_InvalidOwner() {
-	sts.resetDB()
+func (rts *RouterTestSuite) TestCreateModule_InvalidOwner() {
+	rts.resetDB()
 
 	req1, err := http.NewRequest("GET", "/", nil)
-	sts.Require().NoError(err)
+	rts.Require().NoError(err)
 
 	req2, err := http.NewRequest("GET", "/", nil)
-	sts.Require().NoError(err)
+	rts.Require().NoError(err)
 
-	req1 = sts.authorizeRequest(req1, "test_token1", "test_user1", 12345)
-	req2 = sts.authorizeRequest(req2, "test_token2", "test_user2", 67899)
+	req1 = rts.authorizeRequest(req1, "test_token1", "test_user1", 12345)
+	req2 = rts.authorizeRequest(req2, "test_token2", "test_user2", 67899)
 
 	upsertURL, err := url.Parse("/api/v1/modules")
-	sts.Require().NoError(err)
+	rts.Require().NoError(err)
 
 	body := map[string]interface{}{
 		"module": map[string]interface{}{
@@ -1021,165 +1014,165 @@ func (sts *ServiceTestSuite) TestCreateModule_InvalidOwner() {
 
 	// create module published by test_user1
 	bz, err := json.Marshal(body)
-	sts.Require().NoError(err)
+	rts.Require().NoError(err)
 
-	req1.Method = methodPUT
+	req1.Method = httputil.MethodPUT
 	req1.URL = upsertURL
 	req1.Body = ioutil.NopCloser(bytes.NewBuffer(bz))
 	req1.ContentLength = int64(len(bz))
 
 	rr := httptest.NewRecorder()
-	sts.service.router.ServeHTTP(rr, req1)
-	sts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
+	rts.mux.ServeHTTP(rr, req1)
+	rts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
 
 	// attempt to update module published by test_user2
-	req2.Method = methodPUT
+	req2.Method = httputil.MethodPUT
 	req2.URL = upsertURL
 	req2.Body = ioutil.NopCloser(bytes.NewBuffer(bz))
 	req2.ContentLength = int64(len(bz))
 
 	rr = httptest.NewRecorder()
-	sts.service.router.ServeHTTP(rr, req2)
-	sts.Require().Equal(http.StatusBadRequest, rr.Code, rr.Body.String())
+	rts.mux.ServeHTTP(rr, req2)
+	rts.Require().Equal(http.StatusBadRequest, rr.Code, rr.Body.String())
 }
 
-func (sts *ServiceTestSuite) TestCreateUserToken() {
-	sts.resetDB()
+func (rts *RouterTestSuite) TestCreateUserToken() {
+	rts.resetDB()
 
-	unAuthReq, err := http.NewRequest(methodPUT, "/api/v1/user/tokens", nil)
-	sts.Require().NoError(err)
+	unAuthReq, err := http.NewRequest(httputil.MethodPUT, "/api/v1/user/tokens", nil)
+	rts.Require().NoError(err)
 
 	// unauthenticated
 	rr := httptest.NewRecorder()
-	sts.service.router.ServeHTTP(rr, unAuthReq)
-	sts.Require().Equal(http.StatusUnauthorized, rr.Code, rr.Body.String())
+	rts.mux.ServeHTTP(rr, unAuthReq)
+	rts.Require().Equal(http.StatusUnauthorized, rr.Code, rr.Body.String())
 
 	// authenticated
-	req, err := http.NewRequest(methodGET, "/", nil)
-	sts.Require().NoError(err)
+	req, err := http.NewRequest(httputil.MethodGET, "/", nil)
+	rts.Require().NoError(err)
 
-	req = sts.authorizeRequest(req, "test_token1", "test_user1", 123456)
-	req.Method = methodPUT
+	req = rts.authorizeRequest(req, "test_token1", "test_user1", 123456)
+	req.Method = httputil.MethodPUT
 	req.URL = unAuthReq.URL
 
 	for i := int64(0); i < MaxTokens; i++ {
 		rr = httptest.NewRecorder()
-		sts.service.router.ServeHTTP(rr, req)
-		sts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
+		rts.mux.ServeHTTP(rr, req)
+		rts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
 
 		var ut map[string]interface{}
-		sts.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &ut), rr.Body.String())
-		sts.Require().NotEmpty(ut["token"])
-		sts.Require().Equal(1, int(ut["user_id"].(float64)))
+		rts.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &ut), rr.Body.String())
+		rts.Require().NotEmpty(ut["token"])
+		rts.Require().Equal(1, int(ut["user_id"].(float64)))
 	}
 
 	// max tokens reached
 	rr = httptest.NewRecorder()
-	sts.service.router.ServeHTTP(rr, req)
-	sts.Require().Equal(http.StatusBadRequest, rr.Code, rr.Body.String())
+	rts.mux.ServeHTTP(rr, req)
+	rts.Require().Equal(http.StatusBadRequest, rr.Code, rr.Body.String())
 }
 
-func (sts *ServiceTestSuite) TestGetUserTokens() {
-	sts.resetDB()
+func (rts *RouterTestSuite) TestGetUserTokens() {
+	rts.resetDB()
 
-	unAuthReq, err := http.NewRequest(methodGET, "/api/v1/user/tokens", nil)
-	sts.Require().NoError(err)
+	unAuthReq, err := http.NewRequest(httputil.MethodGET, "/api/v1/user/tokens", nil)
+	rts.Require().NoError(err)
 
 	// unauthenticated
 	rr := httptest.NewRecorder()
-	sts.service.router.ServeHTTP(rr, unAuthReq)
-	sts.Require().Equal(http.StatusUnauthorized, rr.Code, rr.Body.String())
+	rts.mux.ServeHTTP(rr, unAuthReq)
+	rts.Require().Equal(http.StatusUnauthorized, rr.Code, rr.Body.String())
 
 	// authenticated
-	req, err := http.NewRequest(methodGET, "/", nil)
-	sts.Require().NoError(err)
+	req, err := http.NewRequest(httputil.MethodGET, "/", nil)
+	rts.Require().NoError(err)
 
-	req = sts.authorizeRequest(req, "test_token1", "test_user1", 123456)
-	req.Method = methodPUT
+	req = rts.authorizeRequest(req, "test_token1", "test_user1", 123456)
+	req.Method = httputil.MethodPUT
 	req.URL = unAuthReq.URL
 
 	for i := 0; i < 25; i++ {
 		rr = httptest.NewRecorder()
-		sts.service.router.ServeHTTP(rr, req)
-		sts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
+		rts.mux.ServeHTTP(rr, req)
+		rts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
 
 		var ut map[string]interface{}
-		sts.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &ut))
-		sts.Require().NotEmpty(ut["token"])
-		sts.Require().Equal(1, int(ut["user_id"].(float64)))
+		rts.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &ut))
+		rts.Require().NotEmpty(ut["token"])
+		rts.Require().Equal(1, int(ut["user_id"].(float64)))
 	}
 
-	req.Method = methodGET
+	req.Method = httputil.MethodGET
 
 	rr = httptest.NewRecorder()
-	sts.service.router.ServeHTTP(rr, req)
-	sts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
+	rts.mux.ServeHTTP(rr, req)
+	rts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
 
 	var tokens []map[string]interface{}
-	sts.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &tokens))
-	sts.Require().Len(tokens, 25)
+	rts.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &tokens))
+	rts.Require().Len(tokens, 25)
 }
 
-func (sts *ServiceTestSuite) TestRevokeUserToken() {
-	sts.resetDB()
+func (rts *RouterTestSuite) TestRevokeUserToken() {
+	rts.resetDB()
 
-	unAuthReq, err := http.NewRequest(methodDELETE, "/api/v1/user/tokens/1", nil)
-	sts.Require().NoError(err)
+	unAuthReq, err := http.NewRequest(httputil.MethodDELETE, "/api/v1/user/tokens/1", nil)
+	rts.Require().NoError(err)
 
 	// unauthenticated
 	rr := httptest.NewRecorder()
-	sts.service.router.ServeHTTP(rr, unAuthReq)
-	sts.Require().Equal(http.StatusUnauthorized, rr.Code, rr.Body.String())
+	rts.mux.ServeHTTP(rr, unAuthReq)
+	rts.Require().Equal(http.StatusUnauthorized, rr.Code, rr.Body.String())
 
 	// authenticated
-	req, err := http.NewRequest(methodGET, "/", nil)
-	sts.Require().NoError(err)
+	req, err := http.NewRequest(httputil.MethodGET, "/", nil)
+	rts.Require().NoError(err)
 
 	createURL, err := url.Parse("/api/v1/user/tokens")
-	sts.Require().NoError(err)
+	rts.Require().NoError(err)
 
-	req = sts.authorizeRequest(req, "test_token1", "test_user1", 123456)
-	req.Method = methodPUT
+	req = rts.authorizeRequest(req, "test_token1", "test_user1", 123456)
+	req.Method = httputil.MethodPUT
 	req.URL = createURL
 
 	for i := 0; i < 25; i++ {
 		rr = httptest.NewRecorder()
-		sts.service.router.ServeHTTP(rr, req)
-		sts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
+		rts.mux.ServeHTTP(rr, req)
+		rts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
 
 		var ut map[string]interface{}
-		sts.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &ut))
-		sts.Require().NotEmpty(ut["token"])
-		sts.Require().Equal(1, int(ut["user_id"].(float64)))
+		rts.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &ut))
+		rts.Require().NotEmpty(ut["token"])
+		rts.Require().Equal(1, int(ut["user_id"].(float64)))
 	}
 
-	req.Method = methodDELETE
+	req.Method = httputil.MethodDELETE
 	req.URL = unAuthReq.URL
 
 	rr = httptest.NewRecorder()
-	sts.service.router.ServeHTTP(rr, req)
-	sts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
+	rts.mux.ServeHTTP(rr, req)
+	rts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
 
 	var ut map[string]interface{}
-	sts.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &ut))
-	sts.Require().NotEmpty(ut["token"])
-	sts.Require().True(ut["revoked"].(bool))
+	rts.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &ut))
+	rts.Require().NotEmpty(ut["token"])
+	rts.Require().True(ut["revoked"].(bool))
 
 	// attempt to revoke an non-existant token
 	revokeURL, err := url.Parse("/api/v1/user/tokens/100")
-	sts.Require().NoError(err)
+	rts.Require().NoError(err)
 
 	req.URL = revokeURL
 
 	rr = httptest.NewRecorder()
-	sts.service.router.ServeHTTP(rr, req)
-	sts.Require().Equal(http.StatusNotFound, rr.Code, rr.Body.String())
+	rts.mux.ServeHTTP(rr, req)
+	rts.Require().Equal(http.StatusNotFound, rr.Code, rr.Body.String())
 }
 
-func (sts *ServiceTestSuite) resetDB() {
-	sts.T().Helper()
+func (rts *RouterTestSuite) resetDB() {
+	rts.T().Helper()
 
-	require.NoError(sts.T(), sts.m.Force(1))
-	require.NoError(sts.T(), sts.m.Down())
-	require.NoError(sts.T(), sts.m.Up())
+	require.NoError(rts.T(), rts.m.Force(1))
+	require.NoError(rts.T(), rts.m.Down())
+	require.NoError(rts.T(), rts.m.Up())
 }

@@ -59,22 +59,19 @@ var doc = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.KeywordJSON"
-                            }
+                            "$ref": "#/definitions/httputil.PaginationResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     }
                 }
@@ -114,22 +111,19 @@ var doc = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.ModuleJSON"
-                            }
+                            "$ref": "#/definitions/httputil.PaginationResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     }
                 }
@@ -157,7 +151,7 @@ var doc = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/server.Manifest"
+                            "$ref": "#/definitions/v1.Manifest"
                         }
                     }
                 ],
@@ -171,19 +165,19 @@ var doc = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     }
                 }
@@ -230,22 +224,19 @@ var doc = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.ModuleJSON"
-                            }
+                            "$ref": "#/definitions/httputil.PaginationResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     }
                 }
@@ -282,19 +273,19 @@ var doc = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     }
                 }
@@ -334,19 +325,19 @@ var doc = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     }
                 }
@@ -386,19 +377,19 @@ var doc = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     }
                 }
@@ -438,19 +429,19 @@ var doc = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     }
                 }
@@ -478,13 +469,13 @@ var doc = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     }
                 }
@@ -507,19 +498,19 @@ var doc = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     }
                 }
@@ -553,19 +544,19 @@ var doc = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     }
                 }
@@ -605,22 +596,19 @@ var doc = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.UserJSON"
-                            }
+                            "$ref": "#/definitions/httputil.PaginationResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     }
                 }
@@ -657,19 +645,19 @@ var doc = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     }
                 }
@@ -709,19 +697,19 @@ var doc = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/server.ErrResponse"
+                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     }
                 }
@@ -729,6 +717,31 @@ var doc = `{
         }
     },
     "definitions": {
+        "httputil.ErrResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                }
+            }
+        },
+        "httputil.PaginationResponse": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "cursor": {
+                    "type": "integer"
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "results": {
+                    "type": "object"
+                }
+            }
+        },
         "models.BugTracker": {
             "type": "object",
             "properties": {
@@ -934,7 +947,7 @@ var doc = `{
                 }
             }
         },
-        "server.AuthorsManifest": {
+        "v1.AuthorsManifest": {
             "type": "object",
             "required": [
                 "name"
@@ -948,7 +961,7 @@ var doc = `{
                 }
             }
         },
-        "server.BugTackerManifest": {
+        "v1.BugTackerManifest": {
             "type": "object",
             "properties": {
                 "contact": {
@@ -959,15 +972,7 @@ var doc = `{
                 }
             }
         },
-        "server.ErrResponse": {
-            "type": "object",
-            "properties": {
-                "error": {
-                    "type": "string"
-                }
-            }
-        },
-        "server.Manifest": {
+        "v1.Manifest": {
             "type": "object",
             "required": [
                 "authors",
@@ -977,24 +982,24 @@ var doc = `{
                 "authors": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/server.AuthorsManifest"
+                        "$ref": "#/definitions/v1.AuthorsManifest"
                     }
                 },
                 "bug_tracker": {
                     "type": "object",
-                    "$ref": "#/definitions/server.BugTackerManifest"
+                    "$ref": "#/definitions/v1.BugTackerManifest"
                 },
                 "module": {
                     "type": "object",
-                    "$ref": "#/definitions/server.ModuleManifest"
+                    "$ref": "#/definitions/v1.ModuleManifest"
                 },
                 "version": {
                     "type": "object",
-                    "$ref": "#/definitions/server.VersionManifest"
+                    "$ref": "#/definitions/v1.VersionManifest"
                 }
             }
         },
-        "server.ModuleManifest": {
+        "v1.ModuleManifest": {
             "type": "object",
             "required": [
                 "name",
@@ -1028,7 +1033,7 @@ var doc = `{
                 }
             }
         },
-        "server.VersionManifest": {
+        "v1.VersionManifest": {
             "type": "object",
             "required": [
                 "version"

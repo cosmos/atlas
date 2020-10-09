@@ -1,4 +1,4 @@
-package server
+package httputil
 
 import (
 	"encoding/json"
@@ -14,7 +14,38 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-func parsePagination(req *http.Request) (uint, int, error) {
+// Common HTTP methods and header values
+const (
+	MethodGET    = "GET"
+	MethodPOST   = "POST"
+	MethodPUT    = "PUT"
+	MethodDELETE = "DELETE"
+
+	BearerSchema = "Bearer "
+)
+
+// PaginationResponse defines a generic type encapsulating a paginated response.
+// Client should not rely on decoding into this type as the Results is an
+// interface.
+type PaginationResponse struct {
+	Limit   int         `json:"limit"`
+	Cursor  uint        `json:"cursor"`
+	Count   int         `json:"count"`
+	Results interface{} `json:"results"`
+}
+
+func NewPaginationResponse(count, limit int, cursor uint, results interface{}) PaginationResponse {
+	return PaginationResponse{
+		Limit:   limit,
+		Cursor:  cursor,
+		Count:   count,
+		Results: results,
+	}
+}
+
+// ParsePagination parses pagination values (cursor and limit) from an HTTP
+// request returning an error upon failure.
+func ParsePagination(req *http.Request) (uint, int, error) {
 	cursorStr := req.URL.Query().Get("cursor")
 	cursor, err := strconv.ParseUint(cursorStr, 10, 64)
 	if err != nil {
@@ -35,11 +66,15 @@ type ErrResponse struct {
 	Error string `json:"error"`
 }
 
-func respondWithError(w http.ResponseWriter, code int, err error) {
-	respondWithJSON(w, code, ErrResponse{err.Error()})
+// RespondWithError provides an auxiliary function to handle all failed HTTP
+// requests.
+func RespondWithError(w http.ResponseWriter, code int, err error) {
+	RespondWithJSON(w, code, ErrResponse{err.Error()})
 }
 
-func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
+// RespondWithJSON provides an auxiliary function to return an HTTP response
+// with JSON content and an HTTP status code.
+func RespondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	response, _ := json.Marshal(payload)
 
 	w.Header().Set("Content-Type", "application/json")

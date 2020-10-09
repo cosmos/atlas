@@ -16,7 +16,8 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/urfave/cli/v2"
 
-	"github.com/cosmos/atlas/server"
+	"github.com/cosmos/atlas/server/httputil"
+	v1 "github.com/cosmos/atlas/server/router/v1"
 )
 
 var (
@@ -59,7 +60,7 @@ func PublishCommand() *cli.Command {
 			},
 		},
 		Action: func(ctx *cli.Context) error {
-			var manifest server.Manifest
+			var manifest v1.Manifest
 
 			// fetch and decode the manifest
 			manifestPath := ctx.String("manifest")
@@ -70,7 +71,7 @@ func PublishCommand() *cli.Command {
 			// verify the contents if requested
 			if ctx.Bool("dry-run") {
 				if err := validate.Struct(manifest); err != nil {
-					return fmt.Errorf("failed to verify manifest: %w", server.TransformValidationError(err))
+					return fmt.Errorf("failed to verify manifest: %w", httputil.TransformValidationError(err))
 				}
 
 				_, _ = color.New(color.FgGreen).Fprintln(ctx.App.Writer, "manifest successfully verified!")
