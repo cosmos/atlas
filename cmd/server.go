@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/knadh/koanf"
-	"github.com/knadh/koanf/parsers/yaml"
+	"github.com/knadh/koanf/parsers/toml"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/rs/zerolog"
@@ -62,29 +62,8 @@ func StartServerCommand() *cli.Command {
 			},
 		},
 		Action: func(ctx *cli.Context) error {
-			// Read configuration in order of precedence:
-			//
-			// - flags
-			// - environment variables
-			// - configuration file
-			konfig := koanf.New(".")
-
-			// load from file first (if provided)
-			if configPath := ctx.String(config.FlagConfig); len(configPath) != 0 {
-				if err := konfig.Load(file.Provider(configPath), yaml.Parser()); err != nil {
-					return err
-				}
-			}
-
-			// load from environment variables
-			if err := konfig.Load(env.Provider("ATLAS_", ".", func(s string) string {
-				return strings.Replace(strings.ToLower(strings.TrimPrefix(s, "ATLAS_")), "_", ".", -1)
-			}), nil); err != nil {
-				return err
-			}
-
-			// finally, load from command line flags
-			if err := konfig.Load(NewCLIFlagProvider(ctx, ".", konfig), nil); err != nil {
+			konfig, err := ParseServerConfig(ctx)
+			if err != nil {
 				return err
 			}
 
@@ -125,4 +104,35 @@ func StartServerCommand() *cli.Command {
 			select {}
 		},
 	}
+}
+
+// ParseServerConfig returns a server configuration, given a command Context,
+// by parsing the following in order of precedence:
+//
+// - flags
+// - environment variables
+// - configuration file (TOML)
+func ParseServerConfig(ctx *cli.Context) (*koanf.Koanf, error) {
+	konfig := koanf.New(".")
+
+	// load from file first (if provided)
+	if configPath := ctx.String(config.FlagConfig); len(configPath) != 0 {
+		if err := konfig.Load(file.Provider(configPath), toml.Parser()); err != nil {
+			return nil, err
+		}
+	}
+
+	// load from environment variables
+	if err := konfig.Load(env.Provider("ATLAS_", ".", func(s string) string {
+		return strings.Replace(strings.ToLower(strings.TrimPrefix(s, "ATLAS_")), "_", ".", -1)
+	}), nil); err != nil {
+		return nil, err
+	}
+
+	// finally, load from command line flags
+	if err := konfig.Load(NewCLIFlagProvider(ctx, ".", konfig), nil); err != nil {
+		return nil, err
+	}
+
+	return konfig, nil
 }
