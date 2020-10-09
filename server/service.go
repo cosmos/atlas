@@ -31,10 +31,10 @@ import (
 // @in header
 // @name Authorization
 
-// Service defines the encapsulating Atlas service. It wraps a router which is
-// responsible for handling API requests with a given controller that interacts
-// with Atlas models. The Service is responsible for establishing a database
-// connection and managing session cookies.
+// Service implements the encapsulating Atlas service. It wraps a router which is
+// responsible for handling all versioned API requests with a given Router that
+// interacts the with Atlas data model. The Service is responsible for establishing
+// a database connection and managing session cookies.
 type Service struct {
 	logger        zerolog.Logger
 	cfg           config.Config

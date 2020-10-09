@@ -41,6 +41,8 @@ var (
 	MaxTokens int64 = 100
 )
 
+// Router implements a versioned HTTP router responsible for handling all v1 API
+// requests.
 type Router struct {
 	logger        zerolog.Logger
 	db            *gorm.DB
@@ -68,6 +70,9 @@ func NewRouter(logger zerolog.Logger, db *gorm.DB, cookieCfg gologin.CookieConfi
 	}, nil
 }
 
+// Register registers all v1 HTTP handlers with the provided mux router and
+// prefix path. All registered HTTP handlers come bundled with the appropriate
+// middleware.
 func (r *Router) Register(rtr *mux.Router, prefix string) {
 	v1Router := rtr.PathPrefix(prefix).Subrouter()
 
@@ -177,9 +182,9 @@ func (r *Router) Register(rtr *mux.Router, prefix string) {
 // @Produce  json
 // @Param manifest body Manifest true "module manifest"
 // @Success 200 {object} models.ModuleJSON
-// @Failure 400 {object} ErrResponse
-// @Failure 401 {object} ErrResponse
-// @Failure 500 {object} ErrResponse
+// @Failure 400 {object} httputil.ErrResponse
+// @Failure 401 {object} httputil.ErrResponse
+// @Failure 500 {object} httputil.ErrResponse
 // @Security APIKeyAuth
 // @Router /modules [put]
 func (r *Router) UpsertModule() http.HandlerFunc {
@@ -244,9 +249,9 @@ func (r *Router) UpsertModule() http.HandlerFunc {
 // @Produce  json
 // @Param id path int true "module ID"
 // @Success 200 {object} models.ModuleJSON
-// @Failure 400 {object} ErrResponse
-// @Failure 404 {object} ErrResponse
-// @Failure 500 {object} ErrResponse
+// @Failure 400 {object} httputil.ErrResponse
+// @Failure 404 {object} httputil.ErrResponse
+// @Failure 500 {object} httputil.ErrResponse
 // @Router /modules/{id} [get]
 func (r *Router) GetModuleByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
@@ -283,9 +288,9 @@ func (r *Router) GetModuleByID() http.HandlerFunc {
 // @Param cursor query int true "pagination cursor"  default(0)
 // @Param limit query int true "pagination limit"  default(100)
 // @Param q query string true "search criteria"
-// @Success 200 {array} models.ModuleJSON
-// @Failure 400 {object} ErrResponse
-// @Failure 500 {object} ErrResponse
+// @Success 200 {object} httputil.PaginationResponse
+// @Failure 400 {object} httputil.ErrResponse
+// @Failure 500 {object} httputil.ErrResponse
 // @Router /modules/search [get]
 func (r *Router) SearchModules() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
@@ -316,9 +321,9 @@ func (r *Router) SearchModules() http.HandlerFunc {
 // @Produce  json
 // @Param cursor query int true "pagination cursor"  default(0)
 // @Param limit query int true "pagination limit"  default(100)
-// @Success 200 {array} models.ModuleJSON
-// @Failure 400 {object} ErrResponse
-// @Failure 500 {object} ErrResponse
+// @Success 200 {object} httputil.PaginationResponse
+// @Failure 400 {object} httputil.ErrResponse
+// @Failure 500 {object} httputil.ErrResponse
 // @Router /modules [get]
 func (r *Router) GetAllModules() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
@@ -347,9 +352,9 @@ func (r *Router) GetAllModules() http.HandlerFunc {
 // @Produce  json
 // @Param id path int true "module ID"
 // @Success 200 {array} models.ModuleVersionJSON
-// @Failure 400 {object} ErrResponse
-// @Failure 404 {object} ErrResponse
-// @Failure 500 {object} ErrResponse
+// @Failure 400 {object} httputil.ErrResponse
+// @Failure 404 {object} httputil.ErrResponse
+// @Failure 500 {object} httputil.ErrResponse
 // @Router /modules/{id}/versions [get]
 func (r *Router) GetModuleVersions() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
@@ -385,9 +390,9 @@ func (r *Router) GetModuleVersions() http.HandlerFunc {
 // @Produce  json
 // @Param id path int true "module ID"
 // @Success 200 {array} models.UserJSON
-// @Failure 400 {object} ErrResponse
-// @Failure 404 {object} ErrResponse
-// @Failure 500 {object} ErrResponse
+// @Failure 400 {object} httputil.ErrResponse
+// @Failure 404 {object} httputil.ErrResponse
+// @Failure 500 {object} httputil.ErrResponse
 // @Router /modules/{id}/authors [get]
 func (r *Router) GetModuleAuthors() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
@@ -423,9 +428,9 @@ func (r *Router) GetModuleAuthors() http.HandlerFunc {
 // @Produce  json
 // @Param id path int true "module ID"
 // @Success 200 {array} models.KeywordJSON
-// @Failure 400 {object} ErrResponse
-// @Failure 404 {object} ErrResponse
-// @Failure 500 {object} ErrResponse
+// @Failure 400 {object} httputil.ErrResponse
+// @Failure 404 {object} httputil.ErrResponse
+// @Failure 500 {object} httputil.ErrResponse
 // @Router /modules/{id}/keywords [get]
 func (r *Router) GetModuleKeywords() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
@@ -460,9 +465,9 @@ func (r *Router) GetModuleKeywords() http.HandlerFunc {
 // @Produce  json
 // @Param id path int true "user ID"
 // @Success 200 {object} models.UserJSON
-// @Failure 400 {object} ErrResponse
-// @Failure 404 {object} ErrResponse
-// @Failure 500 {object} ErrResponse
+// @Failure 400 {object} httputil.ErrResponse
+// @Failure 404 {object} httputil.ErrResponse
+// @Failure 500 {object} httputil.ErrResponse
 // @Router /users/{id} [get]
 func (r *Router) GetUserByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
@@ -498,9 +503,9 @@ func (r *Router) GetUserByID() http.HandlerFunc {
 // @Produce  json
 // @Param cursor query int true "pagination cursor"  default(0)
 // @Param limit query int true "pagination limit"  default(100)
-// @Success 200 {array} models.UserJSON
-// @Failure 400 {object} ErrResponse
-// @Failure 500 {object} ErrResponse
+// @Success 200 {object} httputil.PaginationResponse
+// @Failure 400 {object} httputil.ErrResponse
+// @Failure 500 {object} httputil.ErrResponse
 // @Router /users [get]
 func (r *Router) GetAllUsers() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
@@ -529,9 +534,9 @@ func (r *Router) GetAllUsers() http.HandlerFunc {
 // @Produce  json
 // @Param id path int true "user ID"
 // @Success 200 {array} models.ModuleJSON
-// @Failure 400 {object} ErrResponse
-// @Failure 404 {object} ErrResponse
-// @Failure 500 {object} ErrResponse
+// @Failure 400 {object} httputil.ErrResponse
+// @Failure 404 {object} httputil.ErrResponse
+// @Failure 500 {object} httputil.ErrResponse
 // @Router /users/{id}/modules [get]
 func (r *Router) GetUserModules() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
@@ -565,9 +570,9 @@ func (r *Router) GetUserModules() http.HandlerFunc {
 // @Tags users
 // @Produce  json
 // @Success 200 {object} models.UserTokenJSON
-// @Failure 400 {object} ErrResponse
-// @Failure 401 {object} ErrResponse
-// @Failure 500 {object} ErrResponse
+// @Failure 400 {object} httputil.ErrResponse
+// @Failure 401 {object} httputil.ErrResponse
+// @Failure 500 {object} httputil.ErrResponse
 // @Router /user/tokens [put]
 func (r *Router) CreateUserToken() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
@@ -599,8 +604,8 @@ func (r *Router) CreateUserToken() http.HandlerFunc {
 // @Tags users
 // @Produce  json
 // @Success 200 {array} models.UserTokenJSON
-// @Failure 401 {object} ErrResponse
-// @Failure 500 {object} ErrResponse
+// @Failure 401 {object} httputil.ErrResponse
+// @Failure 500 {object} httputil.ErrResponse
 // @Router /user/tokens [get]
 func (r *Router) GetUserTokens() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
@@ -627,9 +632,9 @@ func (r *Router) GetUserTokens() http.HandlerFunc {
 // @Produce  json
 // @Param id path int true "token ID"
 // @Success 200 {object} models.UserTokenJSON
-// @Failure 400 {object} ErrResponse
-// @Failure 401 {object} ErrResponse
-// @Failure 500 {object} ErrResponse
+// @Failure 400 {object} httputil.ErrResponse
+// @Failure 401 {object} httputil.ErrResponse
+// @Failure 500 {object} httputil.ErrResponse
 // @Router /user/tokens/{id} [delete]
 func (r *Router) RevokeUserToken() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
@@ -677,9 +682,9 @@ func (r *Router) RevokeUserToken() http.HandlerFunc {
 // @Produce  json
 // @Param cursor query int true "pagination cursor"  default(0)
 // @Param limit query int true "pagination limit"  default(100)
-// @Success 200 {array} models.KeywordJSON
-// @Failure 400 {object} ErrResponse
-// @Failure 500 {object} ErrResponse
+// @Success 200 {object} httputil.PaginationResponse
+// @Failure 400 {object} httputil.ErrResponse
+// @Failure 500 {object} httputil.ErrResponse
 // @Router /keywords [get]
 func (r *Router) GetAllKeywords() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {

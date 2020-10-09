@@ -1,4 +1,20 @@
 definitions:
+  httputil.ErrResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  httputil.PaginationResponse:
+    properties:
+      count:
+        type: integer
+      cursor:
+        type: integer
+      limit:
+        type: integer
+      results:
+        type: object
+    type: object
   models.BugTracker:
     properties:
       contact:
@@ -133,7 +149,7 @@ definitions:
       user_id:
         type: integer
     type: object
-  server.AuthorsManifest:
+  v1.AuthorsManifest:
     properties:
       email:
         type: string
@@ -142,38 +158,33 @@ definitions:
     required:
     - name
     type: object
-  server.BugTackerManifest:
+  v1.BugTackerManifest:
     properties:
       contact:
         type: string
       url:
         type: string
     type: object
-  server.ErrResponse:
-    properties:
-      error:
-        type: string
-    type: object
-  server.Manifest:
+  v1.Manifest:
     properties:
       authors:
         items:
-          $ref: '#/definitions/server.AuthorsManifest'
+          $ref: '#/definitions/v1.AuthorsManifest'
         type: array
       bug_tracker:
-        $ref: '#/definitions/server.BugTackerManifest'
+        $ref: '#/definitions/v1.BugTackerManifest'
         type: object
       module:
-        $ref: '#/definitions/server.ModuleManifest'
+        $ref: '#/definitions/v1.ModuleManifest'
         type: object
       version:
-        $ref: '#/definitions/server.VersionManifest'
+        $ref: '#/definitions/v1.VersionManifest'
         type: object
     required:
     - authors
     - version
     type: object
-  server.ModuleManifest:
+  v1.ModuleManifest:
     properties:
       description:
         type: string
@@ -196,7 +207,7 @@ definitions:
     - repo
     - team
     type: object
-  server.VersionManifest:
+  v1.VersionManifest:
     properties:
       sdk_compat:
         type: string
@@ -232,17 +243,15 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/models.KeywordJSON'
-            type: array
+            $ref: '#/definitions/httputil.PaginationResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
       summary: Return a paginated set of all keywords
       tags:
       - keywords
@@ -269,17 +278,15 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/models.ModuleJSON'
-            type: array
+            $ref: '#/definitions/httputil.PaginationResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
       summary: Return a paginated set of all Cosmos SDK modules
       tags:
       - modules
@@ -292,7 +299,7 @@ paths:
         name: manifest
         required: true
         schema:
-          $ref: '#/definitions/server.Manifest'
+          $ref: '#/definitions/v1.Manifest'
       produces:
       - application/json
       responses:
@@ -303,15 +310,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
       security:
       - APIKeyAuth: []
       summary: Publish a Cosmos SDK module
@@ -337,15 +344,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
       summary: Get a Cosmos SDK module by ID
       tags:
       - modules
@@ -371,15 +378,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
       summary: Get all authors for a Cosmos SDK module by ID
       tags:
       - modules
@@ -405,15 +412,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
       summary: Get all keywords for a Cosmos SDK module by ID
       tags:
       - modules
@@ -439,15 +446,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
       summary: Get all versions for a Cosmos SDK module by ID
       tags:
       - modules
@@ -479,17 +486,15 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/models.ModuleJSON'
-            type: array
+            $ref: '#/definitions/httputil.PaginationResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
       summary: Search for Cosmos SDK modules by name, team, description and keywords
       tags:
       - modules
@@ -507,11 +512,11 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
       summary: Get all API tokens by user ID
       tags:
       - users
@@ -526,15 +531,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
       summary: Create a user API token
       tags:
       - users
@@ -556,15 +561,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
       summary: Revoke a user API token by ID
       tags:
       - users
@@ -591,17 +596,15 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/models.UserJSON'
-            type: array
+            $ref: '#/definitions/httputil.PaginationResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
       summary: Return a paginated set of all users
       tags:
       - users
@@ -625,15 +628,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
       summary: Get a user by ID
       tags:
       - users
@@ -659,15 +662,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/server.ErrResponse'
+            $ref: '#/definitions/httputil.ErrResponse'
       summary: Return a paginated set of all Cosmos SDK modules by user ID
       tags:
       - users
