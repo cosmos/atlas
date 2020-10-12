@@ -21,10 +21,8 @@ import (
 	gormlogger "gorm.io/gorm/logger"
 
 	"github.com/cosmos/atlas/config"
-	v1 "github.com/cosmos/atlas/server/router/v1"
-
-	// api docs
 	"github.com/cosmos/atlas/docs/api"
+	v1 "github.com/cosmos/atlas/server/router/v1"
 )
 
 // @securityDefinitions.apikey APIKeyAuth
@@ -87,13 +85,19 @@ func NewService(logger zerolog.Logger, cfg config.Config) (*Service, error) {
 		},
 	}
 
-	v1Router, err := v1.NewRouter(service.logger, service.db, service.cookieCfg, service.sessionStore, service.oauth2Cfg)
+	v1Router, err := v1.NewRouter(service.logger, cfg, service.db, service.cookieCfg, service.sessionStore, service.oauth2Cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	v1Router.Register(service.router, v1.V1APIPathPrefix)
+	// mount api docs
 	service.registerSwagger(cfg)
+
+	// register v1 API routes
+	v1Router.Register(service.router, v1.V1APIPathPrefix)
+
+	// mount webapp
+	service.router.PathPrefix("/").Handler(http.FileServer(http.Dir("./web/dist/")))
 
 	return service, nil
 }
@@ -140,5 +144,5 @@ func (s *Service) registerSwagger(cfg config.Config) {
 	}
 
 	// mount swagger API documentation
-	s.router.PathPrefix("/").Handler(httpswagger.WrapHandler)
+	s.router.PathPrefix("/api/docs").Handler(httpswagger.WrapHandler)
 }

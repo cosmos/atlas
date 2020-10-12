@@ -23,6 +23,7 @@ import (
 	"golang.org/x/oauth2"
 	"gorm.io/gorm"
 
+	"github.com/cosmos/atlas/config"
 	"github.com/cosmos/atlas/server/httputil"
 	"github.com/cosmos/atlas/server/middleware"
 	"github.com/cosmos/atlas/server/models"
@@ -42,9 +43,10 @@ var (
 )
 
 // Router implements a versioned HTTP router responsible for handling all v1 API
-// requests.
+// requests
 type Router struct {
 	logger        zerolog.Logger
+	cfg           config.Config
 	db            *gorm.DB
 	cookieCfg     gologin.CookieConfig
 	sessionStore  *sessions.CookieStore
@@ -53,7 +55,7 @@ type Router struct {
 	validate      *validator.Validate
 }
 
-func NewRouter(logger zerolog.Logger, db *gorm.DB, cookieCfg gologin.CookieConfig, sStore *sessions.CookieStore, oauth2Cfg *oauth2.Config) (*Router, error) {
+func NewRouter(logger zerolog.Logger, cfg config.Config, db *gorm.DB, cookieCfg gologin.CookieConfig, sStore *sessions.CookieStore, oauth2Cfg *oauth2.Config) (*Router, error) {
 	sqlDB, _ := db.DB()
 	healthChecker, err := httputil.CreateHealthChecker(sqlDB, true)
 	if err != nil {
@@ -61,6 +63,8 @@ func NewRouter(logger zerolog.Logger, db *gorm.DB, cookieCfg gologin.CookieConfi
 	}
 
 	return &Router{
+		logger:        logger,
+		cfg:           cfg,
 		db:            db,
 		cookieCfg:     cookieCfg,
 		sessionStore:  sStore,
@@ -77,7 +81,7 @@ func (r *Router) Register(rtr *mux.Router, prefix string) {
 	v1Router := rtr.PathPrefix(prefix).Subrouter()
 
 	// build middleware chain
-	mChain := middleware.Build(r.logger)
+	mChain := middleware.Build(r.logger, r.cfg)
 
 	// define and register the health endpoint
 	v1Router.Handle(
@@ -718,7 +722,17 @@ func (r *Router) StartSession() http.Handler {
 // executed. A session cookie will be saved and sent to the client. A user record
 // will also be upserted.
 func (r *Router) AuthorizeSession() http.Handler {
-	return github.StateHandler(r.cookieCfg, github.CallbackHandler(r.oauth2Cfg, r.authorizeHandler(), nil))
+	return github.StateHandler(
+		r.cookieCfg,
+		github.CallbackHandler(
+			r.oauth2Cfg,
+			r.authorizeHandler(),
+			http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+				// redirect to home when the client cancels
+				http.Redirect(w, req, "/", http.StatusFound)
+			}),
+		),
+	)
 }
 
 func (r *Router) authorizeHandler() http.HandlerFunc {
