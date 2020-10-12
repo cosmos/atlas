@@ -141,14 +141,30 @@
           v-if="!isAuthenticated"
           >Login</a
         >
-        <router-link
-          class="nav-link"
-          role="button"
-          :href="sessionStartURL"
-          v-if="isAuthenticated"
-          to="/account"
-          >Account</router-link
-        >
+        <base-dropdown class="nav-item" v-if="isAuthenticated">
+          <a
+            role="button"
+            slot="title"
+            href="#"
+            class="nav-link"
+            data-toggle="dropdown"
+          >
+            <i class="ni ni-tablet-button d-lg-none"></i>
+            <span class="nav-link-inner--text">Account</span>
+          </a>
+          <router-link to="/dashboard" class="dropdown-item">
+            <i class="fa fa-tv"></i>
+            Dashboard
+          </router-link>
+          <router-link to="/account" class="dropdown-item">
+            <i class="fa fa-cog"></i>
+            Account
+          </router-link>
+          <a href="#" class="dropdown-item" v-on:click="logout">
+            <i class="fa fa-sign-out"></i>
+            Logout
+          </a>
+        </base-dropdown>
       </ul>
     </base-nav>
   </header>

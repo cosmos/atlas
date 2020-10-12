@@ -20,6 +20,11 @@ const GlobalMixins = {
       methods: {
         queryModules: function() {
           this.$router.push({path: 'search', query: {q: this.searchCriteria}});
+        },
+        logout: function() {
+          if (this.$store.getters.isAuthenticated) {
+            this.$store.dispatch('logoutUser', this.$router);
+          }
         }
       }
     });

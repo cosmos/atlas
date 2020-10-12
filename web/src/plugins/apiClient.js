@@ -7,6 +7,9 @@ const APIClient = {
   getUser() {
     return this.perform('get', '/user');
   },
+  logoutUser() {
+    return this.perform('post', '/session/logout');
+  },
   // createKudo(repo) {
   //   return this.perform('post', '/kudos', repo);
   // },

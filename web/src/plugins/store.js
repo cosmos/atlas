@@ -25,7 +25,9 @@ export default new Vuex.Store({
     // prefixedName: (state, getters) => (prefix) => {
     //   return prefix + getters.lastName;
     // }
-    isAuthenticated: state => !!state.user.authenticated,
+    isAuthenticated: (state) => {
+      return localStorage.isLoggedIn === '1' || state.user.authenticated;
+    }
   },
   // Note: Mutations must be synchronous!
   mutations: {
@@ -37,19 +39,53 @@ export default new Vuex.Store({
     },
     setUserAvatarURL(state, url) {
       state.user.avatarURL = url;
+    },
+    setUser(state, payload) {
+      state.user.authenticated = payload.authenticated;
+      state.user.name          = payload.name;
+      state.user.avatarURL     = payload.url;
     }
   },
   actions: {
     getUser(context) {
       APIClient.getUser()
           .then((resp) => {
-            context.commit('setUserAuthenticated', true);
-            context.commit('setUserName', resp.name);
-            context.commit('setUserAvatarURL', resp.avatar_url);
+            context.commit(
+                'setUser',
+                {
+                  authenticated: true,
+                  name: resp.name,
+                  url: resp.avatar_url,
+                },
+            );
+            localStorage.isLoggedIn = '1';
           })
           .catch(err => {
             console.log(err);
+            context.commit(
+                'setUser',
+                {
+                  authenticated: false,
+                  name: '',
+                  url: '',
+                },
+            );
+            localStorage.removeItem('isLoggedIn');
           })
     },
+    logoutUser(context, router) {
+      APIClient.logoutUser().finally(() => {
+        context.commit(
+            'setUser',
+            {
+              authenticated: false,
+              name: '',
+              url: '',
+            },
+        );
+        localStorage.removeItem('isLoggedIn');
+        router.go();
+      })
+    }
   }
 });
