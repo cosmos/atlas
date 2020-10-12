@@ -24,6 +24,7 @@ import (
 	gogithub "github.com/google/go-github/github"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
+	"github.com/knadh/koanf"
 	_ "github.com/lib/pq"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
@@ -83,6 +84,7 @@ func (rts *RouterTestSuite) SetupSuite() {
 
 	router, err := NewRouter(
 		zerolog.New(ioutil.Discard).With().Timestamp().Logger(),
+		koanf.New("."),
 		gormDB,
 		gologin.DebugOnlyCookieConfig,
 		sessionStore,
