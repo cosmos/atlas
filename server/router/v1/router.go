@@ -161,6 +161,11 @@ func (r *Router) Register(rtr *mux.Router, prefix string) {
 		mChain.ThenFunc(r.RevokeUserToken()),
 	).Methods(httputil.MethodDELETE)
 
+	v1Router.Handle(
+		"/user",
+		mChain.ThenFunc(r.GetUser()),
+	).Methods(httputil.MethodGET)
+
 	// session routes
 	v1Router.Handle(
 		"/session/start",
@@ -675,6 +680,25 @@ func (r *Router) RevokeUserToken() http.HandlerFunc {
 		}
 
 		httputil.RespondWithJSON(w, http.StatusOK, token)
+	}
+}
+
+// GetUser returns the current authenticated user.
+// @Summary Get the current authenticated user
+// @Tags users
+// @Produce  json
+// @Success 200 {object} models.UserJSON
+// @Failure 401 {object} httputil.ErrResponse
+// @Router /user [get]
+func (r *Router) GetUser() http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		authUser, ok, err := r.authorize(req)
+		if err != nil || !ok {
+			httputil.RespondWithError(w, http.StatusUnauthorized, err)
+			return
+		}
+
+		httputil.RespondWithJSON(w, http.StatusOK, authUser)
 	}
 }
 

@@ -498,6 +498,22 @@ paths:
       summary: Search for Cosmos SDK modules by name, team, description and keywords
       tags:
       - modules
+  /user:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.UserJSON'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/httputil.ErrResponse'
+      summary: Get the current authenticated user
+      tags:
+      - users
   /user/tokens:
     get:
       produces:

@@ -447,6 +447,31 @@ var doc = `{
                 }
             }
         },
+        "/user": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Get the current authenticated user",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.UserJSON"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/user/tokens": {
             "get": {
                 "produces": [
