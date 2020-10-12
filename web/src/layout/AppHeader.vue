@@ -134,7 +134,21 @@
             Chat Page
           </router-link>
         </base-dropdown>
-        <a class="nav-link" role="button" :href="sessionStartURL">Login</a>
+        <a
+          class="nav-link"
+          role="button"
+          :href="sessionStartURL"
+          v-if="!isAuthenticated"
+          >Login</a
+        >
+        <router-link
+          class="nav-link"
+          role="button"
+          :href="sessionStartURL"
+          v-if="isAuthenticated"
+          to="/account"
+          >Account</router-link
+        >
       </ul>
     </base-nav>
   </header>
@@ -155,6 +169,11 @@ export default {
   props: {
     showSearch: Boolean,
     navbarType: String
+  },
+  computed: {
+    isAuthenticated() {
+      return this.$store.getters.isAuthenticated;
+    }
   },
   methods: {},
   data() {

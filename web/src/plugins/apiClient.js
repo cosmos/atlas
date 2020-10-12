@@ -1,13 +1,12 @@
-import axios from "axios";
+import axios from 'axios';
 
 const BASE_URI = process.env.VUE_APP_ATLAS_API_ADDR;
-const client = axios.create({ baseURL: BASE_URI, json: true });
+const client   = axios.create({baseURL: BASE_URI, json: true});
 
 const APIClient = {
-  startSession() {
-    return this.perform("get", "/session/start");
+  getUser() {
+    return this.perform('get', '/user');
   },
-
   // createKudo(repo) {
   //   return this.perform('post', '/kudos', repo);
   // },
@@ -29,15 +28,7 @@ const APIClient = {
   // },
 
   async perform(method, resource, data) {
-    // let accessToken = await Vue.prototype.$auth.getAccessToken()
-    return client({
-      method,
-      url: resource,
-      data,
-      headers: {
-        //  Authorization: `Bearer ${accessToken}`
-      }
-    }).then(req => {
+    return client({method, url: resource, data, headers: {}}).then(req => {
       return req.data;
     });
   }
