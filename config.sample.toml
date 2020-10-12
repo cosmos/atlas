@@ -5,7 +5,7 @@ migrations.dir = ""
 
 # Credentials for integrating with the GitHub API. Typically, the redirect URL
 # will be empty, but in testing environments it should be set to the localhost
-# address (e.g. http://localhost:8080/session/authorize)
+# address (e.g. http://localhost:8080/api/v1/session/authorize)
 gh.client.id = ""
 gh.client.secret = ""
 gh.redirect.url = ""

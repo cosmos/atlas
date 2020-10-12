@@ -63,7 +63,8 @@ See `--help` for further documentation.
 
 Atlas leverages [Swagger](https://swagger.io/) to document its API. The documentation
 is compiled automatically via [swag](https://github.com/swaggo/swag/) through
-annotated REST handlers. The compiled documentation resides in `docs/api`.
+annotated REST handlers. The compiled documentation resides in the `docs/api`
+directory and is served at `/api/docs/`.
 
 The [Swagger](https://swagger.io/) documentation can be recompiled as follows:
 
