@@ -1236,6 +1236,99 @@ func (rts *RouterTestSuite) TestGetUser() {
 	rts.Require().Equal(http.StatusUnauthorized, rr.Code, rr.Body.String())
 }
 
+func (rts *RouterTestSuite) TestUpdateUser() {
+	rts.resetDB()
+
+	req1, err := http.NewRequest("GET", "/", nil)
+	rts.Require().NoError(err)
+
+	req1 = rts.authorizeRequest(req1, "test_token1", "test_user1", 12345)
+
+	upsertURL, err := url.Parse("/api/v1/modules")
+	rts.Require().NoError(err)
+
+	body := map[string]interface{}{
+		"module": map[string]interface{}{
+			"name":     "x/bank",
+			"team":     "cosmonauts",
+			"repo":     "https://github.com/cosmos/cosmos-sdk",
+			"keywords": []string{"tokens"},
+		},
+		"authors": []map[string]interface{}{
+			{
+				"name": "foo", "email": "foo@email.com",
+			},
+		},
+		"version": map[string]interface{}{
+			"version": "v1.0.0",
+		},
+		"bug_tracker": map[string]interface{}{
+			"url":     "https://cosmonauts.com",
+			"contact": "contact@cosmonauts.com",
+		},
+	}
+
+	// create module published by test_user1
+	bz, err := json.Marshal(body)
+	rts.Require().NoError(err)
+
+	req1.Method = httputil.MethodPUT
+	req1.URL = upsertURL
+	req1.Body = ioutil.NopCloser(bytes.NewBuffer(bz))
+	req1.ContentLength = int64(len(bz))
+
+	rr := httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req1)
+	rts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
+
+	// update the authenticated user
+	updateUserURL, err := url.Parse("/api/v1/me")
+	rts.Require().NoError(err)
+
+	body = map[string]interface{}{
+		"email": "newfoo@email.com",
+	}
+	bz, err = json.Marshal(body)
+	rts.Require().NoError(err)
+
+	req1.Method = httputil.MethodPUT
+	req1.URL = updateUserURL
+	req1.Body = ioutil.NopCloser(bytes.NewBuffer(bz))
+	req1.ContentLength = int64(len(bz))
+
+	rr = httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req1)
+	rts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
+
+	var user map[string]interface{}
+	rts.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &user))
+	rts.Require().Equal(user["email"], body["email"])
+
+	// ensure an invalid request fails
+	body = map[string]interface{}{
+		"email": "newfoo",
+	}
+	bz, err = json.Marshal(body)
+	rts.Require().NoError(err)
+
+	req1.Method = httputil.MethodPUT
+	req1.URL = updateUserURL
+	req1.Body = ioutil.NopCloser(bytes.NewBuffer(bz))
+	req1.ContentLength = int64(len(bz))
+
+	rr = httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req1)
+	rts.Require().Equal(http.StatusBadRequest, rr.Code, rr.Body.String())
+
+	// ensure an unauthenticated request fails
+	req2, err := http.NewRequest(httputil.MethodPUT, updateUserURL.String(), ioutil.NopCloser(bytes.NewBuffer(bz)))
+	rts.Require().NoError(err)
+
+	rr = httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req2)
+	rts.Require().Equal(http.StatusUnauthorized, rr.Code, rr.Body.String())
+}
+
 func (rts *RouterTestSuite) resetDB() {
 	rts.T().Helper()
 
