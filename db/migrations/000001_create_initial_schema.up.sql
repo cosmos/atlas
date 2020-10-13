@@ -5,6 +5,7 @@ BEGIN;
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     name VARCHAR NOT NULL UNIQUE,
+    full_name VARCHAR NOT NULL,
     github_user_id INT UNIQUE,
     github_access_token VARCHAR UNIQUE,
     email VARCHAR UNIQUE,

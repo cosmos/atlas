@@ -40,6 +40,42 @@ definitions:
       updated_at:
         type: string
     type: object
+  models.Module:
+    properties:
+      authors:
+        items:
+          $ref: '#/definitions/models.User'
+        type: array
+      bug_tracker:
+        $ref: '#/definitions/models.BugTracker'
+        description: one-to-one relationships
+        type: object
+      description:
+        type: string
+      documentation:
+        type: string
+      homepage:
+        type: string
+      keywords:
+        description: many-to-many relationships
+        items:
+          $ref: '#/definitions/models.Keyword'
+        type: array
+      name:
+        type: string
+      owners:
+        items:
+          $ref: '#/definitions/models.User'
+        type: array
+      repo:
+        type: string
+      team:
+        type: string
+      versions:
+        items:
+          $ref: '#/definitions/models.ModuleVersion'
+        type: array
+    type: object
   models.ModuleJSON:
     properties:
       authors:
@@ -106,12 +142,30 @@ definitions:
     type: object
   models.User:
     properties:
-      avatar_url:
+      avatarURL:
         type: string
-      gravatar_id:
+      email:
         type: string
+      fullName:
+        type: string
+      githubAccessToken:
+        type: string
+      githubUserID:
+        type: string
+      gravatarID:
+        type: string
+      modules:
+        description: many-to-many relationships
+        items:
+          $ref: '#/definitions/models.Module'
+        type: array
       name:
         type: string
+      tokens:
+        description: one-to-many relationships
+        items:
+          $ref: '#/definitions/models.UserToken'
+        type: array
       url:
         type: string
     type: object
@@ -120,6 +174,10 @@ definitions:
       avatar_url:
         type: string
       created_at:
+        type: string
+      email:
+        type: string
+      full_name:
         type: string
       gravatar_id:
         type: string
@@ -131,6 +189,17 @@ definitions:
         type: string
       url:
         type: string
+    type: object
+  models.UserToken:
+    properties:
+      count:
+        type: integer
+      revoked:
+        type: boolean
+      token:
+        type: string
+      user_id:
+        type: integer
     type: object
   models.UserTokenJSON:
     properties:
@@ -268,6 +337,8 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/httputil.ErrResponse'
+      security:
+      - APIKeyAuth: []
       summary: Get the current authenticated user
       tags:
       - users
@@ -290,6 +361,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/httputil.ErrResponse'
+      security:
+      - APIKeyAuth: []
       summary: Get all API tokens by user ID
       tags:
       - users
@@ -313,6 +386,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/httputil.ErrResponse'
+      security:
+      - APIKeyAuth: []
       summary: Create a user API token
       tags:
       - users
@@ -343,6 +418,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/httputil.ErrResponse'
+      security:
+      - APIKeyAuth: []
       summary: Revoke a user API token by ID
       tags:
       - users

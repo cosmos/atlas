@@ -79,6 +79,11 @@ var doc = `{
         },
         "/me": {
             "get": {
+                "security": [
+                    {
+                        "APIKeyAuth": []
+                    }
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -104,6 +109,11 @@ var doc = `{
         },
         "/me/tokens": {
             "get": {
+                "security": [
+                    {
+                        "APIKeyAuth": []
+                    }
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -136,6 +146,11 @@ var doc = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "APIKeyAuth": []
+                    }
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -173,6 +188,11 @@ var doc = `{
         },
         "/me/tokens/{id}": {
             "delete": {
+                "security": [
+                    {
+                        "APIKeyAuth": []
+                    }
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -806,6 +826,59 @@ var doc = `{
                 }
             }
         },
+        "models.Module": {
+            "type": "object",
+            "properties": {
+                "authors": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.User"
+                    }
+                },
+                "bug_tracker": {
+                    "description": "one-to-one relationships",
+                    "type": "object",
+                    "$ref": "#/definitions/models.BugTracker"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "documentation": {
+                    "type": "string"
+                },
+                "homepage": {
+                    "type": "string"
+                },
+                "keywords": {
+                    "description": "many-to-many relationships",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Keyword"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "owners": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.User"
+                    }
+                },
+                "repo": {
+                    "type": "string"
+                },
+                "team": {
+                    "type": "string"
+                },
+                "versions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ModuleVersion"
+                    }
+                }
+            }
+        },
         "models.ModuleJSON": {
             "type": "object",
             "properties": {
@@ -906,14 +979,40 @@ var doc = `{
         "models.User": {
             "type": "object",
             "properties": {
-                "avatar_url": {
+                "avatarURL": {
                     "type": "string"
                 },
-                "gravatar_id": {
+                "email": {
                     "type": "string"
+                },
+                "fullName": {
+                    "type": "string"
+                },
+                "githubAccessToken": {
+                    "type": "string"
+                },
+                "githubUserID": {
+                    "type": "string"
+                },
+                "gravatarID": {
+                    "type": "string"
+                },
+                "modules": {
+                    "description": "many-to-many relationships",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Module"
+                    }
                 },
                 "name": {
                     "type": "string"
+                },
+                "tokens": {
+                    "description": "one-to-many relationships",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.UserToken"
+                    }
                 },
                 "url": {
                     "type": "string"
@@ -927,6 +1026,12 @@ var doc = `{
                     "type": "string"
                 },
                 "created_at": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "full_name": {
                     "type": "string"
                 },
                 "gravatar_id": {
@@ -943,6 +1048,23 @@ var doc = `{
                 },
                 "url": {
                     "type": "string"
+                }
+            }
+        },
+        "models.UserToken": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "revoked": {
+                    "type": "boolean"
+                },
+                "token": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
                 }
             }
         },
