@@ -176,7 +176,7 @@ definitions:
       created_at:
         type: string
       email:
-        type: string
+        type: object
       full_name:
         type: string
       gravatar_id:
@@ -276,6 +276,13 @@ definitions:
     - repo
     - team
     type: object
+  v1.User:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
   v1.VersionManifest:
     properties:
       sdk_compat:
@@ -340,6 +347,38 @@ paths:
       security:
       - APIKeyAuth: []
       summary: Get the current authenticated user
+      tags:
+      - users
+    put:
+      parameters:
+      - description: user
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/v1.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.UserJSON'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httputil.ErrResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/httputil.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/httputil.ErrResponse'
+      security:
+      - APIKeyAuth: []
+      summary: Update the current authenticated user
       tags:
       - users
   /me/tokens:
