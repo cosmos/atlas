@@ -582,6 +582,7 @@ func (r *Router) GetUserModules() http.HandlerFunc {
 // @Failure 400 {object} httputil.ErrResponse
 // @Failure 401 {object} httputil.ErrResponse
 // @Failure 500 {object} httputil.ErrResponse
+// @Security APIKeyAuth
 // @Router /me/tokens [put]
 func (r *Router) CreateUserToken() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
@@ -615,6 +616,7 @@ func (r *Router) CreateUserToken() http.HandlerFunc {
 // @Success 200 {array} models.UserTokenJSON
 // @Failure 401 {object} httputil.ErrResponse
 // @Failure 500 {object} httputil.ErrResponse
+// @Security APIKeyAuth
 // @Router /me/tokens [get]
 func (r *Router) GetUserTokens() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
@@ -644,6 +646,7 @@ func (r *Router) GetUserTokens() http.HandlerFunc {
 // @Failure 400 {object} httputil.ErrResponse
 // @Failure 401 {object} httputil.ErrResponse
 // @Failure 500 {object} httputil.ErrResponse
+// @Security APIKeyAuth
 // @Router /me/tokens/{id} [delete]
 func (r *Router) RevokeUserToken() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
@@ -689,6 +692,7 @@ func (r *Router) RevokeUserToken() http.HandlerFunc {
 // @Produce  json
 // @Success 200 {object} models.UserJSON
 // @Failure 401 {object} httputil.ErrResponse
+// @Security APIKeyAuth
 // @Router /me [get]
 func (r *Router) GetUser() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
@@ -777,6 +781,7 @@ func (r *Router) authorizeHandler() http.HandlerFunc {
 
 		user := models.User{
 			Name:              githubUser.GetLogin(),
+			FullName:          githubUser.GetName(),
 			GithubUserID:      sql.NullInt64{Int64: githubUser.GetID(), Valid: true},
 			GravatarID:        githubUser.GetGravatarID(),
 			AvatarURL:         githubUser.GetAvatarURL(),

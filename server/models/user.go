@@ -36,29 +36,32 @@ type (
 	UserJSON struct {
 		GormModelJSON
 
-		Name       string `json:"name"`
-		URL        string `json:"url"`
-		AvatarURL  string `json:"avatar_url"`
-		GravatarID string `json:"gravatar_id"`
+		Name       string      `json:"name"`
+		FullName   string      `json:"full_name"`
+		Email      interface{} `json:"email"`
+		URL        string      `json:"url"`
+		AvatarURL  string      `json:"avatar_url"`
+		GravatarID string      `json:"gravatar_id"`
 	}
 
 	// User defines an entity that contributes to a Module type.
 	User struct {
 		gorm.Model
 
-		Name              string         `json:"name"`
-		GithubUserID      sql.NullInt64  `json:"-"`
-		GithubAccessToken sql.NullString `json:"-"`
-		Email             sql.NullString `json:"-"`
-		URL               string         `json:"url"`
-		AvatarURL         string         `json:"avatar_url"`
-		GravatarID        string         `json:"gravatar_id"`
+		Name              string
+		FullName          string
+		GithubUserID      sql.NullInt64
+		GithubAccessToken sql.NullString
+		Email             sql.NullString
+		URL               string
+		AvatarURL         string
+		GravatarID        string
 
 		// many-to-many relationships
-		Modules []Module `gorm:"many2many:module_authors" json:"-"`
+		Modules []Module `gorm:"many2many:module_authors"`
 
 		// one-to-many relationships
-		Tokens []UserToken `gorm:"foreignKey:user_id" json:"-"`
+		Tokens []UserToken `gorm:"foreignKey:user_id"`
 	}
 )
 
@@ -79,6 +82,8 @@ func (ut UserToken) MarshalJSON() ([]byte, error) {
 
 // MarshalJSON implements custom JSON marshaling for the User model.
 func (u User) MarshalJSON() ([]byte, error) {
+	email, _ := u.Email.Value()
+
 	return json.Marshal(UserJSON{
 		GormModelJSON: GormModelJSON{
 			ID:        u.ID,
@@ -86,6 +91,8 @@ func (u User) MarshalJSON() ([]byte, error) {
 			UpdatedAt: u.UpdatedAt,
 		},
 		Name:       u.Name,
+		Email:      email,
+		FullName:   u.FullName,
 		URL:        u.URL,
 		AvatarURL:  u.AvatarURL,
 		GravatarID: u.GravatarID,
@@ -113,8 +120,10 @@ func (u User) Upsert(db *gorm.DB) (User, error) {
 			}
 		}
 
+		// Note: Updates via structs only updates non-zero fields.
 		if err := tx.Model(&record).Updates(User{
 			Email:             u.Email,
+			FullName:          u.FullName,
 			GithubUserID:      u.GithubUserID,
 			GithubAccessToken: u.GithubAccessToken,
 			AvatarURL:         u.AvatarURL,
