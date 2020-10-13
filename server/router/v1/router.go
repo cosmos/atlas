@@ -147,22 +147,22 @@ func (r *Router) Register(rtr *mux.Router, prefix string) {
 	).Methods(httputil.MethodPUT)
 
 	v1Router.Handle(
-		"/user/tokens",
+		"/me/tokens",
 		mChain.ThenFunc(r.CreateUserToken()),
 	).Methods(httputil.MethodPUT)
 
 	v1Router.Handle(
-		"/user/tokens",
+		"/me/tokens",
 		mChain.ThenFunc(r.GetUserTokens()),
 	).Methods(httputil.MethodGET)
 
 	v1Router.Handle(
-		"/user/tokens/{id:[0-9]+}",
+		"/me/tokens/{id:[0-9]+}",
 		mChain.ThenFunc(r.RevokeUserToken()),
 	).Methods(httputil.MethodDELETE)
 
 	v1Router.Handle(
-		"/user",
+		"/me",
 		mChain.ThenFunc(r.GetUser()),
 	).Methods(httputil.MethodGET)
 
@@ -582,7 +582,7 @@ func (r *Router) GetUserModules() http.HandlerFunc {
 // @Failure 400 {object} httputil.ErrResponse
 // @Failure 401 {object} httputil.ErrResponse
 // @Failure 500 {object} httputil.ErrResponse
-// @Router /user/tokens [put]
+// @Router /me/tokens [put]
 func (r *Router) CreateUserToken() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		authUser, ok, err := r.authorize(req)
@@ -615,7 +615,7 @@ func (r *Router) CreateUserToken() http.HandlerFunc {
 // @Success 200 {array} models.UserTokenJSON
 // @Failure 401 {object} httputil.ErrResponse
 // @Failure 500 {object} httputil.ErrResponse
-// @Router /user/tokens [get]
+// @Router /me/tokens [get]
 func (r *Router) GetUserTokens() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		authUser, ok, err := r.authorize(req)
@@ -644,7 +644,7 @@ func (r *Router) GetUserTokens() http.HandlerFunc {
 // @Failure 400 {object} httputil.ErrResponse
 // @Failure 401 {object} httputil.ErrResponse
 // @Failure 500 {object} httputil.ErrResponse
-// @Router /user/tokens/{id} [delete]
+// @Router /me/tokens/{id} [delete]
 func (r *Router) RevokeUserToken() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		authUser, ok, err := r.authorize(req)
@@ -689,7 +689,7 @@ func (r *Router) RevokeUserToken() http.HandlerFunc {
 // @Produce  json
 // @Success 200 {object} models.UserJSON
 // @Failure 401 {object} httputil.ErrResponse
-// @Router /user [get]
+// @Router /me [get]
 func (r *Router) GetUser() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		authUser, ok, err := r.authorize(req)

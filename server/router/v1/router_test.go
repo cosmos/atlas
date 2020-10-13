@@ -1041,7 +1041,7 @@ func (rts *RouterTestSuite) TestCreateModule_InvalidOwner() {
 func (rts *RouterTestSuite) TestCreateUserToken() {
 	rts.resetDB()
 
-	unAuthReq, err := http.NewRequest(httputil.MethodPUT, "/api/v1/user/tokens", nil)
+	unAuthReq, err := http.NewRequest(httputil.MethodPUT, "/api/v1/me/tokens", nil)
 	rts.Require().NoError(err)
 
 	// unauthenticated
@@ -1077,7 +1077,7 @@ func (rts *RouterTestSuite) TestCreateUserToken() {
 func (rts *RouterTestSuite) TestGetUserTokens() {
 	rts.resetDB()
 
-	unAuthReq, err := http.NewRequest(httputil.MethodGET, "/api/v1/user/tokens", nil)
+	unAuthReq, err := http.NewRequest(httputil.MethodGET, "/api/v1/me/tokens", nil)
 	rts.Require().NoError(err)
 
 	// unauthenticated
@@ -1118,7 +1118,7 @@ func (rts *RouterTestSuite) TestGetUserTokens() {
 func (rts *RouterTestSuite) TestRevokeUserToken() {
 	rts.resetDB()
 
-	unAuthReq, err := http.NewRequest(httputil.MethodDELETE, "/api/v1/user/tokens/1", nil)
+	unAuthReq, err := http.NewRequest(httputil.MethodDELETE, "/api/v1/me/tokens/1", nil)
 	rts.Require().NoError(err)
 
 	// unauthenticated
@@ -1130,7 +1130,7 @@ func (rts *RouterTestSuite) TestRevokeUserToken() {
 	req, err := http.NewRequest(httputil.MethodGET, "/", nil)
 	rts.Require().NoError(err)
 
-	createURL, err := url.Parse("/api/v1/user/tokens")
+	createURL, err := url.Parse("/api/v1/me/tokens")
 	rts.Require().NoError(err)
 
 	req = rts.authorizeRequest(req, "test_token1", "test_user1", 123456)
@@ -1161,7 +1161,7 @@ func (rts *RouterTestSuite) TestRevokeUserToken() {
 	rts.Require().True(ut["revoked"].(bool))
 
 	// attempt to revoke an non-existant token
-	revokeURL, err := url.Parse("/api/v1/user/tokens/100")
+	revokeURL, err := url.Parse("/api/v1/me/tokens/100")
 	rts.Require().NoError(err)
 
 	req.URL = revokeURL
@@ -1217,7 +1217,7 @@ func (rts *RouterTestSuite) TestGetUser() {
 	rts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
 
 	// get the authenticated user
-	getUserURL, err := url.Parse("/api/v1/user")
+	getUserURL, err := url.Parse("/api/v1/me")
 	rts.Require().NoError(err)
 
 	req1.Method = httputil.MethodGET
