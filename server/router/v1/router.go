@@ -147,6 +147,16 @@ func (r *Router) Register(rtr *mux.Router, prefix string) {
 	).Methods(httputil.MethodPUT)
 
 	v1Router.Handle(
+		"/me",
+		mChain.ThenFunc(r.GetUser()),
+	).Methods(httputil.MethodGET)
+
+	v1Router.Handle(
+		"/me",
+		mChain.ThenFunc(r.UpdateUser()),
+	).Methods(httputil.MethodPUT)
+
+	v1Router.Handle(
 		"/me/tokens",
 		mChain.ThenFunc(r.CreateUserToken()),
 	).Methods(httputil.MethodPUT)
@@ -160,11 +170,6 @@ func (r *Router) Register(rtr *mux.Router, prefix string) {
 		"/me/tokens/{id:[0-9]+}",
 		mChain.ThenFunc(r.RevokeUserToken()),
 	).Methods(httputil.MethodDELETE)
-
-	v1Router.Handle(
-		"/me",
-		mChain.ThenFunc(r.GetUser()),
-	).Methods(httputil.MethodGET)
 
 	// session routes
 	v1Router.Handle(
@@ -706,6 +711,48 @@ func (r *Router) GetUser() http.HandlerFunc {
 	}
 }
 
+// UpdateUser updates an existing user record.
+// @Summary Update the current authenticated user
+// @Tags users
+// @Produce  json
+// @Param user body User true "user"
+// @Success 200 {object} models.UserJSON
+// @Failure 400 {object} httputil.ErrResponse
+// @Failure 401 {object} httputil.ErrResponse
+// @Failure 500 {object} httputil.ErrResponse
+// @Security APIKeyAuth
+// @Router /me [put]
+func (r *Router) UpdateUser() http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		authUser, ok, err := r.authorize(req)
+		if err != nil || !ok {
+			httputil.RespondWithError(w, http.StatusUnauthorized, err)
+			return
+		}
+
+		var request User
+		if err := json.NewDecoder(req.Body).Decode(&request); err != nil {
+			httputil.RespondWithError(w, http.StatusBadRequest, fmt.Errorf("failed to read request: %w", err))
+			return
+		}
+
+		if err := r.validate.Struct(request); err != nil {
+			httputil.RespondWithError(w, http.StatusBadRequest, fmt.Errorf("invalid request: %w", httputil.TransformValidationError(err)))
+			return
+		}
+
+		authUser.Email = models.NewNullString(request.Email)
+
+		record, err := authUser.Upsert(r.db)
+		if err != nil {
+			httputil.RespondWithError(w, http.StatusInternalServerError, fmt.Errorf("failed to upsert user: %w", err))
+			return
+		}
+
+		httputil.RespondWithJSON(w, http.StatusOK, record)
+	}
+}
+
 // GetAllKeywords implements a request handler returning a paginated set of
 // keywords.
 // @Summary Return a paginated set of all keywords
@@ -782,7 +829,7 @@ func (r *Router) authorizeHandler() http.HandlerFunc {
 		user := models.User{
 			Name:              githubUser.GetLogin(),
 			FullName:          githubUser.GetName(),
-			GithubUserID:      sql.NullInt64{Int64: githubUser.GetID(), Valid: true},
+			GithubUserID:      models.NewNullInt64(githubUser.GetID()),
 			GravatarID:        githubUser.GetGravatarID(),
 			AvatarURL:         githubUser.GetAvatarURL(),
 			GithubAccessToken: sql.NullString{String: token.AccessToken, Valid: true},
