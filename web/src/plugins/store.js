@@ -6,7 +6,7 @@ Vue.use(Vuex);
 
 export default new Vuex.Store({
   state: {
-    user: {authenticated: false, name: '', avatarURL: ''},
+    user: {authenticated: false, record: {}},
   },
   getters: {
     // By default, Vuex getters accept two arguments.
@@ -27,6 +27,9 @@ export default new Vuex.Store({
     // }
     isAuthenticated: (state) => {
       return localStorage.isLoggedIn === '1' || state.user.authenticated;
+    },
+    userRecord: (state) => {
+      return state.user.record;
     }
   },
   // Note: Mutations must be synchronous!
@@ -34,56 +37,32 @@ export default new Vuex.Store({
     setUserAuthenticated(state, authenticated) {
       state.user.authenticated = authenticated;
     },
-    setUserName(state, name) {
-      state.user.name = name;
-    },
-    setUserAvatarURL(state, url) {
-      state.user.avatarURL = url;
-    },
-    setUser(state, payload) {
-      state.user.authenticated = payload.authenticated;
-      state.user.name          = payload.name;
-      state.user.avatarURL     = payload.url;
+    setUser(state, record) {
+      state.user.record = record;
     }
   },
   actions: {
     getUser(context) {
       APIClient.getUser()
           .then((resp) => {
-            context.commit(
-                'setUser',
-                {
-                  authenticated: true,
-                  name: resp.name,
-                  url: resp.avatar_url,
-                },
-            );
+            context.commit('setUser', resp);
+            context.commit('setUserAuthenticated', true);
             localStorage.isLoggedIn = '1';
           })
           .catch(err => {
             console.log(err);
-            context.commit(
-                'setUser',
-                {
-                  authenticated: false,
-                  name: '',
-                  url: '',
-                },
-            );
+            context.commit('setUser', {});
+            context.commit('setUserAuthenticated', false);
             localStorage.removeItem('isLoggedIn');
-          })
+          });
     },
     logoutUser(context, router) {
       APIClient.logoutUser().finally(() => {
-        context.commit(
-            'setUser',
-            {
-              authenticated: false,
-              name: '',
-              url: '',
-            },
-        );
+        context.commit('setUser', {});
+        context.commit('setUserAuthenticated', false);
         localStorage.removeItem('isLoggedIn');
+
+        // refresh page/component
         router.go();
       })
     }
