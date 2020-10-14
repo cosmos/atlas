@@ -8,6 +8,10 @@ const APIClient = {
     return this.perform('get', '/me');
   },
 
+  getUserTokens() {
+    return this.perform('get', '/me/tokens');
+  },
+
   updateUser(user) {
     return this.perform('put', '/me', user);
   },
@@ -16,9 +20,9 @@ const APIClient = {
     return this.perform('post', '/session/logout');
   },
 
-  // updateKudo(repo) {
-  //   return this.perform('put', `/kudos/${repo.id}`, repo);
-  // },
+  revokeUserToken(token) {
+    return this.perform('delete', `/me/tokens/${token.id}`);
+  },
 
   async perform(method, resource, data) {
     return client({method, url: resource, data, headers: {}}).then(req => {

@@ -12,7 +12,7 @@ Vue.use(Argon);
 const pbOptions = {
   color: '#ba3fd9',
   failedColor: 'red',
-  thickness: '2px',
+  thickness: '3px',
   location: 'top',
   position: 'fixed',
   transition: {speed: '0.2s', opacity: '0.6s', termination: 300},

@@ -66,6 +66,63 @@
                         >
                       </div>
                     </div>
+
+                    <div class="row mt-5">
+                      <div class="col-md-12 align-self-center">
+                        <header>
+                          <h5 class="text-uppercase">Tokens</h5>
+                        </header>
+                        <br />
+
+                        <div>
+                          <el-table
+                            class="table table-striped table-flush"
+                            :data="paginatedUserTokens"
+                          >
+                            <el-table-column
+                              label="token"
+                              prop="active"
+                              sortable
+                              scope="row"
+                            >
+                              <template v-slot="{ row }">
+                                <div class="media align-items-center">
+                                  {{ row.token }}
+                                </div>
+                              </template>
+                            </el-table-column>
+
+                            <el-table-column
+                              label="Revoke"
+                              min-width="60px"
+                              prop="revoke"
+                              class="foo"
+                            >
+                              <template v-slot="{ row }">
+                                <base-button
+                                  size="sm"
+                                  icon="ni ni-fat-remove pt-1"
+                                  type="danger"
+                                  v-on:click="revokeUserToken(row)"
+                                ></base-button>
+                              </template>
+                            </el-table-column>
+                          </el-table>
+                          <div
+                            class="card-footer bg-white py-4 d-flex justify-content-end"
+                            style="border-top: white;"
+                          >
+                            <base-pagination
+                              v-if="userTokens.length > 0"
+                              type="primary"
+                              v-model="currentPage"
+                              :perPage="pageSize"
+                              :total="userTokens.length"
+                            ></base-pagination>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -77,12 +134,18 @@
   </div>
 </template>
 <script>
+import { Table, TableColumn } from "element-ui";
+
 export default {
   bodyClass: "account-settings",
-  components: {},
+  components: {
+    [Table.name]: Table,
+    [TableColumn.name]: TableColumn
+  },
   created() {
     this.$Progress.start();
     this.$store.dispatch("getUser");
+    this.$store.dispatch("getUserTokens");
   },
   mounted() {
     this.$Progress.finish();
@@ -91,13 +154,31 @@ export default {
     return {
       query: "",
       accountTab: "General",
-      userEmail: ""
+      userEmail: "",
+      currentPage: 1,
+      pageSize: 5
     };
   },
   computed: {
     user() {
       return this.$store.getters.userRecord;
     },
+
+    userTokens() {
+      return this.$store.getters.userTokens.filter(token => !token.revoked);
+    },
+
+    paginatedUserTokens() {
+      return this.userTokens.filter((row, index) => {
+        let start = (this.currentPage - 1) * this.pageSize;
+        let end = this.currentPage * this.pageSize;
+
+        if (index >= start && index < end) {
+          return true;
+        }
+      });
+    },
+
     isEmailUpdateDisable() {
       return this.userEmail.length === 0 || !this.validEmail(this.userEmail);
     }
@@ -114,9 +195,22 @@ export default {
           this.$Progress.fail();
         });
     },
+
     validEmail: function(email) {
       var re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
       return re.test(email);
+    },
+
+    revokeUserToken(token) {
+      this.$Progress.start();
+      this.$store
+        .dispatch("revokeUserToken", token)
+        .then(() => {
+          this.$Progress.finish();
+        })
+        .catch(() => {
+          this.$Progress.fail();
+        });
     }
   }
 };
@@ -132,5 +226,24 @@ export default {
 
 .account-settings .nav .nav-item:not(:last-child) {
   border-bottom: 1px solid #5e72e4;
+}
+
+.el-table .hidden-columns {
+  visibility: hidden;
+  position: absolute;
+  z-index: -1;
+  width: 100%;
+}
+
+.el-table_1_column_2.is-leaf {
+  text-align: right;
+}
+
+.el-table_1_column_2 {
+  text-align: right;
+}
+
+.el-table__empty-text {
+  display: none;
 }
 </style>
