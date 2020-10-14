@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"sort"
 	"testing"
 	"time"
 
@@ -391,6 +392,8 @@ func (mts *ModelsTestSuite) TestModuleUpdateAuthors() {
 
 	record, err = mod.Upsert(mts.gormDB)
 	mts.Require().NoError(err)
+	sort.Slice(mod.Authors, func(i, j int) bool { return mod.Authors[i].ID < mod.Authors[j].ID })
+	sort.Slice(record.Authors, func(i, j int) bool { return record.Authors[i].ID < record.Authors[j].ID })
 	mts.Require().Equal(mod.Authors, record.Authors)
 	mts.Require().Equal(mod.Owners, record.Owners)
 
@@ -400,6 +403,8 @@ func (mts *ModelsTestSuite) TestModuleUpdateAuthors() {
 
 	record, err = mod.Upsert(mts.gormDB)
 	mts.Require().NoError(err)
+	sort.Slice(mod.Authors, func(i, j int) bool { return mod.Authors[i].ID < mod.Authors[j].ID })
+	sort.Slice(record.Authors, func(i, j int) bool { return record.Authors[i].ID < record.Authors[j].ID })
 	mts.Require().Equal(mod.Authors, record.Authors)
 	mts.Require().Equal(mod.Owners, record.Owners)
 
@@ -438,6 +443,8 @@ func (mts *ModelsTestSuite) TestModuleUpdateOwners() {
 	record, err = mod.Upsert(mts.gormDB)
 	mts.Require().NoError(err)
 	mts.Require().Equal(mod.Authors, record.Authors)
+	sort.Slice(mod.Owners, func(i, j int) bool { return mod.Owners[i].ID < mod.Owners[j].ID })
+	sort.Slice(record.Owners, func(i, j int) bool { return record.Owners[i].ID < record.Owners[j].ID })
 	mts.Require().Equal(mod.Owners, record.Owners)
 
 	mod.Owners = []models.User{
@@ -447,6 +454,8 @@ func (mts *ModelsTestSuite) TestModuleUpdateOwners() {
 	record, err = mod.Upsert(mts.gormDB)
 	mts.Require().NoError(err)
 	mts.Require().Equal(mod.Authors, record.Authors)
+	sort.Slice(mod.Owners, func(i, j int) bool { return mod.Owners[i].ID < mod.Owners[j].ID })
+	sort.Slice(record.Owners, func(i, j int) bool { return record.Owners[i].ID < record.Owners[j].ID })
 	mts.Require().Equal(mod.Owners, record.Owners)
 
 	mod.Owners = []models.User{}
