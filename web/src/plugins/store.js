@@ -6,7 +6,7 @@ Vue.use(Vuex);
 
 export default new Vuex.Store({
   state: {
-    user: {authenticated: false, record: {}},
+    user: {authenticated: false, record: {}, tokens: []},
   },
   getters: {
     // By default, Vuex getters accept two arguments.
@@ -32,6 +32,10 @@ export default new Vuex.Store({
 
     userRecord: (state) => {
       return state.user.record;
+    },
+
+    userTokens: (state) => {
+      return state.user.tokens;
     }
   },
   // Note: Mutations must be synchronous!
@@ -42,6 +46,10 @@ export default new Vuex.Store({
 
     setUser(state, record) {
       state.user.record = record;
+    },
+
+    setUserTokens(state, tokens) {
+      state.user.tokens = tokens;
     }
   },
   actions: {
@@ -65,6 +73,48 @@ export default new Vuex.Store({
         APIClient.updateUser(user)
             .then(resp => {
               context.commit('setUser', resp);
+              resolve();
+            })
+            .catch(err => {
+              console.log(err);
+              reject(err)
+            });
+      });
+    },
+
+    getUserTokens(context) {
+      APIClient.getUserTokens()
+          .then(resp => {
+            context.commit('setUserTokens', resp);
+          })
+          .catch(err => {
+            console.log(err);
+            context.commit('setUserTokens', []);
+          });
+    },
+
+    createUserToken(context) {
+      return new Promise((resolve, reject) => {
+        APIClient.createUserToken()
+            .then(resp => {
+              let tokens = context.getters.userTokens;
+              tokens.push(resp);
+              context.commit('setUserTokens', tokens);
+              resolve();
+            })
+            .catch(err => {
+              console.log(err);
+              reject(err)
+            });
+      });
+    },
+
+    revokeUserToken(context, token) {
+      return new Promise((resolve, reject) => {
+        APIClient.revokeUserToken(token)
+            .then(resp => {
+              let tokens = context.getters.userTokens.filter(token => token.id != resp.id);
+              context.commit('setUserTokens', tokens);
               resolve();
             })
             .catch(err => {
