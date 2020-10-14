@@ -5,29 +5,19 @@ const client   = axios.create({baseURL: BASE_URI, json: true});
 
 const APIClient = {
   getUser() {
-    return this.perform('get', '/user');
+    return this.perform('get', '/me');
   },
+
+  updateUser(user) {
+    return this.perform('put', '/me', user);
+  },
+
   logoutUser() {
     return this.perform('post', '/session/logout');
   },
-  // createKudo(repo) {
-  //   return this.perform('post', '/kudos', repo);
-  // },
-
-  // deleteKudo(repo) {
-  //   return this.perform('delete', `/kudos/${repo.id}`);
-  // },
 
   // updateKudo(repo) {
   //   return this.perform('put', `/kudos/${repo.id}`, repo);
-  // },
-
-  // getKudos() {
-  //   return this.perform('get', '/kudos');
-  // },
-
-  // getKudo(repo) {
-  //   return this.perform('get', `/kudo/${repo.id}`);
   // },
 
   async perform(method, resource, data) {

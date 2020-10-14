@@ -25,9 +25,11 @@ export default new Vuex.Store({
     // prefixedName: (state, getters) => (prefix) => {
     //   return prefix + getters.lastName;
     // }
+
     isAuthenticated: (state) => {
       return localStorage.isLoggedIn === '1' || state.user.authenticated;
     },
+
     userRecord: (state) => {
       return state.user.record;
     }
@@ -37,6 +39,7 @@ export default new Vuex.Store({
     setUserAuthenticated(state, authenticated) {
       state.user.authenticated = authenticated;
     },
+
     setUser(state, record) {
       state.user.record = record;
     }
@@ -44,7 +47,7 @@ export default new Vuex.Store({
   actions: {
     getUser(context) {
       APIClient.getUser()
-          .then((resp) => {
+          .then(resp => {
             context.commit('setUser', resp);
             context.commit('setUserAuthenticated', true);
             localStorage.isLoggedIn = '1';
@@ -56,6 +59,21 @@ export default new Vuex.Store({
             localStorage.removeItem('isLoggedIn');
           });
     },
+
+    updateUser(context, user) {
+      return new Promise((resolve, reject) => {
+        APIClient.updateUser(user)
+            .then(resp => {
+              context.commit('setUser', resp);
+              resolve();
+            })
+            .catch(err => {
+              console.log(err);
+              reject(err)
+            });
+      });
+    },
+
     logoutUser(context, router) {
       APIClient.logoutUser().finally(() => {
         context.commit('setUser', {});

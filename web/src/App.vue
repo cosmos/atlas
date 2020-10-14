@@ -1,6 +1,7 @@
 <template>
   <div id="app">
     <router-view name="header"></router-view>
+    <vue-progress-bar></vue-progress-bar>
     <main>
       <fade-transition origin="center" mode="out-in" :duration="250">
         <router-view />
