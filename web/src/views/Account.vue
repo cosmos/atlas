@@ -1,19 +1,16 @@
 <template>
   <div class="wrapper">
-    <div class="section-shaped my-0 skew-separator skew-mini">
-      <div class="page-header page-header-small header-filter">
-        <div
-          class="page-header-image"
-          style="background-image: url('img/pages/georgie.jpg');"
-        ></div>
-        <div class="container">
-          <div class="header-body text-center mb-7">
-            <div class="row justify-content-center"></div>
-          </div>
-        </div>
-      </div>
+    <div
+      class="page-header page-header-small header-filter skew-separator skew-mini"
+      style="position: absolute;"
+    >
+      <div class="page-header-image"></div>
     </div>
-    <div class="bg-secondary">
+
+    <div
+      class="main"
+      style="position: relative; padding-top: 30vh; min-height: 100vh;"
+    >
       <div class="container bg-white card mb-0">
         <div class="row">
           <div class="col-md-3">
@@ -92,21 +89,22 @@
                               </template>
                             </el-table-column>
 
-                            <el-table-column
-                              label="Revoke"
-                              min-width="60px"
-                              prop="revoke"
-                              class="foo"
-                            >
-                              <template v-slot="{ row }">
-                                <base-button
-                                  size="sm"
-                                  icon="ni ni-fat-remove pt-1"
-                                  type="danger"
-                                  v-on:click="revokeUserToken(row)"
-                                ></base-button>
-                              </template>
-                            </el-table-column>
+                            <div class="last-col">
+                              <el-table-column
+                                label="Revoke"
+                                prop="revoke"
+                                class="foo"
+                              >
+                                <template v-slot="{ row }">
+                                  <base-button
+                                    size="sm"
+                                    icon="ni ni-fat-remove pt-1"
+                                    type="danger"
+                                    v-on:click="revokeUserToken(row)"
+                                  ></base-button>
+                                </template>
+                              </el-table-column>
+                            </div>
                           </el-table>
                           <div class="row">
                             <div class="col-md-5 align-self-center">
@@ -250,17 +248,19 @@ export default {
   }
 };
 </script>
+
 <style>
+div.main {
+  background: url(/img/stars.d8924548.d8924548.svg) repeat top,
+    linear-gradient(145.11deg, #202854 9.49%, #171b39 91.06%);
+}
+
 .account-settings .nav {
   text-align: left;
 }
 
 .account-settings .nav .nav-item {
   padding: 1rem 0;
-}
-
-.account-settings .nav .nav-item:not(:last-child) {
-  border-bottom: 1px solid #5e72e4;
 }
 
 .el-table .hidden-columns {
@@ -270,12 +270,9 @@ export default {
   width: 100%;
 }
 
-.el-table_1_column_2.is-leaf {
-  text-align: right;
-}
-
-.el-table_1_column_2 {
-  text-align: right;
+.table th,
+.table td {
+  border-top: none;
 }
 
 .el-table__empty-text {
