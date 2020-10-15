@@ -710,7 +710,7 @@ var doc = `{
                 }
             }
         },
-        "/users/{id}": {
+        "/users/{name}": {
             "get": {
                 "consumes": [
                     "application/json"
@@ -721,12 +721,12 @@ var doc = `{
                 "tags": [
                     "users"
                 ],
-                "summary": "Get a user by ID",
+                "summary": "Get a user by name",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "user ID",
-                        "name": "id",
+                        "type": "string",
+                        "description": "user name",
+                        "name": "name",
                         "in": "path",
                         "required": true
                     }
@@ -736,12 +736,6 @@ var doc = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/models.UserJSON"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     },
                     "404": {
@@ -759,7 +753,7 @@ var doc = `{
                 }
             }
         },
-        "/users/{id}/modules": {
+        "/users/{name}/modules": {
             "get": {
                 "consumes": [
                     "application/json"
@@ -770,12 +764,12 @@ var doc = `{
                 "tags": [
                     "users"
                 ],
-                "summary": "Return a paginated set of all Cosmos SDK modules by user ID",
+                "summary": "Return a set of all Cosmos SDK modules published by a given user",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "user ID",
-                        "name": "id",
+                        "type": "string",
+                        "description": "user name",
+                        "name": "name",
                         "in": "path",
                         "required": true
                     }
@@ -788,12 +782,6 @@ var doc = `{
                             "items": {
                                 "$ref": "#/definitions/models.ModuleJSON"
                             }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     },
                     "404": {

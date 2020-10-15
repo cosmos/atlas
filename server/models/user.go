@@ -154,9 +154,9 @@ func GetUserByID(db *gorm.DB, id uint) (User, error) {
 	return u, nil
 }
 
-// GetUserModules returns a set of Module's authored by a given User by ID.
-func GetUserModules(db *gorm.DB, id uint) ([]Module, error) {
-	user, err := GetUserByID(db, id)
+// GetUserModules returns a set of Module's authored by a given User by name.
+func GetUserModules(db *gorm.DB, name string) ([]Module, error) {
+	user, err := QueryUser(db, map[string]interface{}{"name": name})
 	if err != nil {
 		return []Module{}, err
 	}

@@ -606,8 +606,7 @@ func (rts *RouterTestSuite) TestGetUserModules() {
 	rts.Require().NoError(err)
 
 	rts.Run("no user exists", func() {
-		path := fmt.Sprintf("/api/v1/users/%d/modules", mod.Authors[0].ID+1)
-		req, err := http.NewRequest("GET", path, nil)
+		req, err := http.NewRequest("GET", "/api/v1/users/bar/modules", nil)
 		rts.Require().NoError(err)
 
 		response := rts.executeRequest(req)
@@ -619,7 +618,7 @@ func (rts *RouterTestSuite) TestGetUserModules() {
 	})
 
 	rts.Run("user exists", func() {
-		path := fmt.Sprintf("/api/v1/users/%d/modules", mod.Authors[0].ID)
+		path := fmt.Sprintf("/api/v1/users/%s/modules", mod.Authors[0].Name)
 		req, err := http.NewRequest("GET", path, nil)
 		rts.Require().NoError(err)
 
@@ -1168,6 +1167,72 @@ func (rts *RouterTestSuite) TestRevokeUserToken() {
 
 	rr = httptest.NewRecorder()
 	rts.mux.ServeHTTP(rr, req)
+	rts.Require().Equal(http.StatusNotFound, rr.Code, rr.Body.String())
+}
+
+func (rts *RouterTestSuite) TestGetUserByName() {
+	rts.resetDB()
+
+	req1, err := http.NewRequest("GET", "/", nil)
+	rts.Require().NoError(err)
+
+	req1 = rts.authorizeRequest(req1, "test_token1", "test_user1", 12345)
+
+	upsertURL, err := url.Parse("/api/v1/modules")
+	rts.Require().NoError(err)
+
+	body := map[string]interface{}{
+		"module": map[string]interface{}{
+			"name":     "x/bank",
+			"team":     "cosmonauts",
+			"repo":     "https://github.com/cosmos/cosmos-sdk",
+			"keywords": []string{"tokens"},
+		},
+		"authors": []map[string]interface{}{
+			{
+				"name": "foo", "email": "foo@email.com",
+			},
+		},
+		"version": map[string]interface{}{
+			"version": "v1.0.0",
+		},
+		"bug_tracker": map[string]interface{}{
+			"url":     "https://cosmonauts.com",
+			"contact": "contact@cosmonauts.com",
+		},
+	}
+
+	// create module published by test_user1
+	bz, err := json.Marshal(body)
+	rts.Require().NoError(err)
+
+	req1.Method = httputil.MethodPUT
+	req1.URL = upsertURL
+	req1.Body = ioutil.NopCloser(bytes.NewBuffer(bz))
+	req1.ContentLength = int64(len(bz))
+
+	rr := httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req1)
+	rts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
+
+	// ensure the publishing user exists
+	req2, err := http.NewRequest("GET", "/api/v1/users/foo", nil)
+	rts.Require().NoError(err)
+
+	rr = httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req2)
+	rts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
+
+	var user map[string]interface{}
+	rts.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &user))
+	rts.Require().Equal(user["name"], "foo")
+
+	// ensure a non-existant user returns an error
+	req3, err := http.NewRequest("GET", "/api/v1/users/bar", nil)
+	rts.Require().NoError(err)
+
+	rr = httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req3)
 	rts.Require().Equal(http.StatusNotFound, rr.Code, rr.Body.String())
 }
 

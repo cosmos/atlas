@@ -790,7 +790,7 @@ func (mts *ModelsTestSuite) TestGetUserModules() {
 	record, err := mod.Upsert(mts.gormDB)
 	mts.Require().NoError(err)
 
-	mods, err := models.GetUserModules(mts.gormDB, record.Authors[0].ID)
+	mods, err := models.GetUserModules(mts.gormDB, record.Authors[0].Name)
 	mts.Require().NoError(err)
 	mts.Require().Len(mods, 1)
 	mts.Require().Equal(mods[0], record)

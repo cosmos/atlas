@@ -740,16 +740,16 @@ paths:
       summary: Return a paginated set of all users
       tags:
       - users
-  /users/{id}:
+  /users/{name}:
     get:
       consumes:
       - application/json
       parameters:
-      - description: user ID
+      - description: user name
         in: path
-        name: id
+        name: name
         required: true
-        type: integer
+        type: string
       produces:
       - application/json
       responses:
@@ -757,10 +757,6 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/models.UserJSON'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/httputil.ErrResponse'
         "404":
           description: Not Found
           schema:
@@ -769,19 +765,19 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/httputil.ErrResponse'
-      summary: Get a user by ID
+      summary: Get a user by name
       tags:
       - users
-  /users/{id}/modules:
+  /users/{name}/modules:
     get:
       consumes:
       - application/json
       parameters:
-      - description: user ID
+      - description: user name
         in: path
-        name: id
+        name: name
         required: true
-        type: integer
+        type: string
       produces:
       - application/json
       responses:
@@ -791,10 +787,6 @@ paths:
             items:
               $ref: '#/definitions/models.ModuleJSON'
             type: array
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/httputil.ErrResponse'
         "404":
           description: Not Found
           schema:
@@ -803,7 +795,7 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/httputil.ErrResponse'
-      summary: Return a paginated set of all Cosmos SDK modules by user ID
+      summary: Return a set of all Cosmos SDK modules published by a given user
       tags:
       - users
 securityDefinitions:

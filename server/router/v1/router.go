@@ -121,12 +121,12 @@ func (r *Router) Register(rtr *mux.Router, prefix string) {
 	).Methods(httputil.MethodGET)
 
 	v1Router.Handle(
-		"/users/{id:[0-9]+}",
-		mChain.ThenFunc(r.GetUserByID()),
+		"/users/{name}",
+		mChain.ThenFunc(r.GetUserByName()),
 	).Methods(httputil.MethodGET)
 
 	v1Router.Handle(
-		"/users/{id:[0-9]+}/modules",
+		"/users/{name}/modules",
 		mChain.ThenFunc(r.GetUserModules()),
 	).Methods(httputil.MethodGET)
 
@@ -472,29 +472,21 @@ func (r *Router) GetModuleKeywords() http.HandlerFunc {
 	}
 }
 
-// GetUserByID implements a request handler to retrieve a user by ID.
-// @Summary Get a user by ID
+// GetUserByID implements a request handler to retrieve a user by name.
+// @Summary Get a user by name
 // @Tags users
 // @Accept  json
 // @Produce  json
-// @Param id path int true "user ID"
+// @Param name path string true "user name"
 // @Success 200 {object} models.UserJSON
-// @Failure 400 {object} httputil.ErrResponse
 // @Failure 404 {object} httputil.ErrResponse
 // @Failure 500 {object} httputil.ErrResponse
-// @Router /users/{id} [get]
-func (r *Router) GetUserByID() http.HandlerFunc {
+// @Router /users/{name} [get]
+func (r *Router) GetUserByName() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		params := mux.Vars(req)
-		idStr := params["id"]
 
-		id, err := strconv.ParseUint(idStr, 10, 64)
-		if err != nil {
-			httputil.RespondWithError(w, http.StatusBadRequest, fmt.Errorf("invalid user ID: %w", err))
-			return
-		}
-
-		user, err := models.GetUserByID(r.db, uint(id))
+		user, err := models.QueryUser(r.db, map[string]interface{}{"name": params["name"]})
 		if err != nil {
 			code := http.StatusInternalServerError
 			if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -541,29 +533,21 @@ func (r *Router) GetAllUsers() http.HandlerFunc {
 }
 
 // GetUserModules implements a request handler to retrieve a set of modules
-// authored by a given user by ID.
-// @Summary Return a paginated set of all Cosmos SDK modules by user ID
+// authored by a given user by name.
+// @Summary Return a set of all Cosmos SDK modules published by a given user
 // @Tags users
 // @Accept  json
 // @Produce  json
-// @Param id path int true "user ID"
+// @Param name path string true "user name"
 // @Success 200 {array} models.ModuleJSON
-// @Failure 400 {object} httputil.ErrResponse
 // @Failure 404 {object} httputil.ErrResponse
 // @Failure 500 {object} httputil.ErrResponse
-// @Router /users/{id}/modules [get]
+// @Router /users/{name}/modules [get]
 func (r *Router) GetUserModules() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		params := mux.Vars(req)
-		idStr := params["id"]
 
-		id, err := strconv.ParseUint(idStr, 10, 64)
-		if err != nil {
-			httputil.RespondWithError(w, http.StatusBadRequest, fmt.Errorf("invalid user ID: %w", err))
-			return
-		}
-
-		modules, err := models.GetUserModules(r.db, uint(id))
+		modules, err := models.GetUserModules(r.db, params["name"])
 		if err != nil {
 			code := http.StatusInternalServerError
 			if errors.Is(err, gorm.ErrRecordNotFound) {
