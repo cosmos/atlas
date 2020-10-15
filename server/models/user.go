@@ -58,7 +58,7 @@ type (
 		GravatarID        string
 
 		// many-to-many relationships
-		Modules []Module `gorm:"many2many:module_authors"`
+		Modules []Module `gorm:"many2many:module_owners"`
 
 		// one-to-many relationships
 		Tokens []UserToken `gorm:"foreignKey:user_id"`
@@ -164,6 +164,10 @@ func GetUserModules(db *gorm.DB, name string) ([]Module, error) {
 	moduleIDs := make([]uint, len(user.Modules))
 	for i, mod := range user.Modules {
 		moduleIDs[i] = mod.ID
+	}
+
+	if len(moduleIDs) == 0 {
+		return []Module{}, nil
 	}
 
 	var modules []Module
