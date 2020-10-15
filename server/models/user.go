@@ -147,7 +147,7 @@ func (u User) Upsert(db *gorm.DB) (User, error) {
 func GetUserByID(db *gorm.DB, id uint) (User, error) {
 	var u User
 
-	if err := db.First(&u, id).Error; err != nil {
+	if err := db.Preload(clause.Associations).First(&u, id).Error; err != nil {
 		return User{}, fmt.Errorf("failed to query for user by ID: %w", err)
 	}
 
@@ -184,7 +184,7 @@ func GetUserModules(db *gorm.DB, name string) ([]Module, error) {
 func QueryUser(db *gorm.DB, query map[string]interface{}) (User, error) {
 	var record User
 
-	if err := db.Where(query).First(&record).Error; err != nil {
+	if err := db.Where(query).Preload(clause.Associations).First(&record).Error; err != nil {
 		return User{}, fmt.Errorf("failed to query user: %w", err)
 	}
 
