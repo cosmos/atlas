@@ -72,7 +72,12 @@
                     Modules
                   </h3>
                   <!--  -->
-
+                  <base-input
+                    v-if="userModules.length > 0"
+                    v-model="userModulesQuery"
+                    addonLeftIcon="fa fa-search"
+                    placeholder="Search"
+                  ></base-input>
                   <el-table
                     class="table table-striped table-flush"
                     header-row-class-name="thead-light"
@@ -119,7 +124,7 @@
                         type="primary"
                         v-model="currentPage"
                         :perPage="pageSize"
-                        :total="userModules.length"
+                        :total="resultUserModulesQuery.length"
                       ></base-pagination>
                     </div>
                   </div>
@@ -151,6 +156,7 @@ export default {
   data() {
     return {
       user: {},
+      userModulesQuery: "",
       userModules: [],
       currentPage: 1,
       pageSize: 10
@@ -171,7 +177,7 @@ export default {
     },
 
     paginatedUserModules() {
-      return this.userModules.filter((row, index) => {
+      return this.resultUserModulesQuery.filter((row, index) => {
         let start = (this.currentPage - 1) * this.pageSize;
         let end = this.currentPage * this.pageSize;
 
@@ -179,6 +185,19 @@ export default {
           return true;
         }
       });
+    },
+
+    resultUserModulesQuery() {
+      if (this.userModulesQuery != "") {
+        return this.userModules.filter(module => {
+          return this.userModulesQuery
+            .toLowerCase()
+            .split(" ")
+            .every(v => module.name.toLowerCase().includes(v));
+        });
+      } else {
+        return this.userModules;
+      }
     }
   },
   methods: {
