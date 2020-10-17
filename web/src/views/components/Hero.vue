@@ -33,12 +33,6 @@
 
 <script>
 export default {
-  created() {
-    this.$Progress.start();
-  },
-  mounted() {
-    this.$Progress.finish();
-  },
   data() {
     return {
       searchCriteria: ""

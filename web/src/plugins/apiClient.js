@@ -28,6 +28,14 @@ const APIClient = {
     return this.perform('delete', `/me/tokens/${token.id}`);
   },
 
+  getUserByName(name) {
+    return this.perform('get', `/users/${name}`);
+  },
+
+  getUserModules(name) {
+    return this.perform('get', `/users/${name}/modules`);
+  },
+
   async perform(method, resource, data) {
     return client({method, url: resource, data, headers: {}}).then(req => {
       return req.data;

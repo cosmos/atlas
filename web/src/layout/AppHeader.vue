@@ -152,16 +152,19 @@
             <i class="ni ni-tablet-button d-lg-none"></i>
             <span class="nav-link-inner--text">Account</span>
           </a>
-          <router-link to="/dashboard" class="dropdown-item">
-            <i class="fa fa-tv"></i>
-            Dashboard
+          <router-link
+            :to="{ name: 'profile', params: { name: user.name } }"
+            class="dropdown-item"
+          >
+            <i class="fa fa-user-circle text-muted"></i>
+            Profile
           </router-link>
           <router-link to="/account" class="dropdown-item">
-            <i class="fa fa-cog"></i>
+            <i class="fa fa-cog text-muted"></i>
             Account
           </router-link>
           <a href="#" class="dropdown-item" v-on:click="logout">
-            <i class="fa fa-sign-out"></i>
+            <i class="fa fa-sign-out text-muted"></i>
             Logout
           </a>
         </base-dropdown>
@@ -187,11 +190,18 @@ export default {
     navbarType: String
   },
   computed: {
+    user() {
+      return this.$store.getters.userRecord;
+    },
+
     isAuthenticated() {
       return this.$store.getters.isAuthenticated;
     }
   },
   methods: {},
+  created() {
+    this.$store.dispatch("getUser");
+  },
   data() {
     return {
       searchCriteria: "",

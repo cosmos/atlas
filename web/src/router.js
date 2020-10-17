@@ -59,6 +59,12 @@ export default new Router({
       props: {header: {showSearch: true}},
       beforeEnter: ifAuthenticated,
     },
+    {
+      path: '/profile/:name',
+      name: 'profile',
+      components: {header: AppHeader, default: ProfilePage, footer: AppFooter},
+      props: {header: {showSearch: true}},
+    },
 
     // ------------------------------------------------------------------------
 
@@ -98,11 +104,6 @@ export default new Router({
       name: 'pricing',
       components: {header: AppHeader, default: Pricing, footer: AppFooter},
       props: {header: {navbarType: 'primary'}}
-    },
-    {
-      path: '/profile-page',
-      name: 'profile-page',
-      components: {header: AppHeader, default: ProfilePage, footer: AppFooter}
     },
     {
       path: '/error',

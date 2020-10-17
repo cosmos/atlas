@@ -12,7 +12,7 @@
       style="position: relative; padding-top: 30vh; min-height: 100vh;"
     >
       <div class="container bg-white card mb-0">
-        <div class="row">
+        <div class="row" style="padding-left: 25px; padding-right: 25px;">
           <div class="col-md-3">
             <div class="section">
               <section class="text-center">
@@ -150,12 +150,8 @@ export default {
     [TableColumn.name]: TableColumn
   },
   created() {
-    this.$Progress.start();
     this.$store.dispatch("getUser");
     this.$store.dispatch("getUserTokens");
-  },
-  mounted() {
-    this.$Progress.finish();
   },
   data() {
     return {
