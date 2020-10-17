@@ -1,5 +1,10 @@
 <template>
   <div id="app">
+    <notifications
+      group="errors"
+      position="top right"
+      class="error-notification"
+    />
     <router-view name="header"></router-view>
     <vue-progress-bar></vue-progress-bar>
     <main>
@@ -20,3 +25,14 @@ export default {
   }
 };
 </script>
+
+
+<style>
+.error-notification {
+  width: 500px;
+  top: 30px !important;
+  right: 20px !important;
+  position: fixed;
+  z-index: 10000;
+}
+</style>

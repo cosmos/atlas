@@ -77,6 +77,10 @@ export default new Vuex.Store({
             })
             .catch(err => {
               console.log(err);
+              if ( err.response ) {
+                reject(err.response.data.error);
+              }
+
               reject(err)
             });
       });
@@ -104,6 +108,10 @@ export default new Vuex.Store({
             })
             .catch(err => {
               console.log(err);
+              if ( err.response ) {
+                reject(err.response.data.error);
+              }
+
               reject(err)
             });
       });
@@ -119,6 +127,10 @@ export default new Vuex.Store({
             })
             .catch(err => {
               console.log(err);
+              if ( err.response ) {
+                reject(err.response.data.error);
+              }
+
               reject(err)
             });
       });

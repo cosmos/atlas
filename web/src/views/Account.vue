@@ -225,8 +225,15 @@ export default {
         .then(() => {
           this.$Progress.finish();
         })
-        .catch(() => {
+        .catch(err => {
           this.$Progress.fail();
+          this.$notify({
+            group: "errors",
+            type: "error",
+            duration: 3000,
+            title: "Error",
+            text: err
+          });
         });
     },
 
@@ -237,8 +244,15 @@ export default {
         .then(() => {
           this.$Progress.finish();
         })
-        .catch(() => {
+        .catch(err => {
           this.$Progress.fail();
+          this.$notify({
+            group: "errors",
+            type: "error",
+            duration: 3000,
+            title: "Error",
+            text: err
+          });
         });
     }
   }

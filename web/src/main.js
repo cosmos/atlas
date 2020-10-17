@@ -1,5 +1,6 @@
 import Vue from 'vue';
-import VueProgressBar from 'vue-progressbar'
+import VueProgressBar from 'vue-progressbar';
+import Notifications from 'vue-notification';
 
 import App from './App.vue';
 import Argon from './plugins/argon-kit';
@@ -7,7 +8,6 @@ import store from './plugins/store';
 import router from './router';
 
 Vue.config.productionTip = false;
-Vue.use(Argon);
 
 const pbOptions = {
   color: '#ba3fd9',
@@ -19,5 +19,7 @@ const pbOptions = {
 };
 
 Vue.use(VueProgressBar, pbOptions);
+Vue.use(Notifications);
+Vue.use(Argon);
 
 new Vue({store, router, render: h => h(App)}).$mount('#app');
