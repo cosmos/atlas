@@ -9,23 +9,6 @@ export default new Vuex.Store({
     user: {authenticated: false, record: {}, tokens: []},
   },
   getters: {
-    // By default, Vuex getters accept two arguments.
-    //
-    // state — the state object for our application;
-    // getters — the store.getters object, meaning that we can call other getters in our store.
-    //
-    // Example:
-    //
-    // lastName(state, getters) {
-    //   return state.user.fullName.replace(getters.firstName, '');
-    // },
-    //
-    // You can also pass arguments to getters:
-    //
-    // prefixedName: (state, getters) => (prefix) => {
-    //   return prefix + getters.lastName;
-    // }
-
     isAuthenticated: (state) => {
       return localStorage.isLoggedIn === '1' || state.user.authenticated;
     },
@@ -38,7 +21,6 @@ export default new Vuex.Store({
       return state.user.tokens;
     }
   },
-  // Note: Mutations must be synchronous!
   mutations: {
     setUserAuthenticated(state, authenticated) {
       state.user.authenticated = authenticated;

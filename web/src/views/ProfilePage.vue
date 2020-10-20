@@ -201,15 +201,6 @@ export default {
     }
   },
   methods: {
-    latestVersion(versions) {
-      return versions.reduce((a, b) => {
-        let aUpdated = new Date(a.updated_at);
-        let bUpdated = new Date(b.updated_at);
-
-        return aUpdated > bUpdated ? a : b;
-      }).version;
-    },
-
     formatDate(timestamp) {
       return moment(timestamp).fromNow();
     },
@@ -228,7 +219,19 @@ export default {
     getUserModules() {
       APIClient.getUserModules(this.$route.params.name)
         .then(resp => {
-          this.userModules = resp;
+          this.userModules = resp.sort((a, b) => {
+            var nameA = a.name.toUpperCase();
+            var nameB = b.name.toUpperCase();
+
+            if (nameA < nameB) {
+              return -1;
+            }
+            if (nameA > nameB) {
+              return 1;
+            }
+
+            return 0;
+          });
         })
         .catch(err => {
           console.log(err);

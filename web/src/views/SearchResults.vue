@@ -7,455 +7,174 @@
       <div class="page-header-image"></div>
     </div>
 
-    <div class="main" style="position: relative; padding-top: 30vh;">
-      <div class="container">
-        <div class="row">
-          <div class="col-lg-4 col-md-6">
+    <div
+      class="main"
+      style="position: relative; padding-top: 20vh; min-height: 100vh;"
+    >
+      <div class="container mb-0">
+        <div class="row" v-if="modules.length > 0">
+          <div
+            class="col-lg-4 col-md-6"
+            v-for="mod in modules"
+            v-bind:key="mod.name"
+          >
             <card class="card-blog">
               <template slot="body">
-                <h6 class="card-category text-danger">
-                  <i class="ni ni-badge"></i> Features
+                <h6 class="card-category">
+                  <i class="ni ni-badge"></i> {{ mod.team }}
                 </h6>
                 <h5 class="card-title">
-                  <a href="javascript:;">FiftyThree Files For Paper</a>
+                  <a href="javascript:;"> {{ mod.name }}</a>
                 </h5>
                 <p class="card-description">
-                  Yesterday, as Facebook launched its news reader app Paper,
-                  design-focused startup FiftyThree called out Facebook...
+                  {{ mod.description }}
                 </p>
               </template>
               <template slot="footer">
-                <div class="author">
-                  <img
-                    src="img/faces/team-3.jpg"
-                    alt="..."
-                    class="avatar img-raised"
-                  />
-                  <span>Johana Doe</span>
+                <div class="avatar-group author">
+                  <router-link
+                    v-for="author in mod.authors.slice(0, 3)"
+                    v-bind:key="author.name"
+                    :to="{ name: 'profile', params: { name: author.name } }"
+                    class="avatar avatar-sm rounded-circle"
+                    :title="author.name"
+                  >
+                    <img alt="Image placeholder" :src="avatarPicture(author)" />
+                  </router-link>
+                  <p class="extra-authors" v-if="mod.authors.length > 3">
+                    ...
+                  </p>
                 </div>
                 <div class="stats stats-right">
-                  <i class="ni ni-favourite-28"></i> 10.4K ·
-                  <i class="ni ni-archive-2"></i> 425
-                </div>
-              </template>
-            </card>
-          </div>
-          <div class="col-lg-4 col-md-6">
-            <card class="card-blog">
-              <template slot="body">
-                <h6 class="card-category text-danger">
-                  <i class="ni ni-badge"></i> Features
-                </h6>
-                <h5 class="card-title">
-                  <a href="javascript:;">FiftyThree Files For Paper</a>
-                </h5>
-                <p class="card-description">
-                  Yesterday, as Facebook launched its news reader app Paper,
-                  design-focused startup FiftyThree called out Facebook...
-                </p>
-              </template>
-              <template slot="footer">
-                <div class="author">
-                  <img
-                    src="img/faces/team-3.jpg"
-                    alt="..."
-                    class="avatar img-raised"
-                  />
-                  <span>Johana Doe</span>
-                </div>
-                <div class="stats stats-right">
-                  <i class="ni ni-favourite-28"></i> 10.4K ·
-                  <i class="ni ni-archive-2"></i> 425
-                </div>
-              </template>
-            </card>
-          </div>
-          <div class="col-lg-4 col-md-6">
-            <card class="card-blog">
-              <template slot="body">
-                <h6 class="card-category text-danger">
-                  <i class="ni ni-badge"></i> Features
-                </h6>
-                <h5 class="card-title">
-                  <a href="javascript:;">FiftyThree Files For Paper</a>
-                </h5>
-                <p class="card-description">
-                  Yesterday, as Facebook launched its news reader app Paper,
-                  design-focused startup FiftyThree called out Facebook...
-                </p>
-              </template>
-              <template slot="footer">
-                <div class="author">
-                  <img
-                    src="img/faces/team-3.jpg"
-                    alt="..."
-                    class="avatar img-raised"
-                  />
-                  <span>Johana Doe</span>
-                </div>
-                <div class="stats stats-right">
-                  <i class="ni ni-favourite-28"></i> 10.4K ·
-                  <i class="ni ni-archive-2"></i> 425
+                  <i class="ni ni-favourite-28"></i> 0 ·
+                  <i class="ni ni-archive-2"></i>
+                  {{ latestVersion(mod.versions) }}
                 </div>
               </template>
             </card>
           </div>
         </div>
-        <!--  -->
-        <div class="row">
-          <div class="col-lg-4 col-md-6">
-            <card class="card-blog">
-              <template slot="body">
-                <h6 class="card-category text-danger">
-                  <i class="ni ni-badge"></i> Features
-                </h6>
-                <h5 class="card-title">
-                  <a href="javascript:;">FiftyThree Files For Paper</a>
-                </h5>
-                <p class="card-description">
-                  Yesterday, as Facebook launched its news reader app Paper,
-                  design-focused startup FiftyThree called out Facebook...
-                </p>
-              </template>
-              <template slot="footer">
-                <div class="author">
-                  <img
-                    src="img/faces/team-3.jpg"
-                    alt="..."
-                    class="avatar img-raised"
-                  />
-                  <span>Johana Doe</span>
-                </div>
-                <div class="stats stats-right">
-                  <i class="ni ni-favourite-28"></i> 10.4K ·
-                  <i class="ni ni-archive-2"></i> 425
-                </div>
-              </template>
-            </card>
-          </div>
-          <div class="col-lg-4 col-md-6">
-            <card class="card-blog">
-              <template slot="body">
-                <h6 class="card-category text-danger">
-                  <i class="ni ni-badge"></i> Features
-                </h6>
-                <h5 class="card-title">
-                  <a href="javascript:;">FiftyThree Files For Paper</a>
-                </h5>
-                <p class="card-description">
-                  Yesterday, as Facebook launched its news reader app Paper,
-                  design-focused startup FiftyThree called out Facebook...
-                </p>
-              </template>
-              <template slot="footer">
-                <div class="author">
-                  <img
-                    src="img/faces/team-3.jpg"
-                    alt="..."
-                    class="avatar img-raised"
-                  />
-                  <span>Johana Doe</span>
-                </div>
-                <div class="stats stats-right">
-                  <i class="ni ni-favourite-28"></i> 10.4K ·
-                  <i class="ni ni-archive-2"></i> 425
-                </div>
-              </template>
-            </card>
-          </div>
-          <div class="col-lg-4 col-md-6">
-            <card class="card-blog">
-              <template slot="body">
-                <h6 class="card-category text-danger">
-                  <i class="ni ni-badge"></i> Features
-                </h6>
-                <h5 class="card-title">
-                  <a href="javascript:;">FiftyThree Files For Paper</a>
-                </h5>
-                <p class="card-description">
-                  Yesterday, as Facebook launched its news reader app Paper,
-                  design-focused startup FiftyThree called out Facebook...
-                </p>
-              </template>
-              <template slot="footer">
-                <div class="author">
-                  <img
-                    src="img/faces/team-3.jpg"
-                    alt="..."
-                    class="avatar img-raised"
-                  />
-                  <span>Johana Doe</span>
-                </div>
-                <div class="stats stats-right">
-                  <i class="ni ni-favourite-28"></i> 10.4K ·
-                  <i class="ni ni-archive-2"></i> 425
-                </div>
-              </template>
-            </card>
-          </div>
+        <div class="row justify-content-center" v-if="noMatch">
+          <h1 class="title text-white">
+            Sorry, no modules match your search criteria :(
+          </h1>
         </div>
-        <div class="row">
-          <div class="col-lg-4 col-md-6">
-            <card class="card-blog">
-              <template slot="body">
-                <h6 class="card-category text-danger">
-                  <i class="ni ni-badge"></i> Features
-                </h6>
-                <h5 class="card-title">
-                  <a href="javascript:;">FiftyThree Files For Paper</a>
-                </h5>
-                <p class="card-description">
-                  Yesterday, as Facebook launched its news reader app Paper,
-                  design-focused startup FiftyThree called out Facebook...
-                </p>
-              </template>
-              <template slot="footer">
-                <div class="author">
-                  <img
-                    src="img/faces/team-3.jpg"
-                    alt="..."
-                    class="avatar img-raised"
-                  />
-                  <span>Johana Doe</span>
-                </div>
-                <div class="stats stats-right">
-                  <i class="ni ni-favourite-28"></i> 10.4K ·
-                  <i class="ni ni-archive-2"></i> 425
-                </div>
-              </template>
-            </card>
-          </div>
-          <div class="col-lg-4 col-md-6">
-            <card class="card-blog">
-              <template slot="body">
-                <h6 class="card-category text-danger">
-                  <i class="ni ni-badge"></i> Features
-                </h6>
-                <h5 class="card-title">
-                  <a href="javascript:;">FiftyThree Files For Paper</a>
-                </h5>
-                <p class="card-description">
-                  Yesterday, as Facebook launched its news reader app Paper,
-                  design-focused startup FiftyThree called out Facebook...
-                </p>
-              </template>
-              <template slot="footer">
-                <div class="author">
-                  <img
-                    src="img/faces/team-3.jpg"
-                    alt="..."
-                    class="avatar img-raised"
-                  />
-                  <span>Johana Doe</span>
-                </div>
-                <div class="stats stats-right">
-                  <i class="ni ni-favourite-28"></i> 10.4K ·
-                  <i class="ni ni-archive-2"></i> 425
-                </div>
-              </template>
-            </card>
-          </div>
-          <div class="col-lg-4 col-md-6">
-            <card class="card-blog">
-              <template slot="body">
-                <h6 class="card-category text-danger">
-                  <i class="ni ni-badge"></i> Features
-                </h6>
-                <h5 class="card-title">
-                  <a href="javascript:;">FiftyThree Files For Paper</a>
-                </h5>
-                <p class="card-description">
-                  Yesterday, as Facebook launched its news reader app Paper,
-                  design-focused startup FiftyThree called out Facebook...
-                </p>
-              </template>
-              <template slot="footer">
-                <div class="author">
-                  <img
-                    src="img/faces/team-3.jpg"
-                    alt="..."
-                    class="avatar img-raised"
-                  />
-                  <span>Johana Doe</span>
-                </div>
-                <div class="stats stats-right">
-                  <i class="ni ni-favourite-28"></i> 10.4K ·
-                  <i class="ni ni-archive-2"></i> 425
-                </div>
-              </template>
-            </card>
-          </div>
+        <div class="row justify-content-center" v-if="modules.length > 0">
+          <base-button
+            class="align-self-center"
+            nativeType="submit"
+            type="neutral"
+            :disabled="currentPage === 1"
+            v-on:click="prevModules"
+          >
+            <i class="ni ni-bold-left"></i>
+          </base-button>
+          <base-button
+            class="align-self-center"
+            nativeType="submit"
+            type="neutral"
+            :disabled="modules.length < pageSize"
+            v-on:click="nextModules"
+          >
+            <i class="ni ni-bold-right"></i>
+          </base-button>
         </div>
-        <p>foo</p>
       </div>
-
-      <!--  -->
-      <!-- <div class="container text-center">
-        <section class="blogs-1">
-          <div class="container">
-            <div class="row mb-5">
-              <div class="col-md-8 mx-auto">
-                <h3 class="display-3">Our recent writings</h3>
-                <p class="lead mt-1">
-                  The time is now for it to be okay to be great. People in this
-                  world shun people for being great.
-                </p>
-              </div>
-            </div>
-            <div class="row">
-              <div class="col-md-6 col-lg-3">
-                <card
-                  class="card-blog card-background"
-                  data-animation="zooming"
-                >
-                  <div
-                    class="full-background"
-                    style="background-image: url('img/theme/josh-appel.jpg')"
-                  ></div>
-                  <template slot="body">
-                    <div class="content-bottom">
-                      <h6 class="card-category text-white opacity-8">
-                        New Challenges
-                      </h6>
-                      <h5 class="card-title">Touch on a trend</h5>
-                    </div>
-                  </template>
-                </card>
-              </div>
-              <div class="col-md-6 col-lg-3">
-                <card
-                  class="card-blog card-background"
-                  data-animation="zooming"
-                >
-                  <div
-                    class="full-background"
-                    style="background-image: url('img/theme/john-hoang.jpg')"
-                  ></div>
-                  <template slot="body">
-                    <div class="content-bottom">
-                      <h6 class="card-category text-white opacity-8">
-                        New Opportunities
-                      </h6>
-                      <h5 class="card-title">Constantly growing</h5>
-                    </div>
-                  </template>
-                </card>
-              </div>
-              <div class="col-md-6">
-                <card
-                  class="card-blog card-background"
-                  data-animation="zooming"
-                >
-                  <div
-                    class="full-background"
-                    style="background-image: url('img/theme/kit-suman.jpg')"
-                  ></div>
-                  <template slot="body">
-                    <div class="content-bottom">
-                      <h6 class="card-category text-white opacity-8">
-                        Sales Leads
-                      </h6>
-                      <h5 class="card-title">
-                        Configure Blockchain Technology
-                      </h5>
-                    </div>
-                  </template>
-                </card>
-              </div>
-            </div>
-            <div class="row align-items-center">
-              <div class="col-lg-6">
-                <card
-                  class="card-blog card-background"
-                  data-animation="zooming"
-                >
-                  <div
-                    class="full-background"
-                    style="background-image: url('img/sections/damian.jpg')"
-                  ></div>
-                  <template slot="body">
-                    <div class="content-bottom">
-                      <h6 class="card-category text-white opacity-8">
-                        AI at the Edge
-                      </h6>
-                      <h5 class="card-title">Research Byte</h5>
-                    </div>
-                  </template>
-                </card>
-              </div>
-              <div class="col-lg-3">
-                <card
-                  class="card-blog card-background"
-                  data-animation="zooming"
-                >
-                  <div
-                    class="full-background"
-                    style="background-image: url('img/sections/ashim.jpg')"
-                  ></div>
-                  <template slot="body">
-                    <div class="content-bottom">
-                      <h6 class="card-category text-white opacity-8">
-                        Spectrum
-                      </h6>
-                      <h5 class="card-title">Data Virtualization</h5>
-                    </div>
-                  </template>
-                </card>
-              </div>
-              <div class="col-lg-3">
-                <card
-                  class="card-blog card-background"
-                  data-animation="zooming"
-                >
-                  <div
-                    class="full-background"
-                    style="background-image: url('img/sections/odin.jpg')"
-                  ></div>
-                  <template slot="body">
-                    <div class="content-bottom">
-                      <h6 class="card-category text-white opacity-8">
-                        Touch on a trend
-                      </h6>
-                      <h5 class="card-title">New Challenges</h5>
-                    </div>
-                  </template>
-                </card>
-              </div>
-            </div>
-            <base-button class="mt-4" type="primary" icon="ni ni-bold-right">
-              Show more
-            </base-button>
-          </div>
-        </section>
-      </div> -->
     </div>
   </div>
 </template>
 
 <script>
 import "bootstrap-vue/dist/bootstrap-vue.min.css";
+import APIClient from "../plugins/apiClient";
 
 export default {
-  bodyClass: "ecommerce-page",
+  bodyClass: "search-results-page",
   components: {},
-  directives: {},
-  methods: {},
+  watch: {
+    currentPage: function() {
+      this.searchModules();
+    }
+  },
+  methods: {
+    avatarPicture(author) {
+      return author.avatar_url != ""
+        ? author.avatar_url
+        : "img/generic-avatar.png";
+    },
+
+    filteredModules(x, y) {
+      return this.modules.slice(x, y);
+    },
+
+    prevModules() {
+      this.currentPage--;
+    },
+
+    nextModules() {
+      this.currentPage++;
+    },
+
+    searchModules() {
+      APIClient.searchModules(
+        this.$route.query.q,
+        this.currentPage,
+        this.pageSize
+      )
+        .then(resp => {
+          this.noMatch = resp.results.length === 0;
+          this.modules = resp.results;
+        })
+        .catch(err => {
+          console.log(err);
+          this.$notify({
+            group: "errors",
+            type: "error",
+            duration: 3000,
+            title: "Error",
+            text: err
+          });
+        });
+    }
+  },
   created() {
-    this.query = this.$route.query.q;
-    console.log(`querying for: ${this.query}`);
+    this.searchModules();
   },
   data() {
     return {
-      query: "",
-      modules: []
+      currentPage: 1,
+      pageSize: 9,
+      modules: [],
+      noMatch: false
     };
+  },
+  beforeRouteUpdate(to, from, next) {
+    next();
+    this.$Progress.start();
+    this.currentPage = 1;
+    this.searchModules();
+    this.$Progress.finish();
   }
 };
 </script>
 
 <style>
-.ecommerce-page a.carousel-control-prev,
-.ecommerce-page a.carousel-control-next {
-  z-index: 9999;
+.search-results-page .main {
+  margin-top: 0;
+}
+
+.card-category {
+  color: #ba3fd9;
+}
+
+.avatar-group .avatar {
+  background-color: white;
+}
+
+.extra-authors {
+  float: right;
+  padding-left: 5px;
+  margin-bottom: 0%;
+  font-size: 1.2rem;
 }
 </style>

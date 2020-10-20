@@ -110,13 +110,13 @@
   }
 }
 
-// Style for the Ecommerce Page
+// Style for the Search Results Page
 
 .main-raised {
   margin-top: -100px;
 }
 
-.ecommerce-page {
+.search-results-page {
   .main {
     margin-top: -150px;
 
@@ -375,7 +375,7 @@
   .blog-posts,
   .landing-page,
   .pricing-page,
-  .ecommerce-page,
+  .search-results-page,
   .product-page,
   .account-settings,
   .checkout-page {
@@ -431,8 +431,8 @@
     }
   }
 
-  .ecommerce-page .main {
-    margin-top: -40px;
+  .search-results-page .main {
+    margin-top: 0;
   }
 
   .checkout-page {

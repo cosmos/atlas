@@ -24,13 +24,28 @@ const GlobalMixins = {
       },
       methods: {
         queryModules: function() {
+          if (this.$route.name === 'search-results' && this.$route.query.q === this.searchCriteria) {
+            // prevent routing when we're on the results page with the same query
+            return
+          }
+
           this.$router.push({path: 'search', query: {q: this.searchCriteria}});
         },
+
         logout: function() {
           if (this.$store.getters.isAuthenticated) {
             this.$store.dispatch('logoutUser', this.$router);
           }
-        }
+        },
+
+        latestVersion(versions) {
+          return versions.reduce((a, b) => {
+            let aUpdated = new Date(a.updated_at);
+            let bUpdated = new Date(b.updated_at);
+    
+            return aUpdated > bUpdated ? a : b;
+          }).version;
+        },
       }
     });
   }

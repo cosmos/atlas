@@ -36,6 +36,10 @@ const APIClient = {
     return this.perform('get', `/users/${name}/modules`);
   },
 
+  searchModules(query, page, limit) {
+    return this.perform('get', `/modules/search?page=${page}&limit=${limit}&q=${query}`);
+  },
+
   async perform(method, resource, data) {
     return client({method, url: resource, data, headers: {}}).then(req => {
       return req.data;
