@@ -29,27 +29,31 @@ const (
 // interface.
 type PaginationResponse struct {
 	Limit   int         `json:"limit"`
-	Cursor  uint        `json:"cursor"`
+	Page    uint        `json:"page"`
 	Count   int         `json:"count"`
 	Results interface{} `json:"results"`
 }
 
-func NewPaginationResponse(count, limit int, cursor uint, results interface{}) PaginationResponse {
+func NewPaginationResponse(count, limit int, page uint, results interface{}) PaginationResponse {
 	return PaginationResponse{
 		Limit:   limit,
-		Cursor:  cursor,
+		Page:    page,
 		Count:   count,
 		Results: results,
 	}
 }
 
-// ParsePagination parses pagination values (cursor and limit) from an HTTP
+// ParsePagination parses pagination values (page and limit) from an HTTP
 // request returning an error upon failure.
 func ParsePagination(req *http.Request) (uint, int, error) {
-	cursorStr := req.URL.Query().Get("cursor")
-	cursor, err := strconv.ParseUint(cursorStr, 10, 64)
+	pageStr := req.URL.Query().Get("page")
+	page, err := strconv.ParseUint(pageStr, 10, 64)
 	if err != nil {
-		return 0, 0, fmt.Errorf("invalid cursor param: %w", err)
+		return 0, 0, fmt.Errorf("invalid page param: %w", err)
+	}
+
+	if page == 0 {
+		return 0, 0, errors.New("page must be positive")
 	}
 
 	limitStr := req.URL.Query().Get("limit")
@@ -58,7 +62,7 @@ func ParsePagination(req *http.Request) (uint, int, error) {
 		return 0, 0, fmt.Errorf("invalid limit param: %w", err)
 	}
 
-	return uint(cursor), int(limit), nil
+	return uint(page), int(limit), nil
 }
 
 // ErrResponse defines an HTTP error response.
