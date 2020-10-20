@@ -29,15 +29,15 @@ const (
 // interface.
 type PaginationResponse struct {
 	Limit   int         `json:"limit"`
-	Page    uint        `json:"page"`
+	Page    int         `json:"page"`
 	Count   int         `json:"count"`
 	Results interface{} `json:"results"`
 }
 
-func NewPaginationResponse(count, limit int, page uint, results interface{}) PaginationResponse {
+func NewPaginationResponse(count, page, limit int, results interface{}) PaginationResponse {
 	return PaginationResponse{
-		Limit:   limit,
 		Page:    page,
+		Limit:   limit,
 		Count:   count,
 		Results: results,
 	}
@@ -45,14 +45,14 @@ func NewPaginationResponse(count, limit int, page uint, results interface{}) Pag
 
 // ParsePagination parses pagination values (page and limit) from an HTTP
 // request returning an error upon failure.
-func ParsePagination(req *http.Request) (uint, int, error) {
+func ParsePagination(req *http.Request) (int, int, error) {
 	pageStr := req.URL.Query().Get("page")
-	page, err := strconv.ParseUint(pageStr, 10, 64)
+	page, err := strconv.ParseInt(pageStr, 10, 64)
 	if err != nil {
 		return 0, 0, fmt.Errorf("invalid page param: %w", err)
 	}
 
-	if page == 0 {
+	if page <= 0 {
 		return 0, 0, errors.New("page must be positive")
 	}
 
@@ -62,7 +62,7 @@ func ParsePagination(req *http.Request) (uint, int, error) {
 		return 0, 0, fmt.Errorf("invalid limit param: %w", err)
 	}
 
-	return uint(page), int(limit), nil
+	return int(page), int(limit), nil
 }
 
 // ErrResponse defines an HTTP error response.
