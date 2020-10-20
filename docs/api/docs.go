@@ -40,9 +40,9 @@ var doc = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "default": 0,
-                        "description": "pagination cursor",
-                        "name": "cursor",
+                        "default": 1,
+                        "description": "pagination page",
+                        "name": "page",
                         "in": "query",
                         "required": true
                     },
@@ -303,9 +303,9 @@ var doc = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "default": 0,
-                        "description": "pagination cursor",
-                        "name": "cursor",
+                        "default": 1,
+                        "description": "pagination page",
+                        "name": "page",
                         "in": "query",
                         "required": true
                     },
@@ -409,9 +409,9 @@ var doc = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "default": 0,
-                        "description": "pagination cursor",
-                        "name": "cursor",
+                        "default": 1,
+                        "description": "pagination page",
+                        "name": "page",
                         "in": "query",
                         "required": true
                     },
@@ -673,9 +673,9 @@ var doc = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "default": 0,
-                        "description": "pagination cursor",
-                        "name": "cursor",
+                        "default": 1,
+                        "description": "pagination page",
+                        "name": "page",
                         "in": "query",
                         "required": true
                     },
@@ -815,10 +815,10 @@ var doc = `{
                 "count": {
                     "type": "integer"
                 },
-                "cursor": {
+                "limit": {
                     "type": "integer"
                 },
-                "limit": {
+                "page": {
                     "type": "integer"
                 },
                 "results": {

@@ -8,9 +8,9 @@ definitions:
     properties:
       count:
         type: integer
-      cursor:
-        type: integer
       limit:
+        type: integer
+      page:
         type: integer
       results:
         type: object
@@ -301,10 +301,10 @@ paths:
       consumes:
       - application/json
       parameters:
-      - default: 0
-        description: pagination cursor
+      - default: 1
+        description: pagination page
         in: query
-        name: cursor
+        name: page
         required: true
         type: integer
       - default: 100
@@ -467,10 +467,10 @@ paths:
       consumes:
       - application/json
       parameters:
-      - default: 0
-        description: pagination cursor
+      - default: 1
+        description: pagination page
         in: query
-        name: cursor
+        name: page
         required: true
         type: integer
       - default: 100
@@ -670,10 +670,10 @@ paths:
       consumes:
       - application/json
       parameters:
-      - default: 0
-        description: pagination cursor
+      - default: 1
+        description: pagination page
         in: query
-        name: cursor
+        name: page
         required: true
         type: integer
       - default: 100
@@ -710,10 +710,10 @@ paths:
       consumes:
       - application/json
       parameters:
-      - default: 0
-        description: pagination cursor
+      - default: 1
+        description: pagination page
         in: query
-        name: cursor
+        name: page
         required: true
         type: integer
       - default: 100
