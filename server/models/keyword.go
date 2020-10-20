@@ -48,13 +48,12 @@ func (k Keyword) Query(db *gorm.DB) (Keyword, error) {
 	return record, nil
 }
 
-// GetAllKeywords returns a slice of Keyword objects paginated by a cursor and a
-// limit. The cursor must be the ID of the last retrieved object. An error is
-// returned upon database query failure.
-func GetAllKeywords(db *gorm.DB, cursor uint, limit int) ([]Keyword, error) {
+// GetAllKeywords returns a slice of Keyword objects paginated by an offset and a
+// limit. An error is returned upon database query failure.
+func GetAllKeywords(db *gorm.DB, offset, limit int) ([]Keyword, error) {
 	var keywords []Keyword
 
-	if err := db.Limit(limit).Order("id asc").Where("id > ?", cursor).Find(&keywords).Error; err != nil {
+	if err := db.Limit(limit).Offset(offset).Order("id asc").Find(&keywords).Error; err != nil {
 		return nil, fmt.Errorf("failed to query for keywords: %w", err)
 	}
 

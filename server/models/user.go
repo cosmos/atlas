@@ -191,13 +191,12 @@ func QueryUser(db *gorm.DB, query map[string]interface{}) (User, error) {
 	return record, nil
 }
 
-// GetAllUsers returns a slice of User objects paginated by a cursor and a
-// limit. The cursor must be the ID of the last retrieved object. An error is
-// returned upon database query failure.
-func GetAllUsers(db *gorm.DB, cursor uint, limit int) ([]User, error) {
+// GetAllUsers returns a slice of User objects paginated by an offset and a
+// limit. An error is returned upon database query failure.
+func GetAllUsers(db *gorm.DB, offset, limit int) ([]User, error) {
 	var users []User
 
-	if err := db.Limit(limit).Order("id asc").Where("id > ?", cursor).Find(&users).Error; err != nil {
+	if err := db.Limit(limit).Offset(offset).Order("id asc").Find(&users).Error; err != nil {
 		return nil, fmt.Errorf("failed to query for users: %w", err)
 	}
 

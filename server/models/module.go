@@ -322,13 +322,12 @@ func GetModuleByID(db *gorm.DB, id uint) (Module, error) {
 	return m, nil
 }
 
-// GetAllModules returns a slice of Module objects paginated by a cursor and a
-// limit. The cursor must be the ID of the last retrieved object. An error is
-// returned upon database query failure.
-func GetAllModules(db *gorm.DB, cursor uint, limit int) ([]Module, error) {
+// GetAllModules returns a slice of Module objects paginated by an offset and a
+// limit. An error is returned upon database query failure.
+func GetAllModules(db *gorm.DB, offset, limit int) ([]Module, error) {
 	var modules []Module
 
-	if err := db.Limit(limit).Order("id asc").Where("id > ?", cursor).Find(&modules).Error; err != nil {
+	if err := db.Limit(limit).Offset(offset).Order("id asc").Find(&modules).Error; err != nil {
 		return nil, fmt.Errorf("failed to query for modules: %w", err)
 	}
 
@@ -338,7 +337,11 @@ func GetAllModules(db *gorm.DB, cursor uint, limit int) ([]Module, error) {
 // SearchModules performs a paginated query for a set of modules by name, team,
 // description and set of keywords. If not matching modules exist, an empty slice
 // is returned.
-func SearchModules(db *gorm.DB, query string, cursor uint, limit int) ([]Module, error) {
+//
+// Note, we used offset-based pagination even though this approach doesn't scale
+// well. We presume that number of records stored and even returned won't approach
+// the scale where offset pagination would drastically impact performance.
+func SearchModules(db *gorm.DB, query string, offset, limit int) ([]Module, error) {
 	if len(query) == 0 {
 		return []Module{}, nil
 	}
@@ -372,12 +375,11 @@ FROM
         ON (mk.keyword_id = k.id)
     WHERE
       to_tsvector('english', COALESCE(m.name, '') || ' ' || COALESCE(m.team, '') || ' ' || COALESCE(m.description, '') || ' ' || COALESCE(k.name, '')) @@ websearch_to_tsquery('english', ?)
-      AND m.id > ?
   )
   AS results
 ORDER BY
-  module_id LIMIT ?;
-`, query, cursor, limit).Rows()
+  module_id LIMIT ? OFFSET ?;
+`, query, limit, offset).Rows()
 	if err != nil {
 		return nil, err
 	}
