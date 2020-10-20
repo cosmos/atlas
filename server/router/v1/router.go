@@ -93,12 +93,12 @@ func (r *Router) Register(rtr *mux.Router, prefix string) {
 	v1Router.Handle(
 		"/modules/search",
 		mChain.ThenFunc(r.SearchModules()),
-	).Queries("cursor", "{cursor:[0-9]+}", "limit", "{limit:[0-9]+}", "q", "{q}").Methods(httputil.MethodGET)
+	).Queries("page", "{page:[0-9]+}", "limit", "{limit:[0-9]+}", "q", "{q}").Methods(httputil.MethodGET)
 
 	v1Router.Handle(
 		"/modules",
 		mChain.ThenFunc(r.GetAllModules()),
-	).Queries("cursor", "{cursor:[0-9]+}", "limit", "{limit:[0-9]+}").Methods(httputil.MethodGET)
+	).Queries("page", "{page:[0-9]+}", "limit", "{limit:[0-9]+}").Methods(httputil.MethodGET)
 
 	v1Router.Handle(
 		"/modules/{id:[0-9]+}",
@@ -299,7 +299,7 @@ func (r *Router) GetModuleByID() http.HandlerFunc {
 // @Tags modules
 // @Accept  json
 // @Produce  json
-// @Param cursor query int true "pagination cursor"  default(0)
+// @Param page query int true "pagination page"  default(1)
 // @Param limit query int true "pagination limit"  default(100)
 // @Param q query string true "search criteria"
 // @Success 200 {object} httputil.PaginationResponse
@@ -308,7 +308,7 @@ func (r *Router) GetModuleByID() http.HandlerFunc {
 // @Router /modules/search [get]
 func (r *Router) SearchModules() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
-		cursor, limit, err := httputil.ParsePagination(req)
+		page, limit, err := httputil.ParsePagination(req)
 		if err != nil {
 			httputil.RespondWithError(w, http.StatusBadRequest, err)
 			return
@@ -316,13 +316,13 @@ func (r *Router) SearchModules() http.HandlerFunc {
 
 		query := req.URL.Query().Get("q")
 
-		modules, err := models.SearchModules(r.db, query, cursor, limit)
+		modules, err := models.SearchModules(r.db, query, (page-1)*limit, limit)
 		if err != nil {
 			httputil.RespondWithError(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		paginated := httputil.NewPaginationResponse(len(modules), limit, cursor, modules)
+		paginated := httputil.NewPaginationResponse(len(modules), page, limit, modules)
 		httputil.RespondWithJSON(w, http.StatusOK, paginated)
 	}
 }
@@ -333,7 +333,7 @@ func (r *Router) SearchModules() http.HandlerFunc {
 // @Tags modules
 // @Accept  json
 // @Produce  json
-// @Param cursor query int true "pagination cursor"  default(0)
+// @Param page query int true "pagination page"  default(1)
 // @Param limit query int true "pagination limit"  default(100)
 // @Success 200 {object} httputil.PaginationResponse
 // @Failure 400 {object} httputil.ErrResponse
@@ -341,19 +341,19 @@ func (r *Router) SearchModules() http.HandlerFunc {
 // @Router /modules [get]
 func (r *Router) GetAllModules() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
-		cursor, limit, err := httputil.ParsePagination(req)
+		page, limit, err := httputil.ParsePagination(req)
 		if err != nil {
 			httputil.RespondWithError(w, http.StatusBadRequest, err)
 			return
 		}
 
-		modules, err := models.GetAllModules(r.db, cursor, limit)
+		modules, err := models.GetAllModules(r.db, (page-1)*limit, limit)
 		if err != nil {
 			httputil.RespondWithError(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		paginated := httputil.NewPaginationResponse(len(modules), limit, cursor, modules)
+		paginated := httputil.NewPaginationResponse(len(modules), page, limit, modules)
 		httputil.RespondWithJSON(w, http.StatusOK, paginated)
 	}
 }
