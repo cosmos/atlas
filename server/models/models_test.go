@@ -234,24 +234,15 @@ func (mts *ModelsTestSuite) TestGetAllModules() {
 	mts.Require().NoError(err)
 	mts.Require().Len(mods, 10)
 
-	cursor := mods[len(mods)-1].ID
-	mts.Require().Equal(uint(10), cursor)
-
 	// second page (full)
-	mods, err = models.GetAllModules(mts.gormDB, cursor, 10)
+	mods, err = models.GetAllModules(mts.gormDB, (2-1)*10, 10)
 	mts.Require().NoError(err)
 	mts.Require().Len(mods, 10)
 
-	cursor = mods[len(mods)-1].ID
-	mts.Require().Equal(uint(20), cursor)
-
 	// third page (partially full)
-	mods, err = models.GetAllModules(mts.gormDB, cursor, 10)
+	mods, err = models.GetAllModules(mts.gormDB, (3-1)*10, 10)
 	mts.Require().NoError(err)
 	mts.Require().Len(mods, 5)
-
-	cursor = mods[len(mods)-1].ID
-	mts.Require().Equal(uint(25), cursor)
 }
 
 func (mts *ModelsTestSuite) TestModuleUpdateBasic() {
@@ -574,7 +565,7 @@ func (mts *ModelsTestSuite) TestModuleSearch() {
 	testCases := []struct {
 		name     string
 		query    string
-		cursor   uint
+		offset   int
 		limit    int
 		expected map[string]bool
 	}{
@@ -607,7 +598,7 @@ func (mts *ModelsTestSuite) TestModuleSearch() {
 		tc := tc
 
 		mts.Run(tc.name, func() {
-			modules, err := models.SearchModules(mts.gormDB, tc.query, tc.cursor, tc.limit)
+			modules, err := models.SearchModules(mts.gormDB, tc.query, tc.offset, tc.limit)
 			mts.Require().NoError(err)
 			mts.Require().Len(modules, len(tc.expected))
 
@@ -870,24 +861,15 @@ func (mts *ModelsTestSuite) TestGetAllUsers() {
 	mts.Require().NoError(err)
 	mts.Require().Len(users, 10)
 
-	cursor := users[len(users)-1].ID
-	mts.Require().Equal(uint(10), cursor)
-
 	// second page (full)
-	users, err = models.GetAllUsers(mts.gormDB, cursor, 10)
+	users, err = models.GetAllUsers(mts.gormDB, (2-1)*10, 10)
 	mts.Require().NoError(err)
 	mts.Require().Len(users, 10)
 
-	cursor = users[len(users)-1].ID
-	mts.Require().Equal(uint(20), cursor)
-
 	// third page (partially full)
-	users, err = models.GetAllUsers(mts.gormDB, cursor, 10)
+	users, err = models.GetAllUsers(mts.gormDB, (3-1)*10, 10)
 	mts.Require().NoError(err)
 	mts.Require().Len(users, 5)
-
-	cursor = users[len(users)-1].ID
-	mts.Require().Equal(uint(25), cursor)
 }
 
 func (mts *ModelsTestSuite) TestGetAllKeywords() {
@@ -924,24 +906,15 @@ func (mts *ModelsTestSuite) TestGetAllKeywords() {
 	mts.Require().NoError(err)
 	mts.Require().Len(keywords, 10)
 
-	cursor := keywords[len(keywords)-1].ID
-	mts.Require().Equal(uint(10), cursor)
-
 	// second page (full)
-	keywords, err = models.GetAllKeywords(mts.gormDB, cursor, 10)
+	keywords, err = models.GetAllKeywords(mts.gormDB, (2-1)*10, 10)
 	mts.Require().NoError(err)
 	mts.Require().Len(keywords, 10)
 
-	cursor = keywords[len(keywords)-1].ID
-	mts.Require().Equal(uint(20), cursor)
-
 	// third page (partially full)
-	keywords, err = models.GetAllKeywords(mts.gormDB, cursor, 10)
+	keywords, err = models.GetAllKeywords(mts.gormDB, (3-1)*10, 10)
 	mts.Require().NoError(err)
 	mts.Require().Len(keywords, 5)
-
-	cursor = keywords[len(keywords)-1].ID
-	mts.Require().Equal(uint(25), cursor)
 }
 
 func resetDB(t *testing.T, m *migrate.Migrate) {
