@@ -774,6 +774,9 @@ func (mts *ModelsTestSuite) TestGetUserModules() {
 		Name: "x/bank",
 		Team: "cosmonauts",
 		Repo: "https://github.com/cosmos/cosmos-sdk",
+		Owners: []models.User{
+			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
+		},
 		Authors: []models.User{
 			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 		},
