@@ -9,7 +9,7 @@
 
     <section
       class="section bg-secondary"
-      style="position: relative; padding-top: 50vh; min-height: 100vh;"
+      style="position: relative; padding-top: 40vh; min-height: 100vh;"
     >
       <div class="container">
         <div class="card card-profile shadow mt--300">

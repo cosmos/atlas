@@ -9,7 +9,7 @@
 
     <div
       class="main"
-      style="position: relative; padding-top: 30vh; min-height: 100vh;"
+      style="position: relative; padding-top: 35vh; min-height: 100vh;"
     >
       <div class="container bg-white card mb-0">
         <div class="row" style="padding-left: 25px; padding-right: 25px;">
