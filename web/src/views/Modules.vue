@@ -74,7 +74,7 @@
                 >
                   <vue-markdown
                     :source="documentation"
-                    anchor-attributes="rel: 'nofollow'"
+                    :anchor-attributes="anchorAttrs"
                   ></vue-markdown>
                 </div>
                 <div class="col-lg-3 text-lg-right">
@@ -168,7 +168,11 @@ export default {
   data() {
     return {
       module: {},
-      documentation: ""
+      documentation: "",
+      anchorAttrs: {
+        target: "_blank",
+        rel: "noopener noreferrer nofollow"
+      }
     };
   },
   beforeRouteUpdate(to, from, next) {

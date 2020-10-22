@@ -85,7 +85,11 @@
                     <el-table-column prop="name" sortable scope="row">
                       <template v-slot="{ row }">
                         <div>
-                          {{ row.name }}
+                          <router-link
+                            :to="{ name: 'modules', params: { id: row.id } }"
+                          >
+                            {{ row.name }}
+                          </router-link>
                         </div>
                       </template>
                     </el-table-column>
