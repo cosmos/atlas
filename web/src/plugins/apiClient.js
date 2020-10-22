@@ -36,6 +36,10 @@ const APIClient = {
     return this.perform('get', `/users/${name}/modules`);
   },
 
+  getModule(id) {
+    return this.perform('get', `/modules/${id}`);
+  },
+
   searchModules(query, page, limit) {
     return this.perform('get', `/modules/search?page=${page}&limit=${limit}&q=${query}`);
   },

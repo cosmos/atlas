@@ -1,3 +1,5 @@
+import moment from "moment";
+
 const GlobalMixins = {
   install(Vue) {
     Vue.mixin({
@@ -23,13 +25,17 @@ const GlobalMixins = {
         }
       },
       methods: {
+        formatDate(timestamp) {
+          return moment(timestamp).fromNow();
+        },
+
         queryModules: function() {
           if (this.$route.name === 'search-results' && this.$route.query.q === this.searchCriteria) {
             // prevent routing when we're on the results page with the same query
             return
           }
 
-          this.$router.push({path: 'search', query: {q: this.searchCriteria}});
+          this.$router.push({name: 'search-results', query: {q: this.searchCriteria}});
         },
 
         logout: function() {

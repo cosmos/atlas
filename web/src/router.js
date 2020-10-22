@@ -21,6 +21,7 @@ import Presentation from './views/Presentation.vue';
 import Pricing from './views/Pricing.vue';
 import ProductPage from './views/ProductPage.vue';
 import ProfilePage from './views/ProfilePage.vue';
+import ModulesPage from './views/Modules.vue';
 import Register from './views/Register.vue';
 import Reset from './views/Reset.vue';
 import SearchResults from './views/SearchResults.vue';
@@ -63,6 +64,12 @@ export default new Router({
       path: '/profile/:name',
       name: 'profile',
       components: {header: AppHeader, default: ProfilePage, footer: AppFooter},
+      props: {header: {showSearch: true}},
+    },
+    {
+      path: '/modules/:id',
+      name: 'modules',
+      components: {header: AppHeader, default: ModulesPage, footer: AppFooter},
       props: {header: {showSearch: true}},
     },
 

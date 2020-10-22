@@ -24,7 +24,11 @@
                   <i class="ni ni-badge"></i> {{ mod.team }}
                 </h6>
                 <h5 class="card-title">
-                  <a href="javascript:;"> {{ mod.name }}</a>
+                  <router-link
+                    :to="{ name: 'modules', params: { id: mod.id } }"
+                  >
+                    {{ mod.name }}
+                  </router-link>
                 </h5>
                 <p class="card-description">
                   {{ mod.description }}
@@ -46,7 +50,7 @@
                   </p>
                 </div>
                 <div class="stats stats-right">
-                  <i class="ni ni-favourite-28"></i> 0 ·
+                  <i class="fa fa-star"></i> 0 ·
                   <i class="ni ni-archive-2"></i>
                   {{ latestVersion(mod.versions) }}
                 </div>
@@ -159,6 +163,10 @@ export default {
 </script>
 
 <style>
+.stats i {
+  top: 0;
+}
+
 .search-results-page .main {
   margin-top: 0;
 }

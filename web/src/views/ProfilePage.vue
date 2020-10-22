@@ -71,7 +71,6 @@
                   <h3>
                     Modules
                   </h3>
-                  <!--  -->
                   <base-input
                     v-if="userModules.length > 0"
                     v-model="userModulesQuery"
@@ -141,7 +140,6 @@
 <script>
 import { Table, TableColumn } from "element-ui";
 import APIClient from "../plugins/apiClient";
-import moment from "moment";
 
 export default {
   bodyClass: "profile-page",
@@ -201,10 +199,6 @@ export default {
     }
   },
   methods: {
-    formatDate(timestamp) {
-      return moment(timestamp).fromNow();
-    },
-
     getUserByName() {
       APIClient.getUserByName(this.$route.params.name)
         .then(resp => {

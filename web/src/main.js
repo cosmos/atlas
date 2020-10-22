@@ -9,16 +9,15 @@ import router from './router';
 
 Vue.config.productionTip = false;
 
-const pbOptions = {
+Vue.use(VueProgressBar, {
   color: '#ba3fd9',
   failedColor: 'red',
   thickness: '3px',
   location: 'top',
   position: 'fixed',
   transition: {speed: '0.2s', opacity: '0.6s', termination: 300},
-};
+});
 
-Vue.use(VueProgressBar, pbOptions);
 Vue.use(Notifications);
 Vue.use(Argon);
 

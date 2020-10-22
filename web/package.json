@@ -22,6 +22,7 @@
     "vue-flatpickr-component": "^8.1.5",
     "vue-github-button": "^1.2.0",
     "vue-glide-js": "^1.3.14",
+    "vue-markdown": "^2.2.4",
     "vue-notification": "^1.3.20",
     "vue-progressbar": "^0.7.5",
     "vue-router": "^3.2.0",
