@@ -93,12 +93,12 @@ func (r *Router) Register(rtr *mux.Router, prefix string) {
 	v1Router.Handle(
 		"/modules/search",
 		mChain.ThenFunc(r.SearchModules()),
-	).Queries("cursor", "{cursor:[0-9]+}", "limit", "{limit:[0-9]+}", "page", "{page:[prev|next]}", "q", "{q}").Methods(httputil.MethodGET)
+	).Queries("cursor", "{cursor:[0-9]+}", "limit", "{limit:[0-9]+}", "page", "{page:(?:prev|next)}", "q", "{q}").Methods(httputil.MethodGET)
 
 	v1Router.Handle(
 		"/modules",
 		mChain.ThenFunc(r.GetAllModules()),
-	).Queries("cursor", "{cursor:[0-9]+}", "limit", "{limit:[0-9]+}", "page", "{page:[prev|next]}").Methods(httputil.MethodGET)
+	).Queries("cursor", "{cursor:[0-9]+}", "limit", "{limit:[0-9]+}", "page", "{page:(?:prev|next)}").Methods(httputil.MethodGET)
 
 	v1Router.Handle(
 		"/modules/{id:[0-9]+}",
@@ -133,12 +133,12 @@ func (r *Router) Register(rtr *mux.Router, prefix string) {
 	v1Router.Handle(
 		"/users",
 		mChain.ThenFunc(r.GetAllUsers()),
-	).Queries("cursor", "{cursor:[0-9]+}", "limit", "{limit:[0-9]+}", "page", "{page:[prev|next]}").Methods(httputil.MethodGET)
+	).Queries("cursor", "{cursor:[0-9]+}", "limit", "{limit:[0-9]+}", "page", "{page:(?:prev|next)}").Methods(httputil.MethodGET)
 
 	v1Router.Handle(
 		"/keywords",
 		mChain.ThenFunc(r.GetAllKeywords()),
-	).Queries("cursor", "{cursor:[0-9]+}", "limit", "{limit:[0-9]+}", "page", "{page:[prev|next]}").Methods(httputil.MethodGET)
+	).Queries("cursor", "{cursor:[0-9]+}", "limit", "{limit:[0-9]+}", "page", "{page:(?:prev|next)}").Methods(httputil.MethodGET)
 
 	// authenticated routes
 	v1Router.Handle(

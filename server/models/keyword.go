@@ -60,10 +60,10 @@ func GetAllKeywords(db *gorm.DB, pq httputil.PaginationQuery) ([]Keyword, Pagina
 
 	switch pq.Page {
 	case httputil.PagePrev:
-		tx = db.Scopes(PrevPageScope(pq, "keywords"))
+		tx = db.Scopes(prevPageScope(pq, "keywords"))
 
 	case httputil.PageNext:
-		tx = db.Scopes(NextPageScope(pq, "keywords"))
+		tx = db.Scopes(nextPageScope(pq, "keywords"))
 
 	default:
 		return nil, Paginator{}, ErrInvalidPaginationQuery
@@ -79,7 +79,7 @@ func GetAllKeywords(db *gorm.DB, pq httputil.PaginationQuery) ([]Keyword, Pagina
 	)
 
 	if len(keywords) > 0 {
-		paginator, err = BuildPaginator(db, pq, Keyword{}, len(keywords), keywords[0].ID, keywords[len(keywords)-1].ID)
+		paginator, err = buildPaginator(db, pq, Keyword{}, len(keywords), keywords[0].ID, keywords[len(keywords)-1].ID)
 		if err != nil {
 			return nil, Paginator{}, err
 		}

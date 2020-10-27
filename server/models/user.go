@@ -203,10 +203,10 @@ func GetAllUsers(db *gorm.DB, pq httputil.PaginationQuery) ([]User, Paginator, e
 
 	switch pq.Page {
 	case httputil.PagePrev:
-		tx = db.Scopes(PrevPageScope(pq, "users"))
+		tx = db.Scopes(prevPageScope(pq, "users"))
 
 	case httputil.PageNext:
-		tx = db.Scopes(NextPageScope(pq, "users"))
+		tx = db.Scopes(nextPageScope(pq, "users"))
 
 	default:
 		return nil, Paginator{}, ErrInvalidPaginationQuery
@@ -222,7 +222,7 @@ func GetAllUsers(db *gorm.DB, pq httputil.PaginationQuery) ([]User, Paginator, e
 	)
 
 	if len(users) > 0 {
-		paginator, err = BuildPaginator(db, pq, User{}, len(users), users[0].ID, users[len(users)-1].ID)
+		paginator, err = buildPaginator(db, pq, User{}, len(users), users[0].ID, users[len(users)-1].ID)
 		if err != nil {
 			return nil, Paginator{}, err
 		}

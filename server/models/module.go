@@ -335,10 +335,10 @@ func GetAllModules(db *gorm.DB, pq httputil.PaginationQuery) ([]Module, Paginato
 
 	switch pq.Page {
 	case httputil.PagePrev:
-		tx = db.Scopes(PrevPageScope(pq, "modules"))
+		tx = db.Scopes(prevPageScope(pq, "modules"))
 
 	case httputil.PageNext:
-		tx = db.Scopes(NextPageScope(pq, "modules"))
+		tx = db.Scopes(nextPageScope(pq, "modules"))
 
 	default:
 		return nil, Paginator{}, ErrInvalidPaginationQuery
@@ -354,7 +354,7 @@ func GetAllModules(db *gorm.DB, pq httputil.PaginationQuery) ([]Module, Paginato
 	)
 
 	if len(modules) > 0 {
-		paginator, err = BuildPaginator(db, pq, Module{}, len(modules), modules[0].ID, modules[len(modules)-1].ID)
+		paginator, err = buildPaginator(db, pq, Module{}, len(modules), modules[0].ID, modules[len(modules)-1].ID)
 		if err != nil {
 			return nil, Paginator{}, err
 		}

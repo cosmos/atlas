@@ -21,9 +21,9 @@ type Paginator struct {
 	NextCursor string
 }
 
-// PrevPageScope builds a scope for executing a previous page query on a table
+// prevPageScope builds a scope for executing a previous page query on a table
 // by the primary key (id). This scope cannot be used for custom queries.
-func PrevPageScope(pq httputil.PaginationQuery, table string) func(*gorm.DB) *gorm.DB {
+func prevPageScope(pq httputil.PaginationQuery, table string) func(*gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		query := fmt.Sprintf(`SELECT *
     FROM (SELECT * FROM %s WHERE id < ? ORDER BY id DESC LIMIT ?) as prev_page
@@ -32,18 +32,18 @@ func PrevPageScope(pq httputil.PaginationQuery, table string) func(*gorm.DB) *go
 	}
 }
 
-// NextPageScope builds a scope for executing a next page query on a table
+// nextPageScope builds a scope for executing a next page query on a table
 // by the primary key (id). This scope cannot be used for custom queries.
-func NextPageScope(pq httputil.PaginationQuery, table string) func(*gorm.DB) *gorm.DB {
+func nextPageScope(pq httputil.PaginationQuery, table string) func(*gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		query := fmt.Sprintf("SELECT * FROM %s WHERE id > ? ORDER BY id ASC LIMIT ?;", table)
 		return db.Raw(query, pq.Cursor, pq.Limit)
 	}
 }
 
-// BuildPaginator returns a Paginator object with previous and next page cursors
+// buildPaginator returns a Paginator object with previous and next page cursors
 // after completing a pagination query. An error is returned if any query fails.
-func BuildPaginator(tx *gorm.DB, pq httputil.PaginationQuery, model interface{}, numRecords int, startID, endID uint) (Paginator, error) {
+func buildPaginator(tx *gorm.DB, pq httputil.PaginationQuery, model interface{}, numRecords int, startID, endID uint) (Paginator, error) {
 	paginator := Paginator{}
 
 	if numRecords > 0 {
