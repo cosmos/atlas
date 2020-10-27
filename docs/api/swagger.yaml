@@ -10,8 +10,10 @@ definitions:
         type: integer
       limit:
         type: integer
-      page:
-        type: integer
+      next_cursor:
+        type: string
+      prev_cursor:
+        type: string
       results:
         type: object
     type: object
@@ -301,12 +303,18 @@ paths:
       consumes:
       - application/json
       parameters:
-      - default: 1
+      - default: 0
+        description: pagination cursor
+        in: query
+        name: cursor
+        required: true
+        type: integer
+      - default: next
         description: pagination page
         in: query
         name: page
         required: true
-        type: integer
+        type: string
       - default: 100
         description: pagination limit
         in: query
@@ -467,12 +475,18 @@ paths:
       consumes:
       - application/json
       parameters:
-      - default: 1
+      - default: 0
+        description: pagination cursor
+        in: query
+        name: cursor
+        required: true
+        type: integer
+      - default: next
         description: pagination page
         in: query
         name: page
         required: true
-        type: integer
+        type: string
       - default: 100
         description: pagination limit
         in: query
@@ -670,12 +684,18 @@ paths:
       consumes:
       - application/json
       parameters:
-      - default: 1
+      - default: 0
+        description: pagination cursor
+        in: query
+        name: cursor
+        required: true
+        type: integer
+      - default: next
         description: pagination page
         in: query
         name: page
         required: true
-        type: integer
+        type: string
       - default: 100
         description: pagination limit
         in: query
@@ -710,12 +730,18 @@ paths:
       consumes:
       - application/json
       parameters:
-      - default: 1
+      - default: 0
+        description: pagination cursor
+        in: query
+        name: cursor
+        required: true
+        type: integer
+      - default: next
         description: pagination page
         in: query
         name: page
         required: true
-        type: integer
+        type: string
       - default: 100
         description: pagination limit
         in: query

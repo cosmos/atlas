@@ -40,7 +40,15 @@ var doc = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "default": 1,
+                        "default": 0,
+                        "description": "pagination cursor",
+                        "name": "cursor",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "next",
                         "description": "pagination page",
                         "name": "page",
                         "in": "query",
@@ -303,7 +311,15 @@ var doc = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "default": 1,
+                        "default": 0,
+                        "description": "pagination cursor",
+                        "name": "cursor",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "next",
                         "description": "pagination page",
                         "name": "page",
                         "in": "query",
@@ -409,7 +425,15 @@ var doc = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "default": 1,
+                        "default": 0,
+                        "description": "pagination cursor",
+                        "name": "cursor",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "next",
                         "description": "pagination page",
                         "name": "page",
                         "in": "query",
@@ -673,7 +697,15 @@ var doc = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "default": 1,
+                        "default": 0,
+                        "description": "pagination cursor",
+                        "name": "cursor",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "next",
                         "description": "pagination page",
                         "name": "page",
                         "in": "query",
@@ -818,8 +850,11 @@ var doc = `{
                 "limit": {
                     "type": "integer"
                 },
-                "page": {
-                    "type": "integer"
+                "next_cursor": {
+                    "type": "string"
+                },
+                "prev_cursor": {
+                    "type": "string"
                 },
                 "results": {
                     "type": "object"
