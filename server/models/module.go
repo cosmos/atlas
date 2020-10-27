@@ -481,6 +481,7 @@ func SearchModules(db *gorm.DB, query string, pq httputil.PaginationQuery) ([]Mo
 			paginator.PrevCursor = prevCursor
 		}
 
+		// determine if there is a next page
 		nextCursor := strconv.Itoa(int(modules[len(modules)-1].ID))
 		next, err := searchFn(
 			db,
