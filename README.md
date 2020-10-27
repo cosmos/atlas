@@ -2,7 +2,7 @@
 
 ![GitHub Logo](./images/atlas_logo.png)
 
-![Build, Test and Cover](https://github.com/cosmos/atlas/workflows/Build,%20Test%20and%20Cover/badge.svg)
+![Build, Test and Cover](https://github.com/cosmos/atlas/workflows/Build,%20Test%20and%20Cover/badge.svg?branch=bez%2F13-client-cli-commands)
 [![Go Report Card](https://goreportcard.com/badge/github.com/cosmos/atlas)](https://goreportcard.com/report/github.com/cosmos/atlas)
 [![codecov](https://codecov.io/gh/cosmos/atlas/branch/main/graph/badge.svg)](https://codecov.io/gh/cosmos/atlas)
 [![GoDoc](https://godoc.org/github.com/cosmos/atlas?status.png)](https://pkg.go.dev/github.com/cosmos/atlas)
@@ -75,7 +75,23 @@ $ make update-swagger-docs
 
 ### Web App
 
-TODO
+The Atlas web application is built using [Vue.js](https://vuejs.org/) and is
+contained in the `web` directory. The web application is served as a static
+resource from the same service as the API. It contains a `.env` file at the root
+which must contain a `VUE_APP_ATLAS_API_ADDR` environment variable that describes
+how to reach the Atlas API.
+
+To build locally and watch for lives changes:
+
+```shell
+$ cd web && npm run build-watch
+```
+
+To build for production:
+
+```shell
+$ cd web && npm run build
+```
 
 ## Migrations
 
