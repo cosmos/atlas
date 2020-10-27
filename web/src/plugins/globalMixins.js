@@ -25,6 +25,12 @@ const GlobalMixins = {
         }
       },
       methods: {
+        avatarPicture(author) {
+          return author.avatar_url != ""
+            ? author.avatar_url
+            : "img/generic-avatar.png";
+        },
+        
         formatDate(timestamp) {
           return moment(timestamp).fromNow();
         },
@@ -36,6 +42,7 @@ const GlobalMixins = {
           }
 
           this.$router.push({name: 'search-results', query: {q: this.searchCriteria}});
+          this.searchCriteria = "";
         },
 
         logout: function() {

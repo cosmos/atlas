@@ -7,214 +7,121 @@
       <div class="page-header-image"></div>
     </div>
 
-    <section
-      class="section bg-secondary"
-      style="position: relative; padding-top: 40vh; min-height: 100vh;"
+    <div
+      class="main"
+      style="position: relative; padding-top: 20vh; min-height: 100vh;"
     >
-      <div class="container">
-        <div class="card card-profile shadow mt--300">
-          <div class="px-4">
-            <div class="row justify-content-center">
-              <div class="col-lg-4 order-lg-2">
-                <div class="title text-center justify-content-center">
-                  <h3>{{ module.name }}</h3>
-                  <div class="h6 font-weight-300">
-                    <i class="ni location_pin mr-2"></i>{{ module.team }}
-                  </div>
-                </div>
-              </div>
-              <div
-                class="col-lg-4 order-lg-3 text-lg-right align-self-lg-center"
-              >
-                <div class="card-profile-actions py-4 mt-lg-0">
-                  <base-button
-                    tag="a"
-                    target="_blank"
-                    v-if="module.repo"
-                    :href="module.repo"
-                    type="primary"
-                    size="sm"
-                    >Repo</base-button
+      <div class="container mb-0">
+        <div
+          class="row"
+          v-if="responseData.results && responseData.results.length > 0"
+        >
+          <div
+            class="col-lg-4 col-md-6"
+            v-for="mod in responseData.results"
+            v-bind:key="mod.name"
+          >
+            <card class="card-blog">
+              <template slot="body">
+                <h6 class="card-category">
+                  <i class="ni ni-badge"></i> {{ mod.team }}
+                </h6>
+                <h5 class="card-title">
+                  <router-link
+                    :to="{ name: 'modules', params: { id: mod.id } }"
                   >
-                  <base-button
-                    tag="a"
-                    target="_blank"
-                    type="primary"
-                    v-if="module.homepage"
-                    :href="module.homepage"
-                    size="sm"
-                    >Homepage</base-button
+                    {{ mod.name }}
+                  </router-link>
+                </h5>
+                <p class="card-description">
+                  {{ mod.description }}
+                </p>
+              </template>
+              <template slot="footer">
+                <div class="avatar-group author">
+                  <router-link
+                    v-for="author in mod.authors.slice(0, 3)"
+                    v-bind:key="author.name"
+                    :to="{ name: 'profile', params: { name: author.name } }"
+                    class="avatar avatar-sm rounded-circle"
+                    :title="author.name"
                   >
-                  <base-button
-                    tag="a"
-                    target="_blank"
-                    type="primary"
-                    v-if="module.bug_tracker && module.bug_tracker.url"
-                    :href="module.bug_tracker.url"
-                    size="sm"
-                    >Bugs</base-button
-                  >
+                    <img alt="Image placeholder" :src="avatarPicture(author)" />
+                  </router-link>
+                  <p class="extra-authors" v-if="mod.authors.length > 3">
+                    ...
+                  </p>
                 </div>
-              </div>
-              <div class="col-lg-4 order-lg-1">
-                <div class="card-profile-stats d-flex justify-content-center">
-                  <div class="module-header">
-                    <span>Updated: {{ formatDate(module.updated_at) }}</span>
-                  </div>
-                  <!-- <div class="module-header"><i class="fa fa-star"></i> 0</div> -->
+                <div class="stats stats-right">
+                  <i class="fa fa-star"></i> 0 ·
+                  <i class="ni ni-archive-2"></i>
+                  {{ latestVersion(mod.versions) }}
                 </div>
-              </div>
-            </div>
-            <div class="text-center mt-5"></div>
-            <div class="mt-5 py-5 border-top text-center">
-              <div class="row">
-                <div
-                  class="col-lg-8 text-left"
-                  style="margin-right: 50px; padding-left: 30px;"
-                >
-                  <vue-markdown
-                    :source="documentation"
-                    :anchor-attributes="anchorAttrs"
-                  ></vue-markdown>
-                </div>
-                <div class="col-lg-3 text-lg-right">
-                  <h5 class="card-title mt-4">Owners</h5>
-                  <div class="avatar-group">
-                    <router-link
-                      v-for="owner in module.owners"
-                      v-bind:key="owner.name"
-                      :to="{ name: 'profile', params: { name: owner.name } }"
-                      class="avatar avatar-lg rounded-circle"
-                      :title="owner.name"
-                    >
-                      <img
-                        alt="Image placeholder"
-                        :src="avatarPicture(owner)"
-                      />
-                    </router-link>
-                  </div>
-                  <h5 class="card-title mt-4">Authors</h5>
-                  <div class="avatar-group">
-                    <router-link
-                      v-for="author in module.authors"
-                      v-bind:key="author.name"
-                      :to="{ name: 'profile', params: { name: author.name } }"
-                      class="avatar avatar-lg rounded-circle"
-                      :title="author.name"
-                    >
-                      <img
-                        alt="Image placeholder"
-                        :src="avatarPicture(author)"
-                      />
-                    </router-link>
-                  </div>
-                  <h5 class="card-title mt-4"></h5>
-                  <el-table
-                    class="table table-striped table-flush"
-                    header-row-class-name="thead-light"
-                    :data="sortedVersions"
-                  >
-                    <el-table-column
-                      label="version"
-                      prop="version"
-                      sortable
-                      scope="row"
-                    >
-                      <template v-slot="{ row }">
-                        <div>
-                          {{ row.version }}
-                        </div>
-                      </template>
-                    </el-table-column>
-                    <el-table-column
-                      label="SDK Compatibility"
-                      prop="name"
-                      sortable
-                      scope="row"
-                    >
-                      <template v-slot="{ row }">
-                        <div>
-                          {{ row.sdk_compat }}
-                        </div>
-                      </template>
-                    </el-table-column>
-                  </el-table>
-                </div>
-              </div>
-            </div>
+              </template>
+            </card>
           </div>
         </div>
+        <div
+          class="row justify-content-center"
+          v-if="responseData.results && responseData.results.length > 0"
+        >
+          <base-button
+            class="align-self-center"
+            nativeType="submit"
+            type="neutral"
+            :disabled="!this.responseData.prev_cursor"
+            v-on:click="prevModules"
+          >
+            <i class="ni ni-bold-left"></i>
+          </base-button>
+          <base-button
+            class="align-self-center"
+            nativeType="submit"
+            type="neutral"
+            :disabled="!this.responseData.next_cursor"
+            v-on:click="nextModules"
+          >
+            <i class="ni ni-bold-right"></i>
+          </base-button>
+        </div>
       </div>
-    </section>
+    </div>
   </div>
 </template>
 
 <script>
 import { Table, TableColumn } from "element-ui";
+// import BaseDropdown from "@/components/BaseDropdown";
 import APIClient from "../plugins/apiClient";
-import axios from "axios";
-import VueMarkdown from "vue-markdown";
 
 export default {
-  bodyClass: "profile-page",
+  bodyClass: "search-results-page",
   components: {
-    VueMarkdown,
+    // BaseDropdown,
     [Table.name]: Table,
     [TableColumn.name]: TableColumn
   },
-  created() {
-    this.getModule();
-  },
-  data() {
-    return {
-      module: {},
-      documentation: "",
-      anchorAttrs: {
-        target: "_blank",
-        rel: "noopener noreferrer nofollow"
-      }
-    };
-  },
-  beforeRouteUpdate(to, from, next) {
-    next();
-    this.$Progress.start();
-    this.getModule();
-    this.$Progress.finish();
-  },
-  computed: {
-    sortedVersions() {
-      if (Object.keys(this.module).length === 0) {
-        return [];
-      }
-
-      let versions = this.module.versions;
-      versions.sort((a, b) => {
-        let aUpdated = new Date(a.updated_at);
-        let bUpdated = new Date(b.updated_at);
-
-        if (aUpdated > bUpdated) {
-          return -1;
-        }
-        if (aUpdated < bUpdated) {
-          return 1;
-        }
-
-        return 0;
-      });
-
-      return versions;
+  watch: {
+    cursor: function() {
+      this.getModules();
     }
   },
+  computed: {},
   methods: {
-    avatarPicture(user) {
-      return user.avatar_url != "" ? user.avatar_url : "img/generic-avatar.png";
+    prevModules() {
+      this.page = "prev";
+      this.cursor = this.responseData.prev_cursor;
     },
 
-    getDocumentation() {
-      axios
-        .get(this.module.documentation)
+    nextModules() {
+      this.page = "next";
+      this.cursor = this.responseData.next_cursor;
+    },
+
+    getModules() {
+      APIClient.getModules(this.cursor, this.pageSize, this.page)
         .then(resp => {
-          this.documentation = resp.data;
+          this.responseData = resp;
         })
         .catch(err => {
           console.log(err);
@@ -226,52 +133,50 @@ export default {
             text: err
           });
         });
-    },
-
-    getModule() {
-      APIClient.getModule(this.$route.params.id)
-        .then(resp => {
-          this.module = resp;
-          this.getDocumentation();
-        })
-        .catch(err => {
-          console.log(err);
-        });
     }
+  },
+  created() {
+    this.getModules();
+  },
+  data() {
+    return {
+      cursor: 0,
+      page: "next",
+      pageSize: 9,
+      responseData: {}
+    };
+  },
+  beforeRouteUpdate(to, from, next) {
+    next();
+    // this.$Progress.start();
+    // this.cursor = 0;
+    // this.getModules();
+    // this.$Progress.finish();
   }
 };
 </script>
 
 <style>
-.module-header {
-  padding-top: 30px !important;
+.stats i {
+  top: 0;
 }
 
-section.bg-secondary {
-  background: url(/img/stars.d8924548.d8924548.svg) repeat top,
-    linear-gradient(145.11deg, #202854 9.49%, #171b39 91.06%);
+.search-results-page .main {
+  margin-top: 0;
 }
 
-.table.align-items-center td {
-  vertical-align: middle;
+.card-category {
+  color: #ba3fd9;
 }
 
-.table th,
-.table td {
-  border-top: none;
+.avatar-group .avatar {
+  background-color: white;
 }
 
-.table thead th {
-  border-bottom: none;
-}
-
-.el-table .hidden-columns {
-  visibility: hidden;
-  position: absolute;
-  z-index: -1;
-}
-
-.title {
-  padding-top: 30px;
+.extra-authors {
+  float: right;
+  padding-left: 5px;
+  margin-bottom: 0%;
+  font-size: 1.2rem;
 }
 </style>

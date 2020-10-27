@@ -38,6 +38,13 @@
       </div>
 
       <ul class="navbar-nav navbar-nav-hover align-items-lg-center ml-lg-auto">
+        <router-link
+          class="nav-link"
+          :to="{ name: 'browse' }"
+          style="color: rgba(255, 255, 255, 0.95);"
+        >
+          Browse
+        </router-link>
         <a
           class="nav-link"
           role="button"

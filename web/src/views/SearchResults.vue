@@ -12,10 +12,13 @@
       style="position: relative; padding-top: 20vh; min-height: 100vh;"
     >
       <div class="container mb-0">
-        <div class="row" v-if="modules.length > 0">
+        <div
+          class="row"
+          v-if="responseData.results && responseData.results.length > 0"
+        >
           <div
             class="col-lg-4 col-md-6"
-            v-for="mod in modules"
+            v-for="mod in responseData.results"
             v-bind:key="mod.name"
           >
             <card class="card-blog">
@@ -63,12 +66,15 @@
             Sorry, no modules match your search criteria :(
           </h1>
         </div>
-        <div class="row justify-content-center" v-if="modules.length > 0">
+        <div
+          class="row justify-content-center"
+          v-if="responseData.results && responseData.results.length > 0"
+        >
           <base-button
             class="align-self-center"
             nativeType="submit"
             type="neutral"
-            :disabled="currentPage === 1"
+            :disabled="!this.responseData.prev_cursor"
             v-on:click="prevModules"
           >
             <i class="ni ni-bold-left"></i>
@@ -77,7 +83,7 @@
             class="align-self-center"
             nativeType="submit"
             type="neutral"
-            :disabled="modules.length < pageSize"
+            :disabled="!this.responseData.next_cursor"
             v-on:click="nextModules"
           >
             <i class="ni ni-bold-right"></i>
@@ -96,38 +102,35 @@ export default {
   bodyClass: "search-results-page",
   components: {},
   watch: {
-    currentPage: function() {
+    cursor: function() {
       this.searchModules();
     }
   },
   methods: {
-    avatarPicture(author) {
-      return author.avatar_url != ""
-        ? author.avatar_url
-        : "img/generic-avatar.png";
-    },
-
     filteredModules(x, y) {
-      return this.modules.slice(x, y);
+      return this.responseData.results.slice(x, y);
     },
 
     prevModules() {
-      this.currentPage--;
+      this.page = "prev";
+      this.cursor = this.responseData.prev_cursor;
     },
 
     nextModules() {
-      this.currentPage++;
+      this.page = "next";
+      this.cursor = this.responseData.next_cursor;
     },
 
     searchModules() {
       APIClient.searchModules(
         this.$route.query.q,
-        this.currentPage,
-        this.pageSize
+        this.cursor,
+        this.pageSize,
+        this.page
       )
         .then(resp => {
           this.noMatch = resp.results.length === 0;
-          this.modules = resp.results;
+          this.responseData = resp;
         })
         .catch(err => {
           console.log(err);
@@ -146,16 +149,18 @@ export default {
   },
   data() {
     return {
-      currentPage: 1,
+      cursor: 0,
+      page: "next",
+      responseData: {},
       pageSize: 9,
-      modules: [],
       noMatch: false
     };
   },
   beforeRouteUpdate(to, from, next) {
     next();
     this.$Progress.start();
-    this.currentPage = 1;
+    this.cursor = 0;
+    this.page = "next";
     this.searchModules();
     this.$Progress.finish();
   }

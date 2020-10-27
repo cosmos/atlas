@@ -40,8 +40,12 @@ const APIClient = {
     return this.perform('get', `/modules/${id}`);
   },
 
-  searchModules(query, page, limit) {
-    return this.perform('get', `/modules/search?page=${page}&limit=${limit}&q=${query}`);
+  getModules(cursor, limit, page) {
+    return this.perform('get', `/modules?cursor=${cursor}&limit=${limit}&page=${page}`);
+  },
+
+  searchModules(query, cursor, limit, page) {
+    return this.perform('get', `/modules/search?cursor=${cursor}&limit=${limit}&page=${page}&q=${query}`);
   },
 
   async perform(method, resource, data) {
