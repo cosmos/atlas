@@ -68,6 +68,7 @@
         </div>
         <div
           class="row justify-content-center"
+          style="padding: 30px 0 50px 0;"
           v-if="responseData.results && responseData.results.length > 0"
         >
           <base-button

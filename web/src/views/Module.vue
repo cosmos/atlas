@@ -11,7 +11,7 @@
       class="section bg-secondary"
       style="position: relative; padding-top: 40vh; min-height: 100vh;"
     >
-      <div class="container">
+      <div class="container" style="padding-top: 100px;">
         <div class="card card-profile shadow mt--300">
           <div class="px-4">
             <div class="row justify-content-center">

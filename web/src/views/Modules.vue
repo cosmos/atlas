@@ -9,9 +9,9 @@
 
     <div
       class="main"
-      style="position: relative; padding-top: 20vh; min-height: 100vh;"
+      style="position: relative; padding-top: 25vh; min-height: 100vh;"
     >
-      <div class="container mb-0">
+      <div class="container">
         <div
           class="row"
           v-if="responseData.results && responseData.results.length > 0"
@@ -63,6 +63,7 @@
         </div>
         <div
           class="row justify-content-center"
+          style="padding: 30px 0 50px 0;"
           v-if="responseData.results && responseData.results.length > 0"
         >
           <base-button

@@ -9,9 +9,9 @@
 
     <div
       class="main"
-      style="position: relative; padding-top: 35vh; min-height: 100vh;"
+      style="position: relative; padding-top: 40vh; min-height: 100vh;"
     >
-      <div class="container bg-white card mb-0">
+      <div class="container bg-white card">
         <div class="row" style="padding-left: 25px; padding-right: 25px;">
           <div class="col-md-3">
             <div class="section">
@@ -22,7 +22,7 @@
                   :src="user.avatar_url"
                 />
                 <h3 class="title mt-4">{{ user.name }}</h3>
-                <p class="title mt-4" v-if="user.email">{{ user.email }}</p>
+                <p v-if="user.email">{{ user.email }}</p>
               </section>
             </div>
           </div>
