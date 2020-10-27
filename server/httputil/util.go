@@ -24,41 +24,82 @@ const (
 	BearerSchema = "Bearer "
 )
 
+const (
+	// PageNext defines an enumerated value for retreiving the next page of
+	// paginated data.
+	PageNext = "next"
+
+	// PagePrev defines an enumerated value for retreiving the previous page of
+	// paginated data.
+	PagePrev = "prev"
+)
+
+// PaginationQuery defines the structure containing pagination request information
+// from client HTTP requests.
+type PaginationQuery struct {
+	Cursor string
+	Page   string
+	Limit  int
+}
+
 // PaginationResponse defines a generic type encapsulating a paginated response.
 // Client should not rely on decoding into this type as the Results is an
 // interface.
 type PaginationResponse struct {
-	Limit   int         `json:"limit"`
-	Cursor  uint        `json:"cursor"`
-	Count   int         `json:"count"`
-	Results interface{} `json:"results"`
+	Limit      int         `json:"limit"`
+	Count      int         `json:"count"`
+	PrevCursor string      `json:"prev_cursor"`
+	NextCursor string      `json:"next_cursor"`
+	Results    interface{} `json:"results"`
 }
 
-func NewPaginationResponse(count, limit int, cursor uint, results interface{}) PaginationResponse {
+func NewPaginationResponse(limit, count int, prevC, nextC string, results interface{}) PaginationResponse {
 	return PaginationResponse{
-		Limit:   limit,
-		Cursor:  cursor,
-		Count:   count,
-		Results: results,
+		Limit:      limit,
+		Count:      count,
+		PrevCursor: prevC,
+		NextCursor: nextC,
+		Results:    results,
 	}
 }
 
-// ParsePagination parses pagination values (cursor and limit) from an HTTP
-// request returning an error upon failure.
-func ParsePagination(req *http.Request) (uint, int, error) {
-	cursorStr := req.URL.Query().Get("cursor")
-	cursor, err := strconv.ParseUint(cursorStr, 10, 64)
+// ParsePaginationQueryParams parses pagination values from an HTTP request
+// returning an error upon failure.
+func ParsePaginationQueryParams(req *http.Request) (PaginationQuery, error) {
+	cursor := req.URL.Query().Get("cursor")
+	if cursor == "" {
+		return PaginationQuery{}, errors.New("invalid pagination cursor: cannot be empty")
+	}
+
+	cursorInt, err := strconv.ParseInt(cursor, 10, 64)
 	if err != nil {
-		return 0, 0, fmt.Errorf("invalid cursor param: %w", err)
+		return PaginationQuery{}, fmt.Errorf("invalid pagination cursor '%s': %w", cursor, err)
+	}
+
+	if cursorInt < 0 {
+		return PaginationQuery{}, fmt.Errorf("invalid pagination cursor '%s': cursor cannot be negative", cursor)
 	}
 
 	limitStr := req.URL.Query().Get("limit")
 	limit, err := strconv.ParseInt(limitStr, 10, 64)
 	if err != nil {
-		return 0, 0, fmt.Errorf("invalid limit param: %w", err)
+		return PaginationQuery{}, fmt.Errorf("invalid pagination limit: %w", err)
 	}
 
-	return uint(cursor), int(limit), nil
+	if limit < 0 {
+		return PaginationQuery{}, fmt.Errorf("invalid pagination limit '%d': limit cannot be negative", limit)
+	}
+
+	page := req.URL.Query().Get("page")
+	if page != PagePrev && page != PageNext {
+		return PaginationQuery{}, fmt.Errorf("invalid pagination page: must be '%s' or '%s'", PagePrev, PageNext)
+	}
+
+	return PaginationQuery{
+		Cursor: cursor,
+		Page:   page,
+		Limit:  int(limit),
+	}, nil
 }
 
 // ErrResponse defines an HTTP error response.

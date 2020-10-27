@@ -30,7 +30,9 @@ The manifest schema is defined as follows
 The name of the Cosmos SDK module. The name does not necessarily
 have to be unique as module's can be forked from other teams and organizations.
 Typically, a module will be named as `x/<name>`, where `<name>` is concise and
-meaningful. Note, the combination of `name` and `team` (see below) must be unique.
+meaningful. We encourage that the name is defined as the relative path in the
+module's repository. Note, the combination of `name` and `team` (see below) must
+be unique.
 
 ```toml
 [module]

@@ -8,10 +8,12 @@ definitions:
     properties:
       count:
         type: integer
-      cursor:
-        type: integer
       limit:
         type: integer
+      next_cursor:
+        type: string
+      prev_cursor:
+        type: string
       results:
         type: object
     type: object
@@ -39,6 +41,42 @@ definitions:
         type: string
       updated_at:
         type: string
+    type: object
+  models.Module:
+    properties:
+      authors:
+        items:
+          $ref: '#/definitions/models.User'
+        type: array
+      bug_tracker:
+        $ref: '#/definitions/models.BugTracker'
+        description: one-to-one relationships
+        type: object
+      description:
+        type: string
+      documentation:
+        type: string
+      homepage:
+        type: string
+      keywords:
+        description: many-to-many relationships
+        items:
+          $ref: '#/definitions/models.Keyword'
+        type: array
+      name:
+        type: string
+      owners:
+        items:
+          $ref: '#/definitions/models.User'
+        type: array
+      repo:
+        type: string
+      team:
+        type: string
+      versions:
+        items:
+          $ref: '#/definitions/models.ModuleVersion'
+        type: array
     type: object
   models.ModuleJSON:
     properties:
@@ -106,12 +144,30 @@ definitions:
     type: object
   models.User:
     properties:
-      avatar_url:
+      avatarURL:
         type: string
-      gravatar_id:
+      email:
         type: string
+      fullName:
+        type: string
+      githubAccessToken:
+        type: string
+      githubUserID:
+        type: string
+      gravatarID:
+        type: string
+      modules:
+        description: many-to-many relationships
+        items:
+          $ref: '#/definitions/models.Module'
+        type: array
       name:
         type: string
+      tokens:
+        description: one-to-many relationships
+        items:
+          $ref: '#/definitions/models.UserToken'
+        type: array
       url:
         type: string
     type: object
@@ -120,6 +176,10 @@ definitions:
       avatar_url:
         type: string
       created_at:
+        type: string
+      email:
+        type: object
+      full_name:
         type: string
       gravatar_id:
         type: string
@@ -131,6 +191,17 @@ definitions:
         type: string
       url:
         type: string
+    type: object
+  models.UserToken:
+    properties:
+      count:
+        type: integer
+      revoked:
+        type: boolean
+      token:
+        type: string
+      user_id:
+        type: integer
     type: object
   models.UserTokenJSON:
     properties:
@@ -207,6 +278,13 @@ definitions:
     - repo
     - team
     type: object
+  v1.User:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
   v1.VersionManifest:
     properties:
       sdk_compat:
@@ -231,6 +309,12 @@ paths:
         name: cursor
         required: true
         type: integer
+      - default: next
+        description: pagination page
+        in: query
+        name: page
+        required: true
+        type: string
       - default: 100
         description: pagination limit
         in: query
@@ -255,6 +339,137 @@ paths:
       summary: Return a paginated set of all keywords
       tags:
       - keywords
+  /me:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.UserJSON'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/httputil.ErrResponse'
+      security:
+      - APIKeyAuth: []
+      summary: Get the current authenticated user
+      tags:
+      - users
+    put:
+      parameters:
+      - description: user
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/v1.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.UserJSON'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httputil.ErrResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/httputil.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/httputil.ErrResponse'
+      security:
+      - APIKeyAuth: []
+      summary: Update the current authenticated user
+      tags:
+      - users
+  /me/tokens:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.UserTokenJSON'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/httputil.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/httputil.ErrResponse'
+      security:
+      - APIKeyAuth: []
+      summary: Get all API tokens by user ID
+      tags:
+      - users
+    put:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.UserTokenJSON'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httputil.ErrResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/httputil.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/httputil.ErrResponse'
+      security:
+      - APIKeyAuth: []
+      summary: Create a user API token
+      tags:
+      - users
+  /me/tokens/{id}:
+    delete:
+      parameters:
+      - description: token ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.UserTokenJSON'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httputil.ErrResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/httputil.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/httputil.ErrResponse'
+      security:
+      - APIKeyAuth: []
+      summary: Revoke a user API token by ID
+      tags:
+      - users
   /modules:
     get:
       consumes:
@@ -266,6 +481,12 @@ paths:
         name: cursor
         required: true
         type: integer
+      - default: next
+        description: pagination page
+        in: query
+        name: page
+        required: true
+        type: string
       - default: 100
         description: pagination limit
         in: query
@@ -469,6 +690,12 @@ paths:
         name: cursor
         required: true
         type: integer
+      - default: next
+        description: pagination page
+        in: query
+        name: page
+        required: true
+        type: string
       - default: 100
         description: pagination limit
         in: query
@@ -498,81 +725,6 @@ paths:
       summary: Search for Cosmos SDK modules by name, team, description and keywords
       tags:
       - modules
-  /user/tokens:
-    get:
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/models.UserTokenJSON'
-            type: array
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/httputil.ErrResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/httputil.ErrResponse'
-      summary: Get all API tokens by user ID
-      tags:
-      - users
-    put:
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.UserTokenJSON'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/httputil.ErrResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/httputil.ErrResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/httputil.ErrResponse'
-      summary: Create a user API token
-      tags:
-      - users
-  /user/tokens/{id}:
-    delete:
-      parameters:
-      - description: token ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.UserTokenJSON'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/httputil.ErrResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/httputil.ErrResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/httputil.ErrResponse'
-      summary: Revoke a user API token by ID
-      tags:
-      - users
   /users:
     get:
       consumes:
@@ -584,6 +736,12 @@ paths:
         name: cursor
         required: true
         type: integer
+      - default: next
+        description: pagination page
+        in: query
+        name: page
+        required: true
+        type: string
       - default: 100
         description: pagination limit
         in: query
@@ -608,16 +766,16 @@ paths:
       summary: Return a paginated set of all users
       tags:
       - users
-  /users/{id}:
+  /users/{name}:
     get:
       consumes:
       - application/json
       parameters:
-      - description: user ID
+      - description: user name
         in: path
-        name: id
+        name: name
         required: true
-        type: integer
+        type: string
       produces:
       - application/json
       responses:
@@ -625,10 +783,6 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/models.UserJSON'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/httputil.ErrResponse'
         "404":
           description: Not Found
           schema:
@@ -637,19 +791,19 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/httputil.ErrResponse'
-      summary: Get a user by ID
+      summary: Get a user by name
       tags:
       - users
-  /users/{id}/modules:
+  /users/{name}/modules:
     get:
       consumes:
       - application/json
       parameters:
-      - description: user ID
+      - description: user name
         in: path
-        name: id
+        name: name
         required: true
-        type: integer
+        type: string
       produces:
       - application/json
       responses:
@@ -659,10 +813,6 @@ paths:
             items:
               $ref: '#/definitions/models.ModuleJSON'
             type: array
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/httputil.ErrResponse'
         "404":
           description: Not Found
           schema:
@@ -671,7 +821,7 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/httputil.ErrResponse'
-      summary: Return a paginated set of all Cosmos SDK modules by user ID
+      summary: Return a set of all Cosmos SDK modules published by a given user
       tags:
       - users
 securityDefinitions:

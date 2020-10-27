@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -193,18 +194,39 @@ func (rts *RouterTestSuite) TestSearchModules() {
 	}
 
 	testCases := []struct {
-		name     string
-		query    string
-		cursor   uint
-		limit    int
-		status   int
-		expected map[string]bool
+		name       string
+		query      string
+		pageQuery  httputil.PaginationQuery
+		status     int
+		expected   map[string]bool
+		prevCursor string
+		nextCursor string
 	}{
-		{"empty query", "", 0, 100, 200, map[string]bool{}},
-		{"no matching query", "no match", 0, 100, 200, map[string]bool{}},
-		{"matches one record", "x/mod-1", 0, 100, 200, map[string]bool{"x/mod-1": true}},
 		{
-			"matches all records (page 1)", "module", 0, 5, 200,
+			"empty query", "",
+			httputil.PaginationQuery{Cursor: "0", Page: httputil.PageNext, Limit: 100},
+			200,
+			map[string]bool{},
+			"", "",
+		},
+		{
+			"no matching query", "no match",
+			httputil.PaginationQuery{Cursor: "0", Page: httputil.PageNext, Limit: 100},
+			200,
+			map[string]bool{},
+			"", "",
+		},
+		{
+			"matches one record", "x/mod-1",
+			httputil.PaginationQuery{Cursor: "0", Page: httputil.PageNext, Limit: 100},
+			200,
+			map[string]bool{"x/mod-1": true},
+			"", "",
+		},
+		{
+			"matches all records (page 1)", "module",
+			httputil.PaginationQuery{Cursor: "0", Page: httputil.PageNext, Limit: 5},
+			200,
 			map[string]bool{
 				"x/mod-0": true,
 				"x/mod-1": true,
@@ -212,9 +234,12 @@ func (rts *RouterTestSuite) TestSearchModules() {
 				"x/mod-3": true,
 				"x/mod-4": true,
 			},
+			"", "5",
 		},
 		{
-			"matches all records (page 2)", "module", 5, 5, 200,
+			"matches all records (page 2)", "module",
+			httputil.PaginationQuery{Cursor: "5", Page: httputil.PageNext, Limit: 5},
+			200,
 			map[string]bool{
 				"x/mod-5": true,
 				"x/mod-6": true,
@@ -222,6 +247,7 @@ func (rts *RouterTestSuite) TestSearchModules() {
 				"x/mod-8": true,
 				"x/mod-9": true,
 			},
+			"6", "",
 		},
 	}
 
@@ -229,7 +255,10 @@ func (rts *RouterTestSuite) TestSearchModules() {
 		tc := tc
 
 		rts.Run(tc.name, func() {
-			path := fmt.Sprintf("/api/v1/modules/search?cursor=%d&limit=%d&q=%s", tc.cursor, tc.limit, tc.query)
+			path := fmt.Sprintf(
+				"/api/v1/modules/search?cursor=%s&limit=%d&page=%s&q=%s",
+				tc.pageQuery.Cursor, tc.pageQuery.Limit, tc.pageQuery.Page, tc.query,
+			)
 			req, err := http.NewRequest("GET", path, nil)
 			rts.Require().NoError(err)
 
@@ -238,8 +267,10 @@ func (rts *RouterTestSuite) TestSearchModules() {
 			var pr httputil.PaginationResponse
 			rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
 
-			rts.Require().Equal(tc.cursor, pr.Cursor)
-			rts.Require().Equal(tc.limit, pr.Limit)
+			rts.Require().Equal(len(pr.Results.([]interface{})), pr.Count)
+			rts.Require().Equal(tc.pageQuery.Limit, pr.Limit)
+			rts.Require().Equal(tc.prevCursor, pr.PrevCursor)
+			rts.Require().Equal(tc.nextCursor, pr.NextCursor)
 			rts.Require().Equal(len(tc.expected), len(pr.Results.([]interface{})))
 
 			for _, iFace := range pr.Results.([]interface{}) {
@@ -253,7 +284,7 @@ func (rts *RouterTestSuite) TestSearchModules() {
 func (rts *RouterTestSuite) TestGetAllModules() {
 	rts.resetDB()
 
-	path := fmt.Sprintf("/api/v1/modules?cursor=%d&limit=%d", 0, 10)
+	path := "/api/v1/modules?cursor=0&limit=100&page=next"
 	req, err := http.NewRequest("GET", path, nil)
 	rts.Require().NoError(err)
 
@@ -286,7 +317,7 @@ func (rts *RouterTestSuite) TestGetAllModules() {
 	}
 
 	// first page (full)
-	path = fmt.Sprintf("/api/v1/modules?cursor=%d&limit=%d", 0, 10)
+	path = "/api/v1/modules?cursor=0&limit=10&page=next"
 	req, err = http.NewRequest("GET", path, nil)
 	rts.Require().NoError(err)
 
@@ -294,12 +325,14 @@ func (rts *RouterTestSuite) TestGetAllModules() {
 	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
 	rts.Require().Len(pr.Results, 10)
 
-	mods := pr.Results.([]interface{})
-	cursor := uint(mods[len(mods)-1].(map[string]interface{})["id"].(float64))
-	rts.Require().Equal(uint(10), cursor)
+	modules := pr.Results.([]interface{})
+	nextCursor := strconv.Itoa(int(modules[len(modules)-1].(map[string]interface{})["id"].(float64)))
+	rts.Require().Equal("10", nextCursor)
+	rts.Require().Empty(pr.PrevCursor)
+	rts.Require().Equal(nextCursor, pr.NextCursor)
 
 	// second page (full)
-	path = fmt.Sprintf("/api/v1/modules?cursor=%d&limit=%d", cursor, 10)
+	path = fmt.Sprintf("/api/v1/modules?cursor=%s&limit=%d&page=next", nextCursor, 10)
 	req, err = http.NewRequest("GET", path, nil)
 	rts.Require().NoError(err)
 
@@ -307,12 +340,15 @@ func (rts *RouterTestSuite) TestGetAllModules() {
 	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
 	rts.Require().Len(pr.Results, 10)
 
-	mods = pr.Results.([]interface{})
-	cursor = uint(mods[len(mods)-1].(map[string]interface{})["id"].(float64))
-	rts.Require().Equal(uint(20), cursor)
+	modules = pr.Results.([]interface{})
+	nextCursor = strconv.Itoa(int(modules[len(modules)-1].(map[string]interface{})["id"].(float64)))
+	prevCursor := strconv.Itoa(int(modules[0].(map[string]interface{})["id"].(float64)))
+	rts.Require().Equal("20", nextCursor)
+	rts.Require().Equal(prevCursor, pr.PrevCursor)
+	rts.Require().Equal(nextCursor, pr.NextCursor)
 
 	// third page (partially full)
-	path = fmt.Sprintf("/api/v1/modules?cursor=%d&limit=%d", cursor, 10)
+	path = fmt.Sprintf("/api/v1/modules?cursor=%s&limit=%d&page=next", nextCursor, 10)
 	req, err = http.NewRequest("GET", path, nil)
 	rts.Require().NoError(err)
 
@@ -320,9 +356,28 @@ func (rts *RouterTestSuite) TestGetAllModules() {
 	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
 	rts.Require().Len(pr.Results, 5)
 
-	mods = pr.Results.([]interface{})
-	cursor = uint(mods[len(mods)-1].(map[string]interface{})["id"].(float64))
-	rts.Require().Equal(uint(25), cursor)
+	modules = pr.Results.([]interface{})
+	nextCursor = strconv.Itoa(int(modules[len(modules)-1].(map[string]interface{})["id"].(float64)))
+	prevCursor = strconv.Itoa(int(modules[0].(map[string]interface{})["id"].(float64)))
+	rts.Require().Equal("25", nextCursor)
+	rts.Require().Equal(prevCursor, pr.PrevCursor)
+	rts.Require().Empty(pr.NextCursor)
+
+	// previous (second) page
+	path = fmt.Sprintf("/api/v1/modules?cursor=%s&limit=%d&page=prev", prevCursor, 10)
+	req, err = http.NewRequest("GET", path, nil)
+	rts.Require().NoError(err)
+
+	response = rts.executeRequest(req)
+	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
+	rts.Require().Len(pr.Results, 10)
+
+	modules = pr.Results.([]interface{})
+	nextCursor = strconv.Itoa(int(modules[len(modules)-1].(map[string]interface{})["id"].(float64)))
+	prevCursor = strconv.Itoa(int(modules[0].(map[string]interface{})["id"].(float64)))
+	rts.Require().Equal("20", nextCursor)
+	rts.Require().Equal(prevCursor, pr.PrevCursor)
+	rts.Require().Equal(nextCursor, pr.NextCursor)
 }
 
 func (rts *RouterTestSuite) TestGetModuleByID() {
@@ -589,6 +644,9 @@ func (rts *RouterTestSuite) TestGetUserModules() {
 		Name: "x/bank",
 		Team: "cosmonauts",
 		Repo: "https://github.com/cosmos/cosmos-sdk",
+		Owners: []models.User{
+			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
+		},
 		Authors: []models.User{
 			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 		},
@@ -606,8 +664,7 @@ func (rts *RouterTestSuite) TestGetUserModules() {
 	rts.Require().NoError(err)
 
 	rts.Run("no user exists", func() {
-		path := fmt.Sprintf("/api/v1/users/%d/modules", mod.Authors[0].ID+1)
-		req, err := http.NewRequest("GET", path, nil)
+		req, err := http.NewRequest("GET", "/api/v1/users/bar/modules", nil)
 		rts.Require().NoError(err)
 
 		response := rts.executeRequest(req)
@@ -619,7 +676,7 @@ func (rts *RouterTestSuite) TestGetUserModules() {
 	})
 
 	rts.Run("user exists", func() {
-		path := fmt.Sprintf("/api/v1/users/%d/modules", mod.Authors[0].ID)
+		path := fmt.Sprintf("/api/v1/users/%s/modules", mod.Authors[0].Name)
 		req, err := http.NewRequest("GET", path, nil)
 		rts.Require().NoError(err)
 
@@ -637,7 +694,7 @@ func (rts *RouterTestSuite) TestGetUserModules() {
 func (rts *RouterTestSuite) TestGetAllUsers() {
 	rts.resetDB()
 
-	path := fmt.Sprintf("/api/v1/users?cursor=%d&limit=%d", 0, 10)
+	path := "/api/v1/users?cursor=0&limit=100&page=next"
 	req, err := http.NewRequest("GET", path, nil)
 	rts.Require().NoError(err)
 
@@ -670,7 +727,7 @@ func (rts *RouterTestSuite) TestGetAllUsers() {
 	}
 
 	// first page (full)
-	path = fmt.Sprintf("/api/v1/users?cursor=%d&limit=%d", 0, 10)
+	path = "/api/v1/users?cursor=0&limit=10&page=next"
 	req, err = http.NewRequest("GET", path, nil)
 	rts.Require().NoError(err)
 
@@ -679,11 +736,13 @@ func (rts *RouterTestSuite) TestGetAllUsers() {
 	rts.Require().Len(pr.Results, 10)
 
 	users := pr.Results.([]interface{})
-	cursor := uint(users[len(users)-1].(map[string]interface{})["id"].(float64))
-	rts.Require().Equal(uint(10), cursor)
+	nextCursor := strconv.Itoa(int(users[len(users)-1].(map[string]interface{})["id"].(float64)))
+	rts.Require().Equal("10", nextCursor)
+	rts.Require().Empty(pr.PrevCursor)
+	rts.Require().Equal(nextCursor, pr.NextCursor)
 
 	// second page (full)
-	path = fmt.Sprintf("/api/v1/users?cursor=%d&limit=%d", cursor, 10)
+	path = fmt.Sprintf("/api/v1/users?cursor=%s&limit=%d&page=next", nextCursor, 10)
 	req, err = http.NewRequest("GET", path, nil)
 	rts.Require().NoError(err)
 
@@ -692,11 +751,14 @@ func (rts *RouterTestSuite) TestGetAllUsers() {
 	rts.Require().Len(pr.Results, 10)
 
 	users = pr.Results.([]interface{})
-	cursor = uint(users[len(users)-1].(map[string]interface{})["id"].(float64))
-	rts.Require().Equal(uint(20), cursor)
+	nextCursor = strconv.Itoa(int(users[len(users)-1].(map[string]interface{})["id"].(float64)))
+	prevCursor := strconv.Itoa(int(users[0].(map[string]interface{})["id"].(float64)))
+	rts.Require().Equal("20", nextCursor)
+	rts.Require().Equal(prevCursor, pr.PrevCursor)
+	rts.Require().Equal(nextCursor, pr.NextCursor)
 
 	// third page (partially full)
-	path = fmt.Sprintf("/api/v1/users?cursor=%d&limit=%d", cursor, 10)
+	path = fmt.Sprintf("/api/v1/users?cursor=%s&limit=%d&page=next", nextCursor, 10)
 	req, err = http.NewRequest("GET", path, nil)
 	rts.Require().NoError(err)
 
@@ -705,14 +767,33 @@ func (rts *RouterTestSuite) TestGetAllUsers() {
 	rts.Require().Len(pr.Results, 5)
 
 	users = pr.Results.([]interface{})
-	cursor = uint(users[len(users)-1].(map[string]interface{})["id"].(float64))
-	rts.Require().Equal(uint(25), cursor)
+	nextCursor = strconv.Itoa(int(users[len(users)-1].(map[string]interface{})["id"].(float64)))
+	prevCursor = strconv.Itoa(int(users[0].(map[string]interface{})["id"].(float64)))
+	rts.Require().Equal("25", nextCursor)
+	rts.Require().Equal(prevCursor, pr.PrevCursor)
+	rts.Require().Empty(pr.NextCursor)
+
+	// previous (second) page
+	path = fmt.Sprintf("/api/v1/users?cursor=%s&limit=%d&page=prev", prevCursor, 10)
+	req, err = http.NewRequest("GET", path, nil)
+	rts.Require().NoError(err)
+
+	response = rts.executeRequest(req)
+	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
+	rts.Require().Len(pr.Results, 10)
+
+	users = pr.Results.([]interface{})
+	nextCursor = strconv.Itoa(int(users[len(users)-1].(map[string]interface{})["id"].(float64)))
+	prevCursor = strconv.Itoa(int(users[0].(map[string]interface{})["id"].(float64)))
+	rts.Require().Equal("20", nextCursor)
+	rts.Require().Equal(prevCursor, pr.PrevCursor)
+	rts.Require().Equal(nextCursor, pr.NextCursor)
 }
 
 func (rts *RouterTestSuite) TestGetAllKeywords() {
 	rts.resetDB()
 
-	path := fmt.Sprintf("/api/v1/keywords?cursor=%d&limit=%d", 0, 10)
+	path := "/api/v1/keywords?cursor=0&limit=100&page=next"
 	req, err := http.NewRequest("GET", path, nil)
 	rts.Require().NoError(err)
 
@@ -745,7 +826,7 @@ func (rts *RouterTestSuite) TestGetAllKeywords() {
 	}
 
 	// first page (full)
-	path = fmt.Sprintf("/api/v1/keywords?cursor=%d&limit=%d", 0, 10)
+	path = "/api/v1/keywords?cursor=0&limit=10&page=next"
 	req, err = http.NewRequest("GET", path, nil)
 	rts.Require().NoError(err)
 
@@ -754,11 +835,13 @@ func (rts *RouterTestSuite) TestGetAllKeywords() {
 	rts.Require().Len(pr.Results, 10)
 
 	keywords := pr.Results.([]interface{})
-	cursor := uint(keywords[len(keywords)-1].(map[string]interface{})["id"].(float64))
-	rts.Require().Equal(uint(10), cursor)
+	nextCursor := strconv.Itoa(int(keywords[len(keywords)-1].(map[string]interface{})["id"].(float64)))
+	rts.Require().Equal("10", nextCursor)
+	rts.Require().Empty(pr.PrevCursor)
+	rts.Require().Equal(nextCursor, pr.NextCursor)
 
 	// second page (full)
-	path = fmt.Sprintf("/api/v1/keywords?cursor=%d&limit=%d", cursor, 10)
+	path = fmt.Sprintf("/api/v1/keywords?cursor=%s&limit=%d&page=next", nextCursor, 10)
 	req, err = http.NewRequest("GET", path, nil)
 	rts.Require().NoError(err)
 
@@ -767,11 +850,14 @@ func (rts *RouterTestSuite) TestGetAllKeywords() {
 	rts.Require().Len(pr.Results, 10)
 
 	keywords = pr.Results.([]interface{})
-	cursor = uint(keywords[len(keywords)-1].(map[string]interface{})["id"].(float64))
-	rts.Require().Equal(uint(20), cursor)
+	nextCursor = strconv.Itoa(int(keywords[len(keywords)-1].(map[string]interface{})["id"].(float64)))
+	prevCursor := strconv.Itoa(int(keywords[0].(map[string]interface{})["id"].(float64)))
+	rts.Require().Equal("20", nextCursor)
+	rts.Require().Equal(prevCursor, pr.PrevCursor)
+	rts.Require().Equal(nextCursor, pr.NextCursor)
 
 	// third page (partially full)
-	path = fmt.Sprintf("/api/v1/keywords?cursor=%d&limit=%d", cursor, 10)
+	path = fmt.Sprintf("/api/v1/keywords?cursor=%s&limit=%d&page=next", nextCursor, 10)
 	req, err = http.NewRequest("GET", path, nil)
 	rts.Require().NoError(err)
 
@@ -780,8 +866,27 @@ func (rts *RouterTestSuite) TestGetAllKeywords() {
 	rts.Require().Len(pr.Results, 5)
 
 	keywords = pr.Results.([]interface{})
-	cursor = uint(keywords[len(keywords)-1].(map[string]interface{})["id"].(float64))
-	rts.Require().Equal(uint(25), cursor)
+	nextCursor = strconv.Itoa(int(keywords[len(keywords)-1].(map[string]interface{})["id"].(float64)))
+	prevCursor = strconv.Itoa(int(keywords[0].(map[string]interface{})["id"].(float64)))
+	rts.Require().Equal("25", nextCursor)
+	rts.Require().Equal(prevCursor, pr.PrevCursor)
+	rts.Require().Empty(pr.NextCursor)
+
+	// previous (second) page
+	path = fmt.Sprintf("/api/v1/keywords?cursor=%s&limit=%d&page=prev", prevCursor, 10)
+	req, err = http.NewRequest("GET", path, nil)
+	rts.Require().NoError(err)
+
+	response = rts.executeRequest(req)
+	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
+	rts.Require().Len(pr.Results, 10)
+
+	keywords = pr.Results.([]interface{})
+	nextCursor = strconv.Itoa(int(keywords[len(keywords)-1].(map[string]interface{})["id"].(float64)))
+	prevCursor = strconv.Itoa(int(keywords[0].(map[string]interface{})["id"].(float64)))
+	rts.Require().Equal("20", nextCursor)
+	rts.Require().Equal(prevCursor, pr.PrevCursor)
+	rts.Require().Equal(nextCursor, pr.NextCursor)
 }
 
 func (rts *RouterTestSuite) TestUpsertModule() {
@@ -1041,7 +1146,7 @@ func (rts *RouterTestSuite) TestCreateModule_InvalidOwner() {
 func (rts *RouterTestSuite) TestCreateUserToken() {
 	rts.resetDB()
 
-	unAuthReq, err := http.NewRequest(httputil.MethodPUT, "/api/v1/user/tokens", nil)
+	unAuthReq, err := http.NewRequest(httputil.MethodPUT, "/api/v1/me/tokens", nil)
 	rts.Require().NoError(err)
 
 	// unauthenticated
@@ -1077,7 +1182,7 @@ func (rts *RouterTestSuite) TestCreateUserToken() {
 func (rts *RouterTestSuite) TestGetUserTokens() {
 	rts.resetDB()
 
-	unAuthReq, err := http.NewRequest(httputil.MethodGET, "/api/v1/user/tokens", nil)
+	unAuthReq, err := http.NewRequest(httputil.MethodGET, "/api/v1/me/tokens", nil)
 	rts.Require().NoError(err)
 
 	// unauthenticated
@@ -1118,7 +1223,7 @@ func (rts *RouterTestSuite) TestGetUserTokens() {
 func (rts *RouterTestSuite) TestRevokeUserToken() {
 	rts.resetDB()
 
-	unAuthReq, err := http.NewRequest(httputil.MethodDELETE, "/api/v1/user/tokens/1", nil)
+	unAuthReq, err := http.NewRequest(httputil.MethodDELETE, "/api/v1/me/tokens/1", nil)
 	rts.Require().NoError(err)
 
 	// unauthenticated
@@ -1130,7 +1235,7 @@ func (rts *RouterTestSuite) TestRevokeUserToken() {
 	req, err := http.NewRequest(httputil.MethodGET, "/", nil)
 	rts.Require().NoError(err)
 
-	createURL, err := url.Parse("/api/v1/user/tokens")
+	createURL, err := url.Parse("/api/v1/me/tokens")
 	rts.Require().NoError(err)
 
 	req = rts.authorizeRequest(req, "test_token1", "test_user1", 123456)
@@ -1161,7 +1266,7 @@ func (rts *RouterTestSuite) TestRevokeUserToken() {
 	rts.Require().True(ut["revoked"].(bool))
 
 	// attempt to revoke an non-existant token
-	revokeURL, err := url.Parse("/api/v1/user/tokens/100")
+	revokeURL, err := url.Parse("/api/v1/me/tokens/100")
 	rts.Require().NoError(err)
 
 	req.URL = revokeURL
@@ -1169,6 +1274,230 @@ func (rts *RouterTestSuite) TestRevokeUserToken() {
 	rr = httptest.NewRecorder()
 	rts.mux.ServeHTTP(rr, req)
 	rts.Require().Equal(http.StatusNotFound, rr.Code, rr.Body.String())
+}
+
+func (rts *RouterTestSuite) TestGetUserByName() {
+	rts.resetDB()
+
+	req1, err := http.NewRequest("GET", "/", nil)
+	rts.Require().NoError(err)
+
+	req1 = rts.authorizeRequest(req1, "test_token1", "test_user1", 12345)
+
+	upsertURL, err := url.Parse("/api/v1/modules")
+	rts.Require().NoError(err)
+
+	body := map[string]interface{}{
+		"module": map[string]interface{}{
+			"name":     "x/bank",
+			"team":     "cosmonauts",
+			"repo":     "https://github.com/cosmos/cosmos-sdk",
+			"keywords": []string{"tokens"},
+		},
+		"authors": []map[string]interface{}{
+			{
+				"name": "foo", "email": "foo@email.com",
+			},
+		},
+		"version": map[string]interface{}{
+			"version": "v1.0.0",
+		},
+		"bug_tracker": map[string]interface{}{
+			"url":     "https://cosmonauts.com",
+			"contact": "contact@cosmonauts.com",
+		},
+	}
+
+	// create module published by test_user1
+	bz, err := json.Marshal(body)
+	rts.Require().NoError(err)
+
+	req1.Method = httputil.MethodPUT
+	req1.URL = upsertURL
+	req1.Body = ioutil.NopCloser(bytes.NewBuffer(bz))
+	req1.ContentLength = int64(len(bz))
+
+	rr := httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req1)
+	rts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
+
+	// ensure the publishing user exists
+	req2, err := http.NewRequest("GET", "/api/v1/users/foo", nil)
+	rts.Require().NoError(err)
+
+	rr = httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req2)
+	rts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
+
+	var user map[string]interface{}
+	rts.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &user))
+	rts.Require().Equal(user["name"], "foo")
+
+	// ensure a non-existant user returns an error
+	req3, err := http.NewRequest("GET", "/api/v1/users/bar", nil)
+	rts.Require().NoError(err)
+
+	rr = httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req3)
+	rts.Require().Equal(http.StatusNotFound, rr.Code, rr.Body.String())
+}
+
+func (rts *RouterTestSuite) TestGetUser() {
+	rts.resetDB()
+
+	req1, err := http.NewRequest("GET", "/", nil)
+	rts.Require().NoError(err)
+
+	req1 = rts.authorizeRequest(req1, "test_token1", "test_user1", 12345)
+
+	upsertURL, err := url.Parse("/api/v1/modules")
+	rts.Require().NoError(err)
+
+	body := map[string]interface{}{
+		"module": map[string]interface{}{
+			"name":     "x/bank",
+			"team":     "cosmonauts",
+			"repo":     "https://github.com/cosmos/cosmos-sdk",
+			"keywords": []string{"tokens"},
+		},
+		"authors": []map[string]interface{}{
+			{
+				"name": "foo", "email": "foo@email.com",
+			},
+		},
+		"version": map[string]interface{}{
+			"version": "v1.0.0",
+		},
+		"bug_tracker": map[string]interface{}{
+			"url":     "https://cosmonauts.com",
+			"contact": "contact@cosmonauts.com",
+		},
+	}
+
+	// create module published by test_user1
+	bz, err := json.Marshal(body)
+	rts.Require().NoError(err)
+
+	req1.Method = httputil.MethodPUT
+	req1.URL = upsertURL
+	req1.Body = ioutil.NopCloser(bytes.NewBuffer(bz))
+	req1.ContentLength = int64(len(bz))
+
+	rr := httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req1)
+	rts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
+
+	// get the authenticated user
+	getUserURL, err := url.Parse("/api/v1/me")
+	rts.Require().NoError(err)
+
+	req1.Method = httputil.MethodGET
+	req1.URL = getUserURL
+
+	rr = httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req1)
+	rts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
+
+	// create a new unauthenticated request and ensure the request fails
+	req2, err := http.NewRequest("GET", getUserURL.String(), nil)
+	rts.Require().NoError(err)
+
+	rr = httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req2)
+	rts.Require().Equal(http.StatusUnauthorized, rr.Code, rr.Body.String())
+}
+
+func (rts *RouterTestSuite) TestUpdateUser() {
+	rts.resetDB()
+
+	req1, err := http.NewRequest("GET", "/", nil)
+	rts.Require().NoError(err)
+
+	req1 = rts.authorizeRequest(req1, "test_token1", "test_user1", 12345)
+
+	upsertURL, err := url.Parse("/api/v1/modules")
+	rts.Require().NoError(err)
+
+	body := map[string]interface{}{
+		"module": map[string]interface{}{
+			"name":     "x/bank",
+			"team":     "cosmonauts",
+			"repo":     "https://github.com/cosmos/cosmos-sdk",
+			"keywords": []string{"tokens"},
+		},
+		"authors": []map[string]interface{}{
+			{
+				"name": "foo", "email": "foo@email.com",
+			},
+		},
+		"version": map[string]interface{}{
+			"version": "v1.0.0",
+		},
+		"bug_tracker": map[string]interface{}{
+			"url":     "https://cosmonauts.com",
+			"contact": "contact@cosmonauts.com",
+		},
+	}
+
+	// create module published by test_user1
+	bz, err := json.Marshal(body)
+	rts.Require().NoError(err)
+
+	req1.Method = httputil.MethodPUT
+	req1.URL = upsertURL
+	req1.Body = ioutil.NopCloser(bytes.NewBuffer(bz))
+	req1.ContentLength = int64(len(bz))
+
+	rr := httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req1)
+	rts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
+
+	// update the authenticated user
+	updateUserURL, err := url.Parse("/api/v1/me")
+	rts.Require().NoError(err)
+
+	body = map[string]interface{}{
+		"email": "newfoo@email.com",
+	}
+	bz, err = json.Marshal(body)
+	rts.Require().NoError(err)
+
+	req1.Method = httputil.MethodPUT
+	req1.URL = updateUserURL
+	req1.Body = ioutil.NopCloser(bytes.NewBuffer(bz))
+	req1.ContentLength = int64(len(bz))
+
+	rr = httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req1)
+	rts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
+
+	var user map[string]interface{}
+	rts.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &user))
+	rts.Require().Equal(user["email"], body["email"])
+
+	// ensure an invalid request fails
+	body = map[string]interface{}{
+		"email": "newfoo",
+	}
+	bz, err = json.Marshal(body)
+	rts.Require().NoError(err)
+
+	req1.Method = httputil.MethodPUT
+	req1.URL = updateUserURL
+	req1.Body = ioutil.NopCloser(bytes.NewBuffer(bz))
+	req1.ContentLength = int64(len(bz))
+
+	rr = httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req1)
+	rts.Require().Equal(http.StatusBadRequest, rr.Code, rr.Body.String())
+
+	// ensure an unauthenticated request fails
+	req2, err := http.NewRequest(httputil.MethodPUT, updateUserURL.String(), ioutil.NopCloser(bytes.NewBuffer(bz)))
+	rts.Require().NoError(err)
+
+	rr = httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req2)
+	rts.Require().Equal(http.StatusUnauthorized, rr.Code, rr.Body.String())
 }
 
 func (rts *RouterTestSuite) resetDB() {

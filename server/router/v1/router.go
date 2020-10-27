@@ -93,12 +93,12 @@ func (r *Router) Register(rtr *mux.Router, prefix string) {
 	v1Router.Handle(
 		"/modules/search",
 		mChain.ThenFunc(r.SearchModules()),
-	).Queries("cursor", "{cursor:[0-9]+}", "limit", "{limit:[0-9]+}", "q", "{q}").Methods(httputil.MethodGET)
+	).Queries("cursor", "{cursor:[0-9]+}", "limit", "{limit:[0-9]+}", "page", "{page:(?:prev|next)}", "q", "{q}").Methods(httputil.MethodGET)
 
 	v1Router.Handle(
 		"/modules",
 		mChain.ThenFunc(r.GetAllModules()),
-	).Queries("cursor", "{cursor:[0-9]+}", "limit", "{limit:[0-9]+}").Methods(httputil.MethodGET)
+	).Queries("cursor", "{cursor:[0-9]+}", "limit", "{limit:[0-9]+}", "page", "{page:(?:prev|next)}").Methods(httputil.MethodGET)
 
 	v1Router.Handle(
 		"/modules/{id:[0-9]+}",
@@ -121,24 +121,24 @@ func (r *Router) Register(rtr *mux.Router, prefix string) {
 	).Methods(httputil.MethodGET)
 
 	v1Router.Handle(
-		"/users/{id:[0-9]+}",
-		mChain.ThenFunc(r.GetUserByID()),
+		"/users/{name}",
+		mChain.ThenFunc(r.GetUserByName()),
 	).Methods(httputil.MethodGET)
 
 	v1Router.Handle(
-		"/users/{id:[0-9]+}/modules",
+		"/users/{name}/modules",
 		mChain.ThenFunc(r.GetUserModules()),
 	).Methods(httputil.MethodGET)
 
 	v1Router.Handle(
 		"/users",
 		mChain.ThenFunc(r.GetAllUsers()),
-	).Queries("cursor", "{cursor:[0-9]+}", "limit", "{limit:[0-9]+}").Methods(httputil.MethodGET)
+	).Queries("cursor", "{cursor:[0-9]+}", "limit", "{limit:[0-9]+}", "page", "{page:(?:prev|next)}").Methods(httputil.MethodGET)
 
 	v1Router.Handle(
 		"/keywords",
 		mChain.ThenFunc(r.GetAllKeywords()),
-	).Queries("cursor", "{cursor:[0-9]+}", "limit", "{limit:[0-9]+}").Methods(httputil.MethodGET)
+	).Queries("cursor", "{cursor:[0-9]+}", "limit", "{limit:[0-9]+}", "page", "{page:(?:prev|next)}").Methods(httputil.MethodGET)
 
 	// authenticated routes
 	v1Router.Handle(
@@ -147,17 +147,27 @@ func (r *Router) Register(rtr *mux.Router, prefix string) {
 	).Methods(httputil.MethodPUT)
 
 	v1Router.Handle(
-		"/user/tokens",
+		"/me",
+		mChain.ThenFunc(r.GetUser()),
+	).Methods(httputil.MethodGET)
+
+	v1Router.Handle(
+		"/me",
+		mChain.ThenFunc(r.UpdateUser()),
+	).Methods(httputil.MethodPUT)
+
+	v1Router.Handle(
+		"/me/tokens",
 		mChain.ThenFunc(r.CreateUserToken()),
 	).Methods(httputil.MethodPUT)
 
 	v1Router.Handle(
-		"/user/tokens",
+		"/me/tokens",
 		mChain.ThenFunc(r.GetUserTokens()),
 	).Methods(httputil.MethodGET)
 
 	v1Router.Handle(
-		"/user/tokens/{id:[0-9]+}",
+		"/me/tokens/{id:[0-9]+}",
 		mChain.ThenFunc(r.RevokeUserToken()),
 	).Methods(httputil.MethodDELETE)
 
@@ -290,6 +300,7 @@ func (r *Router) GetModuleByID() http.HandlerFunc {
 // @Accept  json
 // @Produce  json
 // @Param cursor query int true "pagination cursor"  default(0)
+// @Param page query string true "pagination page"  default(next)
 // @Param limit query int true "pagination limit"  default(100)
 // @Param q query string true "search criteria"
 // @Success 200 {object} httputil.PaginationResponse
@@ -298,7 +309,7 @@ func (r *Router) GetModuleByID() http.HandlerFunc {
 // @Router /modules/search [get]
 func (r *Router) SearchModules() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
-		cursor, limit, err := httputil.ParsePagination(req)
+		pQuery, err := httputil.ParsePaginationQueryParams(req)
 		if err != nil {
 			httputil.RespondWithError(w, http.StatusBadRequest, err)
 			return
@@ -306,13 +317,19 @@ func (r *Router) SearchModules() http.HandlerFunc {
 
 		query := req.URL.Query().Get("q")
 
-		modules, err := models.SearchModules(r.db, query, cursor, limit)
+		modules, paginator, err := models.SearchModules(r.db, query, pQuery)
 		if err != nil {
 			httputil.RespondWithError(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		paginated := httputil.NewPaginationResponse(len(modules), limit, cursor, modules)
+		paginated := httputil.NewPaginationResponse(
+			pQuery.Limit,
+			len(modules),
+			paginator.PrevCursor,
+			paginator.NextCursor,
+			modules,
+		)
 		httputil.RespondWithJSON(w, http.StatusOK, paginated)
 	}
 }
@@ -324,6 +341,7 @@ func (r *Router) SearchModules() http.HandlerFunc {
 // @Accept  json
 // @Produce  json
 // @Param cursor query int true "pagination cursor"  default(0)
+// @Param page query string true "pagination page"  default(next)
 // @Param limit query int true "pagination limit"  default(100)
 // @Success 200 {object} httputil.PaginationResponse
 // @Failure 400 {object} httputil.ErrResponse
@@ -331,19 +349,25 @@ func (r *Router) SearchModules() http.HandlerFunc {
 // @Router /modules [get]
 func (r *Router) GetAllModules() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
-		cursor, limit, err := httputil.ParsePagination(req)
+		pQuery, err := httputil.ParsePaginationQueryParams(req)
 		if err != nil {
 			httputil.RespondWithError(w, http.StatusBadRequest, err)
 			return
 		}
 
-		modules, err := models.GetAllModules(r.db, cursor, limit)
+		modules, paginator, err := models.GetAllModules(r.db, pQuery)
 		if err != nil {
 			httputil.RespondWithError(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		paginated := httputil.NewPaginationResponse(len(modules), limit, cursor, modules)
+		paginated := httputil.NewPaginationResponse(
+			pQuery.Limit,
+			len(modules),
+			paginator.PrevCursor,
+			paginator.NextCursor,
+			modules,
+		)
 		httputil.RespondWithJSON(w, http.StatusOK, paginated)
 	}
 }
@@ -462,29 +486,21 @@ func (r *Router) GetModuleKeywords() http.HandlerFunc {
 	}
 }
 
-// GetUserByID implements a request handler to retrieve a user by ID.
-// @Summary Get a user by ID
+// GetUserByID implements a request handler to retrieve a user by name.
+// @Summary Get a user by name
 // @Tags users
 // @Accept  json
 // @Produce  json
-// @Param id path int true "user ID"
+// @Param name path string true "user name"
 // @Success 200 {object} models.UserJSON
-// @Failure 400 {object} httputil.ErrResponse
 // @Failure 404 {object} httputil.ErrResponse
 // @Failure 500 {object} httputil.ErrResponse
-// @Router /users/{id} [get]
-func (r *Router) GetUserByID() http.HandlerFunc {
+// @Router /users/{name} [get]
+func (r *Router) GetUserByName() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		params := mux.Vars(req)
-		idStr := params["id"]
 
-		id, err := strconv.ParseUint(idStr, 10, 64)
-		if err != nil {
-			httputil.RespondWithError(w, http.StatusBadRequest, fmt.Errorf("invalid user ID: %w", err))
-			return
-		}
-
-		user, err := models.GetUserByID(r.db, uint(id))
+		user, err := models.QueryUser(r.db, map[string]interface{}{"name": params["name"]})
 		if err != nil {
 			code := http.StatusInternalServerError
 			if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -506,6 +522,7 @@ func (r *Router) GetUserByID() http.HandlerFunc {
 // @Accept  json
 // @Produce  json
 // @Param cursor query int true "pagination cursor"  default(0)
+// @Param page query string true "pagination page"  default(next)
 // @Param limit query int true "pagination limit"  default(100)
 // @Success 200 {object} httputil.PaginationResponse
 // @Failure 400 {object} httputil.ErrResponse
@@ -513,47 +530,45 @@ func (r *Router) GetUserByID() http.HandlerFunc {
 // @Router /users [get]
 func (r *Router) GetAllUsers() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
-		cursor, limit, err := httputil.ParsePagination(req)
+		pQuery, err := httputil.ParsePaginationQueryParams(req)
 		if err != nil {
 			httputil.RespondWithError(w, http.StatusBadRequest, err)
 			return
 		}
 
-		users, err := models.GetAllUsers(r.db, cursor, limit)
+		users, paginator, err := models.GetAllUsers(r.db, pQuery)
 		if err != nil {
 			httputil.RespondWithError(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		paginated := httputil.NewPaginationResponse(len(users), limit, cursor, users)
+		paginated := httputil.NewPaginationResponse(
+			pQuery.Limit,
+			len(users),
+			paginator.PrevCursor,
+			paginator.NextCursor,
+			users,
+		)
 		httputil.RespondWithJSON(w, http.StatusOK, paginated)
 	}
 }
 
 // GetUserModules implements a request handler to retrieve a set of modules
-// authored by a given user by ID.
-// @Summary Return a paginated set of all Cosmos SDK modules by user ID
+// authored by a given user by name.
+// @Summary Return a set of all Cosmos SDK modules published by a given user
 // @Tags users
 // @Accept  json
 // @Produce  json
-// @Param id path int true "user ID"
+// @Param name path string true "user name"
 // @Success 200 {array} models.ModuleJSON
-// @Failure 400 {object} httputil.ErrResponse
 // @Failure 404 {object} httputil.ErrResponse
 // @Failure 500 {object} httputil.ErrResponse
-// @Router /users/{id}/modules [get]
+// @Router /users/{name}/modules [get]
 func (r *Router) GetUserModules() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		params := mux.Vars(req)
-		idStr := params["id"]
 
-		id, err := strconv.ParseUint(idStr, 10, 64)
-		if err != nil {
-			httputil.RespondWithError(w, http.StatusBadRequest, fmt.Errorf("invalid user ID: %w", err))
-			return
-		}
-
-		modules, err := models.GetUserModules(r.db, uint(id))
+		modules, err := models.GetUserModules(r.db, params["name"])
 		if err != nil {
 			code := http.StatusInternalServerError
 			if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -577,7 +592,8 @@ func (r *Router) GetUserModules() http.HandlerFunc {
 // @Failure 400 {object} httputil.ErrResponse
 // @Failure 401 {object} httputil.ErrResponse
 // @Failure 500 {object} httputil.ErrResponse
-// @Router /user/tokens [put]
+// @Security APIKeyAuth
+// @Router /me/tokens [put]
 func (r *Router) CreateUserToken() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		authUser, ok, err := r.authorize(req)
@@ -610,7 +626,8 @@ func (r *Router) CreateUserToken() http.HandlerFunc {
 // @Success 200 {array} models.UserTokenJSON
 // @Failure 401 {object} httputil.ErrResponse
 // @Failure 500 {object} httputil.ErrResponse
-// @Router /user/tokens [get]
+// @Security APIKeyAuth
+// @Router /me/tokens [get]
 func (r *Router) GetUserTokens() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		authUser, ok, err := r.authorize(req)
@@ -639,7 +656,8 @@ func (r *Router) GetUserTokens() http.HandlerFunc {
 // @Failure 400 {object} httputil.ErrResponse
 // @Failure 401 {object} httputil.ErrResponse
 // @Failure 500 {object} httputil.ErrResponse
-// @Router /user/tokens/{id} [delete]
+// @Security APIKeyAuth
+// @Router /me/tokens/{id} [delete]
 func (r *Router) RevokeUserToken() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		authUser, ok, err := r.authorize(req)
@@ -678,6 +696,68 @@ func (r *Router) RevokeUserToken() http.HandlerFunc {
 	}
 }
 
+// GetUser returns the current authenticated user.
+// @Summary Get the current authenticated user
+// @Tags users
+// @Produce  json
+// @Success 200 {object} models.UserJSON
+// @Failure 401 {object} httputil.ErrResponse
+// @Security APIKeyAuth
+// @Router /me [get]
+func (r *Router) GetUser() http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		authUser, ok, err := r.authorize(req)
+		if err != nil || !ok {
+			httputil.RespondWithError(w, http.StatusUnauthorized, err)
+			return
+		}
+
+		httputil.RespondWithJSON(w, http.StatusOK, authUser)
+	}
+}
+
+// UpdateUser updates an existing user record.
+// @Summary Update the current authenticated user
+// @Tags users
+// @Produce  json
+// @Param user body User true "user"
+// @Success 200 {object} models.UserJSON
+// @Failure 400 {object} httputil.ErrResponse
+// @Failure 401 {object} httputil.ErrResponse
+// @Failure 500 {object} httputil.ErrResponse
+// @Security APIKeyAuth
+// @Router /me [put]
+func (r *Router) UpdateUser() http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		authUser, ok, err := r.authorize(req)
+		if err != nil || !ok {
+			httputil.RespondWithError(w, http.StatusUnauthorized, err)
+			return
+		}
+
+		var request User
+		if err := json.NewDecoder(req.Body).Decode(&request); err != nil {
+			httputil.RespondWithError(w, http.StatusBadRequest, fmt.Errorf("failed to read request: %w", err))
+			return
+		}
+
+		if err := r.validate.Struct(request); err != nil {
+			httputil.RespondWithError(w, http.StatusBadRequest, fmt.Errorf("invalid request: %w", httputil.TransformValidationError(err)))
+			return
+		}
+
+		authUser.Email = models.NewNullString(request.Email)
+
+		record, err := authUser.Upsert(r.db)
+		if err != nil {
+			httputil.RespondWithError(w, http.StatusInternalServerError, fmt.Errorf("failed to upsert user: %w", err))
+			return
+		}
+
+		httputil.RespondWithJSON(w, http.StatusOK, record)
+	}
+}
+
 // GetAllKeywords implements a request handler returning a paginated set of
 // keywords.
 // @Summary Return a paginated set of all keywords
@@ -685,6 +765,7 @@ func (r *Router) RevokeUserToken() http.HandlerFunc {
 // @Accept  json
 // @Produce  json
 // @Param cursor query int true "pagination cursor"  default(0)
+// @Param page query string true "pagination page"  default(next)
 // @Param limit query int true "pagination limit"  default(100)
 // @Success 200 {object} httputil.PaginationResponse
 // @Failure 400 {object} httputil.ErrResponse
@@ -692,19 +773,25 @@ func (r *Router) RevokeUserToken() http.HandlerFunc {
 // @Router /keywords [get]
 func (r *Router) GetAllKeywords() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
-		cursor, limit, err := httputil.ParsePagination(req)
+		pQuery, err := httputil.ParsePaginationQueryParams(req)
 		if err != nil {
 			httputil.RespondWithError(w, http.StatusBadRequest, err)
 			return
 		}
 
-		keywords, err := models.GetAllKeywords(r.db, cursor, limit)
+		keywords, paginator, err := models.GetAllKeywords(r.db, pQuery)
 		if err != nil {
 			httputil.RespondWithError(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		paginated := httputil.NewPaginationResponse(len(keywords), limit, cursor, keywords)
+		paginated := httputil.NewPaginationResponse(
+			pQuery.Limit,
+			len(keywords),
+			paginator.PrevCursor,
+			paginator.NextCursor,
+			keywords,
+		)
 		httputil.RespondWithJSON(w, http.StatusOK, paginated)
 	}
 }
@@ -753,7 +840,8 @@ func (r *Router) authorizeHandler() http.HandlerFunc {
 
 		user := models.User{
 			Name:              githubUser.GetLogin(),
-			GithubUserID:      sql.NullInt64{Int64: githubUser.GetID(), Valid: true},
+			FullName:          githubUser.GetName(),
+			GithubUserID:      models.NewNullInt64(githubUser.GetID()),
 			GravatarID:        githubUser.GetGravatarID(),
 			AvatarURL:         githubUser.GetAvatarURL(),
 			GithubAccessToken: sql.NullString{String: token.AccessToken, Valid: true},

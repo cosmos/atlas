@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"sort"
+	"strconv"
 	"testing"
 	"time"
 
@@ -18,6 +20,7 @@ import (
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
 
+	"github.com/cosmos/atlas/server/httputil"
 	"github.com/cosmos/atlas/server/models"
 )
 
@@ -202,9 +205,17 @@ func (mts *ModelsTestSuite) TestGetModuleByID() {
 func (mts *ModelsTestSuite) TestGetAllModules() {
 	resetDB(mts.T(), mts.m)
 
-	mods, err := models.GetAllModules(mts.gormDB, 0, 10)
+	mods, paginator, err := models.GetAllModules(mts.gormDB, httputil.PaginationQuery{Cursor: "0", Page: httputil.PageNext})
 	mts.Require().NoError(err)
 	mts.Require().Empty(mods)
+	mts.Require().Empty(paginator.PrevCursor)
+	mts.Require().Empty(paginator.NextCursor)
+
+	mods, paginator, err = models.GetAllModules(mts.gormDB, httputil.PaginationQuery{Cursor: "0", Page: "foo"})
+	mts.Require().Error(err)
+	mts.Require().Empty(mods)
+	mts.Require().Empty(paginator.PrevCursor)
+	mts.Require().Empty(paginator.NextCursor)
 
 	for i := 0; i < 25; i++ {
 		mod := models.Module{
@@ -229,28 +240,54 @@ func (mts *ModelsTestSuite) TestGetAllModules() {
 	}
 
 	// first page (full)
-	mods, err = models.GetAllModules(mts.gormDB, 0, 10)
+	mods, paginator, err = models.GetAllModules(mts.gormDB, httputil.PaginationQuery{Cursor: "0", Page: httputil.PageNext, Limit: 10})
 	mts.Require().NoError(err)
 	mts.Require().Len(mods, 10)
 
 	cursor := mods[len(mods)-1].ID
+	nextCursor := strconv.Itoa(int(cursor))
 	mts.Require().Equal(uint(10), cursor)
 
+	mts.Require().Empty(paginator.PrevCursor)
+	mts.Require().Equal(nextCursor, paginator.NextCursor)
+
 	// second page (full)
-	mods, err = models.GetAllModules(mts.gormDB, cursor, 10)
+	mods, paginator, err = models.GetAllModules(mts.gormDB, httputil.PaginationQuery{Cursor: nextCursor, Page: httputil.PageNext, Limit: 10})
 	mts.Require().NoError(err)
 	mts.Require().Len(mods, 10)
 
 	cursor = mods[len(mods)-1].ID
+	prevCursor := strconv.Itoa(int(mods[0].ID))
+	nextCursor = strconv.Itoa(int(cursor))
 	mts.Require().Equal(uint(20), cursor)
 
+	mts.Require().Equal(prevCursor, paginator.PrevCursor)
+	mts.Require().Equal(nextCursor, paginator.NextCursor)
+
 	// third page (partially full)
-	mods, err = models.GetAllModules(mts.gormDB, cursor, 10)
+	mods, paginator, err = models.GetAllModules(mts.gormDB, httputil.PaginationQuery{Cursor: nextCursor, Page: httputil.PageNext, Limit: 10})
 	mts.Require().NoError(err)
 	mts.Require().Len(mods, 5)
 
 	cursor = mods[len(mods)-1].ID
+	prevCursor = strconv.Itoa(int(mods[0].ID))
 	mts.Require().Equal(uint(25), cursor)
+
+	mts.Require().Equal(prevCursor, paginator.PrevCursor)
+	mts.Require().Empty(paginator.NextCursor)
+
+	// previous (second) page
+	mods, paginator, err = models.GetAllModules(mts.gormDB, httputil.PaginationQuery{Cursor: prevCursor, Page: httputil.PagePrev, Limit: 10})
+	mts.Require().NoError(err)
+	mts.Require().Len(mods, 10)
+
+	cursor = mods[len(mods)-1].ID
+	prevCursor = strconv.Itoa(int(mods[0].ID))
+	nextCursor = strconv.Itoa(int(cursor))
+	mts.Require().Equal(uint(20), cursor)
+
+	mts.Require().Equal(prevCursor, paginator.PrevCursor)
+	mts.Require().Equal(nextCursor, paginator.NextCursor)
 }
 
 func (mts *ModelsTestSuite) TestModuleUpdateBasic() {
@@ -391,6 +428,8 @@ func (mts *ModelsTestSuite) TestModuleUpdateAuthors() {
 
 	record, err = mod.Upsert(mts.gormDB)
 	mts.Require().NoError(err)
+	sort.Slice(mod.Authors, func(i, j int) bool { return mod.Authors[i].ID < mod.Authors[j].ID })
+	sort.Slice(record.Authors, func(i, j int) bool { return record.Authors[i].ID < record.Authors[j].ID })
 	mts.Require().Equal(mod.Authors, record.Authors)
 	mts.Require().Equal(mod.Owners, record.Owners)
 
@@ -400,6 +439,8 @@ func (mts *ModelsTestSuite) TestModuleUpdateAuthors() {
 
 	record, err = mod.Upsert(mts.gormDB)
 	mts.Require().NoError(err)
+	sort.Slice(mod.Authors, func(i, j int) bool { return mod.Authors[i].ID < mod.Authors[j].ID })
+	sort.Slice(record.Authors, func(i, j int) bool { return record.Authors[i].ID < record.Authors[j].ID })
 	mts.Require().Equal(mod.Authors, record.Authors)
 	mts.Require().Equal(mod.Owners, record.Owners)
 
@@ -438,6 +479,8 @@ func (mts *ModelsTestSuite) TestModuleUpdateOwners() {
 	record, err = mod.Upsert(mts.gormDB)
 	mts.Require().NoError(err)
 	mts.Require().Equal(mod.Authors, record.Authors)
+	sort.Slice(mod.Owners, func(i, j int) bool { return mod.Owners[i].ID < mod.Owners[j].ID })
+	sort.Slice(record.Owners, func(i, j int) bool { return record.Owners[i].ID < record.Owners[j].ID })
 	mts.Require().Equal(mod.Owners, record.Owners)
 
 	mod.Owners = []models.User{
@@ -447,6 +490,8 @@ func (mts *ModelsTestSuite) TestModuleUpdateOwners() {
 	record, err = mod.Upsert(mts.gormDB)
 	mts.Require().NoError(err)
 	mts.Require().Equal(mod.Authors, record.Authors)
+	sort.Slice(mod.Owners, func(i, j int) bool { return mod.Owners[i].ID < mod.Owners[j].ID })
+	sort.Slice(record.Owners, func(i, j int) bool { return record.Owners[i].ID < record.Owners[j].ID })
 	mts.Require().Equal(mod.Owners, record.Owners)
 
 	mod.Owners = []models.User{}
@@ -562,18 +607,44 @@ func (mts *ModelsTestSuite) TestModuleSearch() {
 		mts.Require().NoError(err)
 	}
 
+	mods, paginator, err := models.SearchModules(mts.gormDB, "test", httputil.PaginationQuery{Cursor: "0", Page: "foo"})
+	mts.Require().Error(err)
+	mts.Require().Empty(mods)
+	mts.Require().Empty(paginator.PrevCursor)
+	mts.Require().Empty(paginator.NextCursor)
+
 	testCases := []struct {
-		name     string
-		query    string
-		cursor   uint
-		limit    int
-		expected map[string]bool
+		name              string
+		query             string
+		pageQuery         httputil.PaginationQuery
+		expectedRecords   map[string]bool
+		expectedPaginator models.Paginator
 	}{
-		{"empty query", "", 0, 100, map[string]bool{}},
-		{"no matching query", "no match", 0, 100, map[string]bool{}},
-		{"matches one record", "x/mod-1", 0, 100, map[string]bool{"x/mod-1": true}},
 		{
-			"matches all records (page 1)", "module", 0, 5,
+			"empty query",
+			"",
+			httputil.PaginationQuery{Cursor: "0", Page: httputil.PageNext, Limit: 100},
+			map[string]bool{},
+			models.Paginator{PrevCursor: "", NextCursor: ""},
+		},
+		{
+			"no matching query",
+			"no match",
+			httputil.PaginationQuery{Cursor: "0", Page: httputil.PageNext, Limit: 10},
+			map[string]bool{},
+			models.Paginator{PrevCursor: "", NextCursor: ""},
+		},
+		{
+			"matches one record",
+			"x/mod-1",
+			httputil.PaginationQuery{Cursor: "0", Page: httputil.PageNext, Limit: 10},
+			map[string]bool{"x/mod-1": true},
+			models.Paginator{PrevCursor: "", NextCursor: ""},
+		},
+		{
+			"matches all records (page 1)",
+			"module",
+			httputil.PaginationQuery{Cursor: "0", Page: httputil.PageNext, Limit: 5},
 			map[string]bool{
 				"x/mod-0": true,
 				"x/mod-1": true,
@@ -581,9 +652,12 @@ func (mts *ModelsTestSuite) TestModuleSearch() {
 				"x/mod-3": true,
 				"x/mod-4": true,
 			},
+			models.Paginator{PrevCursor: "", NextCursor: "5"},
 		},
 		{
-			"matches all records (page 2)", "module", 5, 5,
+			"matches all records (page 2)",
+			"module",
+			httputil.PaginationQuery{Cursor: "5", Page: httputil.PageNext, Limit: 5},
 			map[string]bool{
 				"x/mod-5": true,
 				"x/mod-6": true,
@@ -591,6 +665,20 @@ func (mts *ModelsTestSuite) TestModuleSearch() {
 				"x/mod-8": true,
 				"x/mod-9": true,
 			},
+			models.Paginator{PrevCursor: "6", NextCursor: ""},
+		},
+		{
+			"matches all records (page 2 prev)",
+			"module",
+			httputil.PaginationQuery{Cursor: "6", Page: httputil.PagePrev, Limit: 5},
+			map[string]bool{
+				"x/mod-0": true,
+				"x/mod-1": true,
+				"x/mod-2": true,
+				"x/mod-3": true,
+				"x/mod-4": true,
+			},
+			models.Paginator{PrevCursor: "", NextCursor: "5"},
 		},
 	}
 
@@ -598,12 +686,13 @@ func (mts *ModelsTestSuite) TestModuleSearch() {
 		tc := tc
 
 		mts.Run(tc.name, func() {
-			modules, err := models.SearchModules(mts.gormDB, tc.query, tc.cursor, tc.limit)
+			modules, paginator, err := models.SearchModules(mts.gormDB, tc.query, tc.pageQuery)
 			mts.Require().NoError(err)
-			mts.Require().Len(modules, len(tc.expected))
+			mts.Require().Len(modules, len(tc.expectedRecords))
+			mts.Require().Equal(tc.expectedPaginator, paginator)
 
 			for _, m := range modules {
-				mts.Require().Contains(tc.expected, m.Name)
+				mts.Require().Contains(tc.expectedRecords, m.Name)
 			}
 		})
 	}
@@ -765,6 +854,9 @@ func (mts *ModelsTestSuite) TestGetUserModules() {
 		Name: "x/bank",
 		Team: "cosmonauts",
 		Repo: "https://github.com/cosmos/cosmos-sdk",
+		Owners: []models.User{
+			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
+		},
 		Authors: []models.User{
 			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 		},
@@ -781,7 +873,7 @@ func (mts *ModelsTestSuite) TestGetUserModules() {
 	record, err := mod.Upsert(mts.gormDB)
 	mts.Require().NoError(err)
 
-	mods, err := models.GetUserModules(mts.gormDB, record.Authors[0].ID)
+	mods, err := models.GetUserModules(mts.gormDB, record.Authors[0].Name)
 	mts.Require().NoError(err)
 	mts.Require().Len(mods, 1)
 	mts.Require().Equal(mods[0], record)
@@ -827,9 +919,17 @@ func (mts *ModelsTestSuite) TestGetUserByID() {
 func (mts *ModelsTestSuite) TestGetAllUsers() {
 	resetDB(mts.T(), mts.m)
 
-	users, err := models.GetAllUsers(mts.gormDB, 0, 10)
+	users, paginator, err := models.GetAllUsers(mts.gormDB, httputil.PaginationQuery{Cursor: "0", Page: httputil.PageNext})
 	mts.Require().NoError(err)
 	mts.Require().Empty(users)
+	mts.Require().Empty(paginator.PrevCursor)
+	mts.Require().Empty(paginator.NextCursor)
+
+	users, paginator, err = models.GetAllUsers(mts.gormDB, httputil.PaginationQuery{Cursor: "0", Page: "foo"})
+	mts.Require().Error(err)
+	mts.Require().Empty(users)
+	mts.Require().Empty(paginator.PrevCursor)
+	mts.Require().Empty(paginator.NextCursor)
 
 	for i := 0; i < 25; i++ {
 		mod := models.Module{
@@ -854,36 +954,70 @@ func (mts *ModelsTestSuite) TestGetAllUsers() {
 	}
 
 	// first page (full)
-	users, err = models.GetAllUsers(mts.gormDB, 0, 10)
+	users, paginator, err = models.GetAllUsers(mts.gormDB, httputil.PaginationQuery{Cursor: "0", Page: httputil.PageNext, Limit: 10})
 	mts.Require().NoError(err)
 	mts.Require().Len(users, 10)
 
 	cursor := users[len(users)-1].ID
+	nextCursor := strconv.Itoa(int(cursor))
 	mts.Require().Equal(uint(10), cursor)
 
+	mts.Require().Empty(paginator.PrevCursor)
+	mts.Require().Equal(nextCursor, paginator.NextCursor)
+
 	// second page (full)
-	users, err = models.GetAllUsers(mts.gormDB, cursor, 10)
+	users, paginator, err = models.GetAllUsers(mts.gormDB, httputil.PaginationQuery{Cursor: nextCursor, Page: httputil.PageNext, Limit: 10})
 	mts.Require().NoError(err)
 	mts.Require().Len(users, 10)
 
 	cursor = users[len(users)-1].ID
+	prevCursor := strconv.Itoa(int(users[0].ID))
+	nextCursor = strconv.Itoa(int(cursor))
 	mts.Require().Equal(uint(20), cursor)
 
+	mts.Require().Equal(prevCursor, paginator.PrevCursor)
+	mts.Require().Equal(nextCursor, paginator.NextCursor)
+
 	// third page (partially full)
-	users, err = models.GetAllUsers(mts.gormDB, cursor, 10)
+	users, paginator, err = models.GetAllUsers(mts.gormDB, httputil.PaginationQuery{Cursor: nextCursor, Page: httputil.PageNext, Limit: 10})
 	mts.Require().NoError(err)
 	mts.Require().Len(users, 5)
 
 	cursor = users[len(users)-1].ID
+	prevCursor = strconv.Itoa(int(users[0].ID))
 	mts.Require().Equal(uint(25), cursor)
+
+	mts.Require().Equal(prevCursor, paginator.PrevCursor)
+	mts.Require().Empty(paginator.NextCursor)
+
+	// previous (second) page
+	users, paginator, err = models.GetAllUsers(mts.gormDB, httputil.PaginationQuery{Cursor: prevCursor, Page: httputil.PagePrev, Limit: 10})
+	mts.Require().NoError(err)
+	mts.Require().Len(users, 10)
+
+	cursor = users[len(users)-1].ID
+	prevCursor = strconv.Itoa(int(users[0].ID))
+	nextCursor = strconv.Itoa(int(cursor))
+	mts.Require().Equal(uint(20), cursor)
+
+	mts.Require().Equal(prevCursor, paginator.PrevCursor)
+	mts.Require().Equal(nextCursor, paginator.NextCursor)
 }
 
 func (mts *ModelsTestSuite) TestGetAllKeywords() {
 	resetDB(mts.T(), mts.m)
 
-	keywords, err := models.GetAllKeywords(mts.gormDB, 0, 10)
+	keywords, paginator, err := models.GetAllKeywords(mts.gormDB, httputil.PaginationQuery{Cursor: "0", Page: httputil.PageNext})
 	mts.Require().NoError(err)
 	mts.Require().Empty(keywords)
+	mts.Require().Empty(paginator.PrevCursor)
+	mts.Require().Empty(paginator.NextCursor)
+
+	keywords, paginator, err = models.GetAllKeywords(mts.gormDB, httputil.PaginationQuery{Cursor: "0", Page: "foo"})
+	mts.Require().Error(err)
+	mts.Require().Empty(keywords)
+	mts.Require().Empty(paginator.PrevCursor)
+	mts.Require().Empty(paginator.NextCursor)
 
 	for i := 0; i < 25; i++ {
 		mod := models.Module{
@@ -908,28 +1042,54 @@ func (mts *ModelsTestSuite) TestGetAllKeywords() {
 	}
 
 	// first page (full)
-	keywords, err = models.GetAllKeywords(mts.gormDB, 0, 10)
+	keywords, paginator, err = models.GetAllKeywords(mts.gormDB, httputil.PaginationQuery{Cursor: "0", Page: httputil.PageNext, Limit: 10})
 	mts.Require().NoError(err)
 	mts.Require().Len(keywords, 10)
 
 	cursor := keywords[len(keywords)-1].ID
+	nextCursor := strconv.Itoa(int(cursor))
 	mts.Require().Equal(uint(10), cursor)
 
+	mts.Require().Empty(paginator.PrevCursor)
+	mts.Require().Equal(nextCursor, paginator.NextCursor)
+
 	// second page (full)
-	keywords, err = models.GetAllKeywords(mts.gormDB, cursor, 10)
+	keywords, paginator, err = models.GetAllKeywords(mts.gormDB, httputil.PaginationQuery{Cursor: nextCursor, Page: httputil.PageNext, Limit: 10})
 	mts.Require().NoError(err)
 	mts.Require().Len(keywords, 10)
 
 	cursor = keywords[len(keywords)-1].ID
+	prevCursor := strconv.Itoa(int(keywords[0].ID))
+	nextCursor = strconv.Itoa(int(cursor))
 	mts.Require().Equal(uint(20), cursor)
 
+	mts.Require().Equal(prevCursor, paginator.PrevCursor)
+	mts.Require().Equal(nextCursor, paginator.NextCursor)
+
 	// third page (partially full)
-	keywords, err = models.GetAllKeywords(mts.gormDB, cursor, 10)
+	keywords, paginator, err = models.GetAllKeywords(mts.gormDB, httputil.PaginationQuery{Cursor: nextCursor, Page: httputil.PageNext, Limit: 10})
 	mts.Require().NoError(err)
 	mts.Require().Len(keywords, 5)
 
 	cursor = keywords[len(keywords)-1].ID
+	prevCursor = strconv.Itoa(int(keywords[0].ID))
 	mts.Require().Equal(uint(25), cursor)
+
+	mts.Require().Equal(prevCursor, paginator.PrevCursor)
+	mts.Require().Empty(paginator.NextCursor)
+
+	// previous (second) page
+	keywords, paginator, err = models.GetAllKeywords(mts.gormDB, httputil.PaginationQuery{Cursor: prevCursor, Page: httputil.PagePrev, Limit: 10})
+	mts.Require().NoError(err)
+	mts.Require().Len(keywords, 10)
+
+	cursor = keywords[len(keywords)-1].ID
+	prevCursor = strconv.Itoa(int(keywords[0].ID))
+	nextCursor = strconv.Itoa(int(cursor))
+	mts.Require().Equal(uint(20), cursor)
+
+	mts.Require().Equal(prevCursor, paginator.PrevCursor)
+	mts.Require().Equal(nextCursor, paginator.NextCursor)
 }
 
 func resetDB(t *testing.T, m *migrate.Migrate) {

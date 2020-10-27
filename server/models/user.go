@@ -9,6 +9,8 @@ import (
 	uuid "github.com/satori/go.uuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+
+	"github.com/cosmos/atlas/server/httputil"
 )
 
 type (
@@ -36,29 +38,32 @@ type (
 	UserJSON struct {
 		GormModelJSON
 
-		Name       string `json:"name"`
-		URL        string `json:"url"`
-		AvatarURL  string `json:"avatar_url"`
-		GravatarID string `json:"gravatar_id"`
+		Name       string      `json:"name"`
+		FullName   string      `json:"full_name"`
+		Email      interface{} `json:"email"`
+		URL        string      `json:"url"`
+		AvatarURL  string      `json:"avatar_url"`
+		GravatarID string      `json:"gravatar_id"`
 	}
 
 	// User defines an entity that contributes to a Module type.
 	User struct {
 		gorm.Model
 
-		Name              string         `json:"name"`
-		GithubUserID      sql.NullInt64  `json:"-"`
-		GithubAccessToken sql.NullString `json:"-"`
-		Email             sql.NullString `json:"-"`
-		URL               string         `json:"url"`
-		AvatarURL         string         `json:"avatar_url"`
-		GravatarID        string         `json:"gravatar_id"`
+		Name              string
+		FullName          string
+		GithubUserID      sql.NullInt64
+		GithubAccessToken sql.NullString
+		Email             sql.NullString
+		URL               string
+		AvatarURL         string
+		GravatarID        string
 
 		// many-to-many relationships
-		Modules []Module `gorm:"many2many:module_authors" json:"-"`
+		Modules []Module `gorm:"many2many:module_owners"`
 
 		// one-to-many relationships
-		Tokens []UserToken `gorm:"foreignKey:user_id" json:"-"`
+		Tokens []UserToken `gorm:"foreignKey:user_id"`
 	}
 )
 
@@ -79,6 +84,8 @@ func (ut UserToken) MarshalJSON() ([]byte, error) {
 
 // MarshalJSON implements custom JSON marshaling for the User model.
 func (u User) MarshalJSON() ([]byte, error) {
+	email, _ := u.Email.Value()
+
 	return json.Marshal(UserJSON{
 		GormModelJSON: GormModelJSON{
 			ID:        u.ID,
@@ -86,6 +93,8 @@ func (u User) MarshalJSON() ([]byte, error) {
 			UpdatedAt: u.UpdatedAt,
 		},
 		Name:       u.Name,
+		Email:      email,
+		FullName:   u.FullName,
 		URL:        u.URL,
 		AvatarURL:  u.AvatarURL,
 		GravatarID: u.GravatarID,
@@ -113,8 +122,10 @@ func (u User) Upsert(db *gorm.DB) (User, error) {
 			}
 		}
 
+		// Note: Updates via structs only updates non-zero fields.
 		if err := tx.Model(&record).Updates(User{
 			Email:             u.Email,
+			FullName:          u.FullName,
 			GithubUserID:      u.GithubUserID,
 			GithubAccessToken: u.GithubAccessToken,
 			AvatarURL:         u.AvatarURL,
@@ -138,16 +149,16 @@ func (u User) Upsert(db *gorm.DB) (User, error) {
 func GetUserByID(db *gorm.DB, id uint) (User, error) {
 	var u User
 
-	if err := db.First(&u, id).Error; err != nil {
+	if err := db.Preload(clause.Associations).First(&u, id).Error; err != nil {
 		return User{}, fmt.Errorf("failed to query for user by ID: %w", err)
 	}
 
 	return u, nil
 }
 
-// GetUserModules returns a set of Module's authored by a given User by ID.
-func GetUserModules(db *gorm.DB, id uint) ([]Module, error) {
-	user, err := GetUserByID(db, id)
+// GetUserModules returns a set of Module's authored by a given User by name.
+func GetUserModules(db *gorm.DB, name string) ([]Module, error) {
+	user, err := QueryUser(db, map[string]interface{}{"name": name})
 	if err != nil {
 		return []Module{}, err
 	}
@@ -155,6 +166,10 @@ func GetUserModules(db *gorm.DB, id uint) ([]Module, error) {
 	moduleIDs := make([]uint, len(user.Modules))
 	for i, mod := range user.Modules {
 		moduleIDs[i] = mod.ID
+	}
+
+	if len(moduleIDs) == 0 {
+		return []Module{}, nil
 	}
 
 	var modules []Module
@@ -171,7 +186,7 @@ func GetUserModules(db *gorm.DB, id uint) ([]Module, error) {
 func QueryUser(db *gorm.DB, query map[string]interface{}) (User, error) {
 	var record User
 
-	if err := db.Where(query).First(&record).Error; err != nil {
+	if err := db.Where(query).Preload(clause.Associations).First(&record).Error; err != nil {
 		return User{}, fmt.Errorf("failed to query user: %w", err)
 	}
 
@@ -179,16 +194,41 @@ func QueryUser(db *gorm.DB, query map[string]interface{}) (User, error) {
 }
 
 // GetAllUsers returns a slice of User objects paginated by a cursor and a
-// limit. The cursor must be the ID of the last retrieved object. An error is
-// returned upon database query failure.
-func GetAllUsers(db *gorm.DB, cursor uint, limit int) ([]User, error) {
-	var users []User
+// limit. An error is returned upon database query failure.
+func GetAllUsers(db *gorm.DB, pq httputil.PaginationQuery) ([]User, Paginator, error) {
+	var (
+		users []User
+		tx    *gorm.DB
+	)
 
-	if err := db.Limit(limit).Order("id asc").Where("id > ?", cursor).Find(&users).Error; err != nil {
-		return nil, fmt.Errorf("failed to query for users: %w", err)
+	switch pq.Page {
+	case httputil.PagePrev:
+		tx = db.Scopes(prevPageScope(pq, "users"))
+
+	case httputil.PageNext:
+		tx = db.Scopes(nextPageScope(pq, "users"))
+
+	default:
+		return nil, Paginator{}, ErrInvalidPaginationQuery
 	}
 
-	return users, nil
+	if err := tx.Find(&users).Error; err != nil {
+		return nil, Paginator{}, fmt.Errorf("failed to query for users: %w", err)
+	}
+
+	var (
+		paginator Paginator
+		err       error
+	)
+
+	if len(users) > 0 {
+		paginator, err = buildPaginator(db, pq, User{}, len(users), users[0].ID, users[len(users)-1].ID)
+		if err != nil {
+			return nil, Paginator{}, err
+		}
+	}
+
+	return users, paginator, nil
 }
 
 // Revoke revokes a token. It returns an error upon failure.

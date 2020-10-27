@@ -47,6 +47,14 @@ var doc = `{
                         "required": true
                     },
                     {
+                        "type": "string",
+                        "default": "next",
+                        "description": "pagination page",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
                         "type": "integer",
                         "default": 100,
                         "description": "pagination limit",
@@ -64,6 +72,217 @@ var doc = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/me": {
+            "get": {
+                "security": [
+                    {
+                        "APIKeyAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Get the current authenticated user",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.UserJSON"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "APIKeyAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Update the current authenticated user",
+                "parameters": [
+                    {
+                        "description": "user",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/v1.User"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.UserJSON"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/me/tokens": {
+            "get": {
+                "security": [
+                    {
+                        "APIKeyAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Get all API tokens by user ID",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.UserTokenJSON"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "APIKeyAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Create a user API token",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.UserTokenJSON"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/me/tokens/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "APIKeyAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Revoke a user API token by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "token ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.UserTokenJSON"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/httputil.ErrResponse"
                         }
@@ -95,6 +314,14 @@ var doc = `{
                         "default": 0,
                         "description": "pagination cursor",
                         "name": "cursor",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "next",
+                        "description": "pagination page",
+                        "name": "page",
                         "in": "query",
                         "required": true
                     },
@@ -201,6 +428,14 @@ var doc = `{
                         "default": 0,
                         "description": "pagination cursor",
                         "name": "cursor",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "next",
+                        "description": "pagination page",
+                        "name": "page",
                         "in": "query",
                         "required": true
                     },
@@ -447,121 +682,6 @@ var doc = `{
                 }
             }
         },
-        "/user/tokens": {
-            "get": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "users"
-                ],
-                "summary": "Get all API tokens by user ID",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.UserTokenJSON"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/httputil.ErrResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/httputil.ErrResponse"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "users"
-                ],
-                "summary": "Create a user API token",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.UserTokenJSON"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/httputil.ErrResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/httputil.ErrResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/httputil.ErrResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/user/tokens/{id}": {
-            "delete": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "users"
-                ],
-                "summary": "Revoke a user API token by ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "token ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.UserTokenJSON"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/httputil.ErrResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/httputil.ErrResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/httputil.ErrResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/users": {
             "get": {
                 "consumes": [
@@ -580,6 +700,14 @@ var doc = `{
                         "default": 0,
                         "description": "pagination cursor",
                         "name": "cursor",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "next",
+                        "description": "pagination page",
+                        "name": "page",
                         "in": "query",
                         "required": true
                     },
@@ -614,7 +742,7 @@ var doc = `{
                 }
             }
         },
-        "/users/{id}": {
+        "/users/{name}": {
             "get": {
                 "consumes": [
                     "application/json"
@@ -625,12 +753,12 @@ var doc = `{
                 "tags": [
                     "users"
                 ],
-                "summary": "Get a user by ID",
+                "summary": "Get a user by name",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "user ID",
-                        "name": "id",
+                        "type": "string",
+                        "description": "user name",
+                        "name": "name",
                         "in": "path",
                         "required": true
                     }
@@ -640,12 +768,6 @@ var doc = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/models.UserJSON"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     },
                     "404": {
@@ -663,7 +785,7 @@ var doc = `{
                 }
             }
         },
-        "/users/{id}/modules": {
+        "/users/{name}/modules": {
             "get": {
                 "consumes": [
                     "application/json"
@@ -674,12 +796,12 @@ var doc = `{
                 "tags": [
                     "users"
                 ],
-                "summary": "Return a paginated set of all Cosmos SDK modules by user ID",
+                "summary": "Return a set of all Cosmos SDK modules published by a given user",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "user ID",
-                        "name": "id",
+                        "type": "string",
+                        "description": "user name",
+                        "name": "name",
                         "in": "path",
                         "required": true
                     }
@@ -692,12 +814,6 @@ var doc = `{
                             "items": {
                                 "$ref": "#/definitions/models.ModuleJSON"
                             }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/httputil.ErrResponse"
                         }
                     },
                     "404": {
@@ -731,11 +847,14 @@ var doc = `{
                 "count": {
                     "type": "integer"
                 },
-                "cursor": {
-                    "type": "integer"
-                },
                 "limit": {
                     "type": "integer"
+                },
+                "next_cursor": {
+                    "type": "string"
+                },
+                "prev_cursor": {
+                    "type": "string"
                 },
                 "results": {
                     "type": "object"
@@ -778,6 +897,59 @@ var doc = `{
                 },
                 "updated_at": {
                     "type": "string"
+                }
+            }
+        },
+        "models.Module": {
+            "type": "object",
+            "properties": {
+                "authors": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.User"
+                    }
+                },
+                "bug_tracker": {
+                    "description": "one-to-one relationships",
+                    "type": "object",
+                    "$ref": "#/definitions/models.BugTracker"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "documentation": {
+                    "type": "string"
+                },
+                "homepage": {
+                    "type": "string"
+                },
+                "keywords": {
+                    "description": "many-to-many relationships",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Keyword"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "owners": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.User"
+                    }
+                },
+                "repo": {
+                    "type": "string"
+                },
+                "team": {
+                    "type": "string"
+                },
+                "versions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ModuleVersion"
+                    }
                 }
             }
         },
@@ -881,14 +1053,40 @@ var doc = `{
         "models.User": {
             "type": "object",
             "properties": {
-                "avatar_url": {
+                "avatarURL": {
                     "type": "string"
                 },
-                "gravatar_id": {
+                "email": {
                     "type": "string"
+                },
+                "fullName": {
+                    "type": "string"
+                },
+                "githubAccessToken": {
+                    "type": "string"
+                },
+                "githubUserID": {
+                    "type": "string"
+                },
+                "gravatarID": {
+                    "type": "string"
+                },
+                "modules": {
+                    "description": "many-to-many relationships",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Module"
+                    }
                 },
                 "name": {
                     "type": "string"
+                },
+                "tokens": {
+                    "description": "one-to-many relationships",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.UserToken"
+                    }
                 },
                 "url": {
                     "type": "string"
@@ -902,6 +1100,12 @@ var doc = `{
                     "type": "string"
                 },
                 "created_at": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "object"
+                },
+                "full_name": {
                     "type": "string"
                 },
                 "gravatar_id": {
@@ -918,6 +1122,23 @@ var doc = `{
                 },
                 "url": {
                     "type": "string"
+                }
+            }
+        },
+        "models.UserToken": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "revoked": {
+                    "type": "boolean"
+                },
+                "token": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
                 }
             }
         },
@@ -1029,6 +1250,17 @@ var doc = `{
                     "type": "string"
                 },
                 "team": {
+                    "type": "string"
+                }
+            }
+        },
+        "v1.User": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
                     "type": "string"
                 }
             }
