@@ -9,6 +9,8 @@ import (
 	uuid "github.com/satori/go.uuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+
+	"github.com/cosmos/atlas/server/httputil"
 )
 
 type (
@@ -191,16 +193,42 @@ func QueryUser(db *gorm.DB, query map[string]interface{}) (User, error) {
 	return record, nil
 }
 
-// GetAllUsers returns a slice of User objects paginated by an offset and a
+// GetAllUsers returns a slice of User objects paginated by a cursor and a
 // limit. An error is returned upon database query failure.
-func GetAllUsers(db *gorm.DB, offset, limit int) ([]User, error) {
-	var users []User
+func GetAllUsers(db *gorm.DB, pq httputil.PaginationQuery) ([]User, Paginator, error) {
+	var (
+		users []User
+		tx    *gorm.DB
+	)
 
-	if err := db.Limit(limit).Offset(offset).Order("id asc").Find(&users).Error; err != nil {
-		return nil, fmt.Errorf("failed to query for users: %w", err)
+	switch pq.Page {
+	case httputil.PagePrev:
+		tx = db.Scopes(PrevPageScope(pq, "users"))
+
+	case httputil.PageNext:
+		tx = db.Scopes(NextPageScope(pq, "users"))
+
+	default:
+		return nil, Paginator{}, ErrInvalidPaginationQuery
 	}
 
-	return users, nil
+	if err := tx.Find(&users).Error; err != nil {
+		return nil, Paginator{}, fmt.Errorf("failed to query for users: %w", err)
+	}
+
+	var (
+		paginator Paginator
+		err       error
+	)
+
+	if len(users) > 0 {
+		paginator, err = BuildPaginator(db, pq, User{}, len(users), users[0].ID, users[len(users)-1].ID)
+		if err != nil {
+			return nil, Paginator{}, err
+		}
+	}
+
+	return users, paginator, nil
 }
 
 // Revoke revokes a token. It returns an error upon failure.

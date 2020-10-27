@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	"gorm.io/gorm"
+
+	"github.com/cosmos/atlas/server/httputil"
 )
 
 type (
@@ -48,14 +50,40 @@ func (k Keyword) Query(db *gorm.DB) (Keyword, error) {
 	return record, nil
 }
 
-// GetAllKeywords returns a slice of Keyword objects paginated by an offset and a
+// GetAllKeywords returns a slice of Keyword objects paginated by a cursor and a
 // limit. An error is returned upon database query failure.
-func GetAllKeywords(db *gorm.DB, offset, limit int) ([]Keyword, error) {
-	var keywords []Keyword
+func GetAllKeywords(db *gorm.DB, pq httputil.PaginationQuery) ([]Keyword, Paginator, error) {
+	var (
+		keywords []Keyword
+		tx       *gorm.DB
+	)
 
-	if err := db.Limit(limit).Offset(offset).Order("id asc").Find(&keywords).Error; err != nil {
-		return nil, fmt.Errorf("failed to query for keywords: %w", err)
+	switch pq.Page {
+	case httputil.PagePrev:
+		tx = db.Scopes(PrevPageScope(pq, "keywords"))
+
+	case httputil.PageNext:
+		tx = db.Scopes(NextPageScope(pq, "keywords"))
+
+	default:
+		return nil, Paginator{}, ErrInvalidPaginationQuery
 	}
 
-	return keywords, nil
+	if err := tx.Find(&keywords).Error; err != nil {
+		return nil, Paginator{}, fmt.Errorf("failed to query for keywords: %w", err)
+	}
+
+	var (
+		paginator Paginator
+		err       error
+	)
+
+	if len(keywords) > 0 {
+		paginator, err = BuildPaginator(db, pq, Keyword{}, len(keywords), keywords[0].ID, keywords[len(keywords)-1].ID)
+		if err != nil {
+			return nil, Paginator{}, err
+		}
+	}
+
+	return keywords, paginator, nil
 }
