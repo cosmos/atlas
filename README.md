@@ -6,6 +6,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/cosmos/atlas)](https://goreportcard.com/report/github.com/cosmos/atlas)
 [![codecov](https://codecov.io/gh/cosmos/atlas/branch/main/graph/badge.svg)](https://codecov.io/gh/cosmos/atlas)
 [![GoDoc](https://godoc.org/github.com/cosmos/atlas?status.png)](https://pkg.go.dev/github.com/cosmos/atlas)
+[![license](https://img.shields.io/github/license/cosmos/atlas.svg)](https://github.com/cosmos/atlas/blob/main/LICENSE)
 
 > Source code for the default [Cosmos SDK](https://github.com/cosmos/cosmos-sdk) module
 registry, viewable online at [atlas.cosmos.network](https://atlas.cosmos.network).
