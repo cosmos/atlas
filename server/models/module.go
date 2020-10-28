@@ -332,7 +332,9 @@ func GetAllModules(db *gorm.DB, pq httputil.PaginationQuery) ([]Module, Paginato
 		total   int64
 	)
 
-	if err := db.Scopes(paginateScope(pq, &modules)).Error; err != nil {
+	tx := db.Preload(clause.Associations)
+
+	if err := tx.Scopes(paginateScope(pq, &modules)).Error; err != nil {
 		return nil, Paginator{}, fmt.Errorf("failed to query for modules: %w", err)
 	}
 
