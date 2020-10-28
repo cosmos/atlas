@@ -75,7 +75,7 @@
             class="align-self-center"
             nativeType="submit"
             type="neutral"
-            :disabled="!this.responseData.prev_cursor"
+            :disabled="!this.responseData.prev_uri"
             v-on:click="prevModules"
           >
             <i class="ni ni-bold-left"></i>
@@ -84,7 +84,7 @@
             class="align-self-center"
             nativeType="submit"
             type="neutral"
-            :disabled="!this.responseData.next_cursor"
+            :disabled="!this.responseData.next_uri"
             v-on:click="nextModules"
           >
             <i class="ni ni-bold-right"></i>
@@ -103,7 +103,7 @@ export default {
   bodyClass: "search-results-page",
   components: {},
   watch: {
-    cursor: function() {
+    pageURI: function() {
       this.searchModules();
     }
   },
@@ -113,22 +113,15 @@ export default {
     },
 
     prevModules() {
-      this.page = "prev";
-      this.cursor = this.responseData.prev_cursor;
+      this.pageURI = this.responseData.prev_uri;
     },
 
     nextModules() {
-      this.page = "next";
-      this.cursor = this.responseData.next_cursor;
+      this.pageURI = this.responseData.next_uri;
     },
 
     searchModules() {
-      APIClient.searchModules(
-        this.$route.query.q,
-        this.cursor,
-        this.pageSize,
-        this.page
-      )
+      APIClient.searchModules(this.$route.query.q, this.pageURI)
         .then(resp => {
           this.noMatch = resp.results.length === 0;
           this.responseData = resp;
@@ -150,18 +143,16 @@ export default {
   },
   data() {
     return {
-      cursor: 0,
-      page: "next",
-      responseData: {},
       pageSize: 9,
+      pageURI: "?page=1&limit=9",
+      responseData: {},
       noMatch: false
     };
   },
   beforeRouteUpdate(to, from, next) {
     next();
     this.$Progress.start();
-    this.cursor = 0;
-    this.page = "next";
+    this.pageURI = "?page=1&limit=9";
     this.searchModules();
     this.$Progress.finish();
   }

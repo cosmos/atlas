@@ -70,7 +70,7 @@
             class="align-self-center"
             nativeType="submit"
             type="neutral"
-            :disabled="!this.responseData.prev_cursor"
+            :disabled="!this.responseData.prev_uri"
             v-on:click="prevModules"
           >
             <i class="ni ni-bold-left"></i>
@@ -79,7 +79,7 @@
             class="align-self-center"
             nativeType="submit"
             type="neutral"
-            :disabled="!this.responseData.next_cursor"
+            :disabled="!this.responseData.next_uri"
             v-on:click="nextModules"
           >
             <i class="ni ni-bold-right"></i>
@@ -103,24 +103,22 @@ export default {
     [TableColumn.name]: TableColumn
   },
   watch: {
-    cursor: function() {
+    pageURI: function() {
       this.getModules();
     }
   },
   computed: {},
   methods: {
     prevModules() {
-      this.page = "prev";
-      this.cursor = this.responseData.prev_cursor;
+      this.pageURI = this.responseData.prev_uri;
     },
 
     nextModules() {
-      this.page = "next";
-      this.cursor = this.responseData.next_cursor;
+      this.pageURI = this.responseData.next_uri;
     },
 
     getModules() {
-      APIClient.getModules(this.cursor, this.pageSize, this.page)
+      APIClient.getModules(this.pageURI)
         .then(resp => {
           this.responseData = resp;
         })
@@ -141,9 +139,8 @@ export default {
   },
   data() {
     return {
-      cursor: 0,
-      page: "next",
       pageSize: 9,
+      pageURI: "?page=1&limit=9",
       responseData: {}
     };
   },
