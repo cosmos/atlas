@@ -3,7 +3,7 @@ package models
 import (
 	"errors"
 	"fmt"
-	"strconv"
+	"strings"
 
 	"gorm.io/gorm"
 
@@ -17,56 +17,62 @@ var ErrInvalidPaginationQuery = errors.New("invalid pagination query")
 // Paginator defines pagination result cursor metadata to determine how to
 // make subsequent pagination calls.
 type Paginator struct {
-	PrevCursor string
-	NextCursor string
+	PrevPage int64
+	NextPage int64
+	Total    int64
 }
 
-// prevPageScope builds a scope for executing a previous page query on a table
-// by the primary key (id). This scope cannot be used for custom queries.
-func prevPageScope(pq httputil.PaginationQuery, table string) func(*gorm.DB) *gorm.DB {
+// paginateScope builds a reusable scope for executing a paginated offset query
+// and returning the total count.
+func paginateScope(pq httputil.PaginationQuery, dest interface{}) func(*gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
-		query := fmt.Sprintf(`SELECT *
-    FROM (SELECT * FROM %s WHERE id < ? ORDER BY id DESC LIMIT ?) as prev_page
-		ORDER BY id ASC;`, table)
-		return db.Raw(query, pq.Cursor, pq.Limit)
+		return db.Offset(int(offsetFromPage(pq))).
+			Limit(int(pq.Limit)).
+			Order(buildOrderBy(pq)).
+			Find(dest)
 	}
 }
 
-// nextPageScope builds a scope for executing a next page query on a table
-// by the primary key (id). This scope cannot be used for custom queries.
-func nextPageScope(pq httputil.PaginationQuery, table string) func(*gorm.DB) *gorm.DB {
-	return func(db *gorm.DB) *gorm.DB {
-		query := fmt.Sprintf("SELECT * FROM %s WHERE id > ? ORDER BY id ASC LIMIT ?;", table)
-		return db.Raw(query, pq.Cursor, pq.Limit)
+// buildPaginator returns a Paginator object with previous and next page values
+// after completing a pagination query.
+func buildPaginator(pq httputil.PaginationQuery, total int64) Paginator {
+	paginator := Paginator{
+		Total: total,
 	}
+
+	if hasPrevious(pq) {
+		paginator.PrevPage = pq.Page - 1
+	}
+
+	if hasNext(pq, total) {
+		paginator.NextPage = pq.Page + 1
+	}
+
+	return paginator
 }
 
-// buildPaginator returns a Paginator object with previous and next page cursors
-// after completing a pagination query. An error is returned if any query fails.
-func buildPaginator(tx *gorm.DB, pq httputil.PaginationQuery, model interface{}, numRecords int, startID, endID uint) (Paginator, error) {
-	paginator := Paginator{}
-
-	if numRecords > 0 {
-		var prevCount int64
-		if err := tx.Model(model).Where("id < ?", startID).Count(&prevCount).Error; err != nil {
-			return Paginator{}, fmt.Errorf("failed to query for previous cursor: %w", err)
-		}
-
-		if prevCount > 0 {
-			paginator.PrevCursor = strconv.Itoa(int(startID))
-		}
-
-		if numRecords == pq.Limit {
-			var nextCount int64
-			if err := tx.Model(model).Where("id > ?", endID).Count(&nextCount).Error; err != nil {
-				return Paginator{}, fmt.Errorf("failed to query for next cursor: %w", err)
-			}
-
-			if nextCount > 0 {
-				paginator.NextCursor = strconv.Itoa(int(endID))
-			}
+func buildOrderBy(pq httputil.PaginationQuery) string {
+	tokens := []string{}
+	for _, column := range strings.Split(pq.Order, ",") {
+		if pq.Reverse {
+			tokens = append(tokens, fmt.Sprintf("%s DESC", column))
+		} else {
+			tokens = append(tokens, fmt.Sprintf("%s ASC", column))
 		}
 	}
 
-	return paginator, nil
+	return strings.Join(tokens, ",")
+}
+
+func offsetFromPage(pq httputil.PaginationQuery) int64 {
+	return (pq.Page - 1) * pq.Limit
+}
+
+func hasPrevious(pq httputil.PaginationQuery) bool {
+	return (offsetFromPage(pq) - pq.Limit) >= 0
+
+}
+
+func hasNext(pq httputil.PaginationQuery, total int64) bool {
+	return (offsetFromPage(pq) + pq.Limit) < total
 }

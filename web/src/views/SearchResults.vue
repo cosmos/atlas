@@ -16,6 +16,49 @@
           class="row"
           v-if="responseData.results && responseData.results.length > 0"
         >
+          <div class="col-lg-12 text-lg-right align-self-lg-right">
+            <div class="py-4">
+              <base-dropdown class="dropdown">
+                <base-button
+                  type="primary"
+                  size="md"
+                  class="mr-4"
+                  role="button"
+                  slot="title"
+                  data-toggle="dropdown"
+                >
+                  <i class="ni ni-tablet-button d-lg-none"></i>
+                  <span class="nav-link-inner--text">Sort By</span>
+                </base-button>
+                <div
+                  class="dropdown-item"
+                  v-bind:class="{ selected: orderBy['alpha'] }"
+                  v-on:click="sortModules('alpha')"
+                >
+                  Alphabetical
+                </div>
+                <div
+                  class="dropdown-item"
+                  v-bind:class="{ selected: orderBy['updated'] }"
+                  v-on:click="sortModules('updated')"
+                >
+                  Recently Updated
+                </div>
+                <div
+                  class="dropdown-item"
+                  v-bind:class="{ selected: orderBy['new'] }"
+                  v-on:click="sortModules('new')"
+                >
+                  Newly Added
+                </div>
+              </base-dropdown>
+            </div>
+          </div>
+        </div>
+        <div
+          class="row"
+          v-if="responseData.results && responseData.results.length > 0"
+        >
           <div
             class="col-lg-4 col-md-6"
             v-for="mod in responseData.results"
@@ -75,7 +118,7 @@
             class="align-self-center"
             nativeType="submit"
             type="neutral"
-            :disabled="!this.responseData.prev_cursor"
+            :disabled="!this.responseData.prev_uri"
             v-on:click="prevModules"
           >
             <i class="ni ni-bold-left"></i>
@@ -84,7 +127,7 @@
             class="align-self-center"
             nativeType="submit"
             type="neutral"
-            :disabled="!this.responseData.next_cursor"
+            :disabled="!this.responseData.next_uri"
             v-on:click="nextModules"
           >
             <i class="ni ni-bold-right"></i>
@@ -97,13 +140,16 @@
 
 <script>
 import "bootstrap-vue/dist/bootstrap-vue.min.css";
+import BaseDropdown from "@/components/BaseDropdown";
 import APIClient from "../plugins/apiClient";
 
 export default {
   bodyClass: "search-results-page",
-  components: {},
+  components: {
+    BaseDropdown
+  },
   watch: {
-    cursor: function() {
+    pageURI: function() {
       this.searchModules();
     }
   },
@@ -113,22 +159,37 @@ export default {
     },
 
     prevModules() {
-      this.page = "prev";
-      this.cursor = this.responseData.prev_cursor;
+      this.pageURI = this.responseData.prev_uri;
     },
 
     nextModules() {
-      this.page = "next";
-      this.cursor = this.responseData.next_cursor;
+      this.pageURI = this.responseData.next_uri;
+    },
+
+    sortModules(order) {
+      switch (order) {
+        case "alpha":
+          Object.keys(this.orderBy).forEach(v => (this.orderBy[v] = false));
+          this.orderBy["alpha"] = true;
+          this.pageURI = `?page=1&limit=${this.pageSize}&order=name,id`;
+          break;
+
+        case "updated":
+          Object.keys(this.orderBy).forEach(v => (this.orderBy[v] = false));
+          this.orderBy["updated"] = true;
+          this.pageURI = `?page=1&limit=${this.pageSize}&order=updated_at,id&reverse=true`;
+          break;
+
+        case "new":
+          Object.keys(this.orderBy).forEach(v => (this.orderBy[v] = false));
+          this.orderBy["new"] = true;
+          this.pageURI = `?page=1&limit=${this.pageSize}&order=created_at,id&reverse=true`;
+          break;
+      }
     },
 
     searchModules() {
-      APIClient.searchModules(
-        this.$route.query.q,
-        this.cursor,
-        this.pageSize,
-        this.page
-      )
+      APIClient.searchModules(this.$route.query.q, this.pageURI)
         .then(resp => {
           this.noMatch = resp.results.length === 0;
           this.responseData = resp;
@@ -150,18 +211,21 @@ export default {
   },
   data() {
     return {
-      cursor: 0,
-      page: "next",
-      responseData: {},
       pageSize: 9,
-      noMatch: false
+      pageURI: "?page=1&limit=9&order=name,id",
+      responseData: {},
+      noMatch: false,
+      orderBy: {
+        alpha: true,
+        updated: false,
+        name: false
+      }
     };
   },
   beforeRouteUpdate(to, from, next) {
     next();
     this.$Progress.start();
-    this.cursor = 0;
-    this.page = "next";
+    this.pageURI = "?page=1&limit=9&order=name,id";
     this.searchModules();
     this.$Progress.finish();
   }

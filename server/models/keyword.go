@@ -50,40 +50,21 @@ func (k Keyword) Query(db *gorm.DB) (Keyword, error) {
 	return record, nil
 }
 
-// GetAllKeywords returns a slice of Keyword objects paginated by a cursor and a
-// limit. An error is returned upon database query failure.
+// GetAllKeywords returns a slice of Keyword objects paginated by an offset,
+// order and limit. An error is returned upon database query failure.
 func GetAllKeywords(db *gorm.DB, pq httputil.PaginationQuery) ([]Keyword, Paginator, error) {
 	var (
 		keywords []Keyword
-		tx       *gorm.DB
+		total    int64
 	)
 
-	switch pq.Page {
-	case httputil.PagePrev:
-		tx = db.Scopes(prevPageScope(pq, "keywords"))
-
-	case httputil.PageNext:
-		tx = db.Scopes(nextPageScope(pq, "keywords"))
-
-	default:
-		return nil, Paginator{}, ErrInvalidPaginationQuery
-	}
-
-	if err := tx.Find(&keywords).Error; err != nil {
+	if err := db.Scopes(paginateScope(pq, &keywords)).Error; err != nil {
 		return nil, Paginator{}, fmt.Errorf("failed to query for keywords: %w", err)
 	}
 
-	var (
-		paginator Paginator
-		err       error
-	)
-
-	if len(keywords) > 0 {
-		paginator, err = buildPaginator(db, pq, Keyword{}, len(keywords), keywords[0].ID, keywords[len(keywords)-1].ID)
-		if err != nil {
-			return nil, Paginator{}, err
-		}
+	if err := db.Model(&Keyword{}).Count(&total).Error; err != nil {
+		return nil, Paginator{}, fmt.Errorf("failed to query for keyword count: %w", err)
 	}
 
-	return keywords, paginator, nil
+	return keywords, buildPaginator(pq, total), nil
 }

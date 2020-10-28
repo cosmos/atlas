@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strconv"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -325,42 +324,25 @@ func GetModuleByID(db *gorm.DB, id uint) (Module, error) {
 	return m, nil
 }
 
-// GetAllModules returns a slice of Module objects paginated by a cursor and a
-// limit. An error is returned upon database query failure.
+// GetAllModules returns a slice of Module objects paginated by an offset, order
+// and limit. An error is returned upon database query failure.
 func GetAllModules(db *gorm.DB, pq httputil.PaginationQuery) ([]Module, Paginator, error) {
 	var (
 		modules []Module
-		tx      *gorm.DB
+		total   int64
 	)
 
-	switch pq.Page {
-	case httputil.PagePrev:
-		tx = db.Scopes(prevPageScope(pq, "modules"))
+	tx := db.Preload(clause.Associations)
 
-	case httputil.PageNext:
-		tx = db.Scopes(nextPageScope(pq, "modules"))
-
-	default:
-		return nil, Paginator{}, ErrInvalidPaginationQuery
-	}
-
-	if err := tx.Preload(clause.Associations).Find(&modules).Error; err != nil {
+	if err := tx.Scopes(paginateScope(pq, &modules)).Error; err != nil {
 		return nil, Paginator{}, fmt.Errorf("failed to query for modules: %w", err)
 	}
 
-	var (
-		paginator Paginator
-		err       error
-	)
-
-	if len(modules) > 0 {
-		paginator, err = buildPaginator(db, pq, Module{}, len(modules), modules[0].ID, modules[len(modules)-1].ID)
-		if err != nil {
-			return nil, Paginator{}, err
-		}
+	if err := db.Model(&Module{}).Count(&total).Error; err != nil {
+		return nil, Paginator{}, fmt.Errorf("failed to query for module count: %w", err)
 	}
 
-	return modules, paginator, nil
+	return modules, buildPaginator(pq, total), nil
 }
 
 // SearchModules performs a paginated query for a set of modules by name, team,
@@ -369,132 +351,75 @@ func GetAllModules(db *gorm.DB, pq httputil.PaginationQuery) ([]Module, Paginato
 //
 // Note, we used offset-based pagination even though this approach doesn't scale
 // well. We presume that number of records stored and even returned won't approach
-// the scale where offset pagination would drastically impact performance.
+// the scale where offset pagination would drastically impact performance. This
+// allows us to provide custom sorting.
 func SearchModules(db *gorm.DB, query string, pq httputil.PaginationQuery) ([]Module, Paginator, error) {
 	if len(query) == 0 {
 		return []Module{}, Paginator{}, nil
 	}
 
-	searchFn := func(db *gorm.DB, query string, pq httputil.PaginationQuery) ([]Module, error) {
-		type queryRow struct {
-			ModuleID   int
-			ModuleName string
-		}
-
-		var (
-			criteria string
-			order    string
-		)
-
-		switch pq.Page {
-		case httputil.PagePrev:
-			criteria = fmt.Sprintf("m.id < %s", pq.Cursor)
-			order = "DESC"
-
-		case httputil.PageNext:
-			criteria = fmt.Sprintf("m.id > %s", pq.Cursor)
-			order = "ASC"
-
-		default:
-			return nil, ErrInvalidPaginationQuery
-		}
-
-		// Perform a join on modules and keywords, including modules without keywords,
-		// and execute a text search against fields: module name, module team,
-		// module description, and keyword.
-		rows, err := db.Raw(fmt.Sprintf(`SELECT * FROM (
-	SELECT DISTINCT
-		ON (module_id) results.module_id AS module_id,
-		results.module_name AS module_name
-	FROM
-		(
-			SELECT
-				m.id AS module_id,
-				m.name AS module_name,
-				m.team,
-				m.description,
-				k.name
-			FROM
-				modules m
-				LEFT JOIN
-					module_keywords mk
-					ON (m.id = mk.module_id)
-				LEFT JOIN
-					keywords k
-					ON (mk.keyword_id = k.id)
-			WHERE
-				to_tsvector('english', COALESCE(m.name, '') || ' ' || COALESCE(m.team, '') || ' ' || COALESCE(m.description, '') || ' ' || COALESCE(k.name, '')) @@ websearch_to_tsquery('english', ?)
-				AND %s
-		)
-		AS results ORDER BY module_id %s LIMIT ?
-	)
-		AS page ORDER BY module_id ASC;
-	`, criteria, order), query, pq.Limit).Rows()
-		if err != nil {
-			return nil, err
-		}
-
-		defer rows.Close()
-
-		moduleIDs := []int{}
-		for rows.Next() {
-			var qr queryRow
-			if err := db.ScanRows(rows, &qr); err != nil {
-				return nil, fmt.Errorf("failed to search for modules: %w", err)
-			}
-
-			moduleIDs = append(moduleIDs, qr.ModuleID)
-		}
-
-		if len(moduleIDs) == 0 {
-			return []Module{}, nil
-		}
-
-		var modules []Module
-
-		if err := db.Preload(clause.Associations).Order("id asc").Find(&modules, moduleIDs).Error; err != nil {
-			return nil, fmt.Errorf("failed to search for modules: %w", err)
-		}
-
-		return modules, nil
+	type queryRow struct {
+		ModuleID uint
 	}
 
-	modules, err := searchFn(db, query, pq)
+	// Perform a join on modules and keywords, including modules without keywords,
+	// and execute a text search against fields: module name, module team,
+	// module description, and keyword. This query returns all the matching module
+	// IDs without any pagination or sorting.
+	//
+	// TODO: Analyze and improve the query as loading all matching IDs in memory
+	// is probably not ideal.
+	rows, err := db.Raw(`SELECT DISTINCT
+  ON (module_id) results.module_id AS module_id
+FROM
+  (
+    SELECT
+      m.id AS module_id,
+      m.name AS module_name,
+      m.team,
+      m.description,
+      k.name
+    FROM
+      modules m
+      LEFT JOIN
+        module_keywords mk
+        ON (m.id = mk.module_id)
+      LEFT JOIN
+        keywords k
+        ON (mk.keyword_id = k.id)
+    WHERE
+      to_tsvector('english', COALESCE(m.name, '') || ' ' || COALESCE(m.team, '') || ' ' || COALESCE(m.description, '') || ' ' || COALESCE(k.name, '')) @@ websearch_to_tsquery('english', ?)
+  ) AS results;
+`, query).Rows()
 	if err != nil {
-		return nil, Paginator{}, err
+		return nil, Paginator{}, fmt.Errorf("failed to search for modules: %w", err)
 	}
 
-	paginator := Paginator{}
+	defer rows.Close()
 
-	if len(modules) > 0 {
-		// determine if there is a previous page
-		prevCursor := strconv.Itoa(int(modules[0].ID))
-		prev, err := searchFn(
-			db,
-			query, httputil.PaginationQuery{Cursor: prevCursor, Limit: 1, Page: httputil.PagePrev},
-		)
-		if err != nil {
-			return nil, Paginator{}, fmt.Errorf("failed to query for previous cursor: %w", err)
+	moduleIDs := []uint{}
+	for rows.Next() {
+		var qr queryRow
+		if err := db.ScanRows(rows, &qr); err != nil {
+			return nil, Paginator{}, fmt.Errorf("failed to search for modules: %w", err)
 		}
 
-		if len(prev) > 0 {
-			paginator.PrevCursor = prevCursor
-		}
-
-		// determine if there is a next page
-		nextCursor := strconv.Itoa(int(modules[len(modules)-1].ID))
-		next, err := searchFn(
-			db,
-			query, httputil.PaginationQuery{Cursor: nextCursor, Limit: 1, Page: httputil.PageNext},
-		)
-		if err != nil {
-			return nil, Paginator{}, fmt.Errorf("failed to query for next cursor: %w", err)
-		}
-
-		if len(next) > 0 {
-			paginator.NextCursor = nextCursor
-		}
+		moduleIDs = append(moduleIDs, qr.ModuleID)
 	}
 
-	return modules, paginator, nil
+	if len(moduleIDs) == 0 {
+		return []Module{}, Paginator{}, nil
+	}
+
+	var modules []Module
+
+	if err := db.Preload(clause.Associations).
+		Offset(int(offsetFromPage(pq))).
+		Limit(int(pq.Limit)).
+		Order(buildOrderBy(pq)).
+		Find(&modules, moduleIDs).Error; err != nil {
+		return nil, Paginator{}, fmt.Errorf("failed to search for modules: %w", err)
+	}
+
+	return modules, buildPaginator(pq, int64(len(moduleIDs))), nil
 }

@@ -40,15 +40,7 @@ var doc = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "default": 0,
-                        "description": "pagination cursor",
-                        "name": "cursor",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "default": "next",
+                        "default": 1,
                         "description": "pagination page",
                         "name": "page",
                         "in": "query",
@@ -61,6 +53,20 @@ var doc = `{
                         "name": "limit",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "false",
+                        "description": "pagination reverse",
+                        "name": "reverse",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "id",
+                        "description": "pagination order by",
+                        "name": "order",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -311,15 +317,7 @@ var doc = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "default": 0,
-                        "description": "pagination cursor",
-                        "name": "cursor",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "default": "next",
+                        "default": 1,
                         "description": "pagination page",
                         "name": "page",
                         "in": "query",
@@ -332,6 +330,20 @@ var doc = `{
                         "name": "limit",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "false",
+                        "description": "pagination reverse",
+                        "name": "reverse",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "id",
+                        "description": "pagination order by",
+                        "name": "order",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -425,15 +437,7 @@ var doc = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "default": 0,
-                        "description": "pagination cursor",
-                        "name": "cursor",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "default": "next",
+                        "default": 1,
                         "description": "pagination page",
                         "name": "page",
                         "in": "query",
@@ -446,6 +450,20 @@ var doc = `{
                         "name": "limit",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "false",
+                        "description": "pagination reverse",
+                        "name": "reverse",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "id",
+                        "description": "pagination order by",
+                        "name": "order",
+                        "in": "query"
                     },
                     {
                         "type": "string",
@@ -697,15 +715,7 @@ var doc = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "default": 0,
-                        "description": "pagination cursor",
-                        "name": "cursor",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "default": "next",
+                        "default": 1,
                         "description": "pagination page",
                         "name": "page",
                         "in": "query",
@@ -718,6 +728,20 @@ var doc = `{
                         "name": "limit",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "false",
+                        "description": "pagination reverse",
+                        "name": "reverse",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "id",
+                        "description": "pagination order by",
+                        "name": "order",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -844,20 +868,29 @@ var doc = `{
         "httputil.PaginationResponse": {
             "type": "object",
             "properties": {
-                "count": {
-                    "type": "integer"
-                },
                 "limit": {
                     "type": "integer"
                 },
-                "next_cursor": {
+                "next_uri": {
                     "type": "string"
                 },
-                "prev_cursor": {
+                "order": {
+                    "type": "string"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "prev_uri": {
                     "type": "string"
                 },
                 "results": {
                     "type": "object"
+                },
+                "reverse": {
+                    "type": "boolean"
+                },
+                "total": {
+                    "type": "integer"
                 }
             }
         },

@@ -6,16 +6,22 @@ definitions:
     type: object
   httputil.PaginationResponse:
     properties:
-      count:
-        type: integer
       limit:
         type: integer
-      next_cursor:
+      next_uri:
         type: string
-      prev_cursor:
+      order:
+        type: string
+      page:
+        type: integer
+      prev_uri:
         type: string
       results:
         type: object
+      reverse:
+        type: boolean
+      total:
+        type: integer
     type: object
   models.BugTracker:
     properties:
@@ -303,24 +309,28 @@ paths:
       consumes:
       - application/json
       parameters:
-      - default: 0
-        description: pagination cursor
-        in: query
-        name: cursor
-        required: true
-        type: integer
-      - default: next
+      - default: 1
         description: pagination page
         in: query
         name: page
         required: true
-        type: string
+        type: integer
       - default: 100
         description: pagination limit
         in: query
         name: limit
         required: true
         type: integer
+      - default: "false"
+        description: pagination reverse
+        in: query
+        name: reverse
+        type: string
+      - default: id
+        description: pagination order by
+        in: query
+        name: order
+        type: string
       produces:
       - application/json
       responses:
@@ -475,24 +485,28 @@ paths:
       consumes:
       - application/json
       parameters:
-      - default: 0
-        description: pagination cursor
-        in: query
-        name: cursor
-        required: true
-        type: integer
-      - default: next
+      - default: 1
         description: pagination page
         in: query
         name: page
         required: true
-        type: string
+        type: integer
       - default: 100
         description: pagination limit
         in: query
         name: limit
         required: true
         type: integer
+      - default: "false"
+        description: pagination reverse
+        in: query
+        name: reverse
+        type: string
+      - default: id
+        description: pagination order by
+        in: query
+        name: order
+        type: string
       produces:
       - application/json
       responses:
@@ -684,24 +698,28 @@ paths:
       consumes:
       - application/json
       parameters:
-      - default: 0
-        description: pagination cursor
-        in: query
-        name: cursor
-        required: true
-        type: integer
-      - default: next
+      - default: 1
         description: pagination page
         in: query
         name: page
         required: true
-        type: string
+        type: integer
       - default: 100
         description: pagination limit
         in: query
         name: limit
         required: true
         type: integer
+      - default: "false"
+        description: pagination reverse
+        in: query
+        name: reverse
+        type: string
+      - default: id
+        description: pagination order by
+        in: query
+        name: order
+        type: string
       - description: search criteria
         in: query
         name: q
@@ -730,24 +748,28 @@ paths:
       consumes:
       - application/json
       parameters:
-      - default: 0
-        description: pagination cursor
-        in: query
-        name: cursor
-        required: true
-        type: integer
-      - default: next
+      - default: 1
         description: pagination page
         in: query
         name: page
         required: true
-        type: string
+        type: integer
       - default: 100
         description: pagination limit
         in: query
         name: limit
         required: true
         type: integer
+      - default: "false"
+        description: pagination reverse
+        in: query
+        name: reverse
+        type: string
+      - default: id
+        description: pagination order by
+        in: query
+        name: order
+        type: string
       produces:
       - application/json
       responses:

@@ -12,7 +12,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
-	"strconv"
 	"testing"
 	"time"
 
@@ -194,38 +193,38 @@ func (rts *RouterTestSuite) TestSearchModules() {
 	}
 
 	testCases := []struct {
-		name       string
-		query      string
-		pageQuery  httputil.PaginationQuery
-		status     int
-		expected   map[string]bool
-		prevCursor string
-		nextCursor string
+		name      string
+		query     string
+		pageQuery httputil.PaginationQuery
+		status    int
+		expected  map[string]bool
+		prevURI   string
+		nextURI   string
 	}{
 		{
 			"empty query", "",
-			httputil.PaginationQuery{Cursor: "0", Page: httputil.PageNext, Limit: 100},
+			httputil.PaginationQuery{Page: 1, Limit: 5},
 			200,
 			map[string]bool{},
 			"", "",
 		},
 		{
 			"no matching query", "no match",
-			httputil.PaginationQuery{Cursor: "0", Page: httputil.PageNext, Limit: 100},
+			httputil.PaginationQuery{Page: 1, Limit: 5},
 			200,
 			map[string]bool{},
 			"", "",
 		},
 		{
 			"matches one record", "x/mod-1",
-			httputil.PaginationQuery{Cursor: "0", Page: httputil.PageNext, Limit: 100},
+			httputil.PaginationQuery{Page: 1, Limit: 5},
 			200,
 			map[string]bool{"x/mod-1": true},
 			"", "",
 		},
 		{
 			"matches all records (page 1)", "module",
-			httputil.PaginationQuery{Cursor: "0", Page: httputil.PageNext, Limit: 5},
+			httputil.PaginationQuery{Page: 1, Limit: 5},
 			200,
 			map[string]bool{
 				"x/mod-0": true,
@@ -234,11 +233,11 @@ func (rts *RouterTestSuite) TestSearchModules() {
 				"x/mod-3": true,
 				"x/mod-4": true,
 			},
-			"", "5",
+			"", "?page=2&limit=5&reverse=false&order=id",
 		},
 		{
 			"matches all records (page 2)", "module",
-			httputil.PaginationQuery{Cursor: "5", Page: httputil.PageNext, Limit: 5},
+			httputil.PaginationQuery{Page: 2, Limit: 5},
 			200,
 			map[string]bool{
 				"x/mod-5": true,
@@ -247,7 +246,7 @@ func (rts *RouterTestSuite) TestSearchModules() {
 				"x/mod-8": true,
 				"x/mod-9": true,
 			},
-			"6", "",
+			"?page=1&limit=5&reverse=false&order=id", "",
 		},
 	}
 
@@ -255,10 +254,7 @@ func (rts *RouterTestSuite) TestSearchModules() {
 		tc := tc
 
 		rts.Run(tc.name, func() {
-			path := fmt.Sprintf(
-				"/api/v1/modules/search?cursor=%s&limit=%d&page=%s&q=%s",
-				tc.pageQuery.Cursor, tc.pageQuery.Limit, tc.pageQuery.Page, tc.query,
-			)
+			path := fmt.Sprintf("/api/v1/modules/search?page=%d&limit=%d&q=%s", tc.pageQuery.Page, tc.pageQuery.Limit, tc.query)
 			req, err := http.NewRequest("GET", path, nil)
 			rts.Require().NoError(err)
 
@@ -266,11 +262,9 @@ func (rts *RouterTestSuite) TestSearchModules() {
 
 			var pr httputil.PaginationResponse
 			rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
-
-			rts.Require().Equal(len(pr.Results.([]interface{})), pr.Count)
 			rts.Require().Equal(tc.pageQuery.Limit, pr.Limit)
-			rts.Require().Equal(tc.prevCursor, pr.PrevCursor)
-			rts.Require().Equal(tc.nextCursor, pr.NextCursor)
+			rts.Require().Equal(tc.prevURI, pr.PrevURI)
+			rts.Require().Equal(tc.nextURI, pr.NextURI)
 			rts.Require().Equal(len(tc.expected), len(pr.Results.([]interface{})))
 
 			for _, iFace := range pr.Results.([]interface{}) {
@@ -284,7 +278,7 @@ func (rts *RouterTestSuite) TestSearchModules() {
 func (rts *RouterTestSuite) TestGetAllModules() {
 	rts.resetDB()
 
-	path := "/api/v1/modules?cursor=0&limit=100&page=next"
+	path := "/api/v1/modules?page=1&limit=10"
 	req, err := http.NewRequest("GET", path, nil)
 	rts.Require().NoError(err)
 
@@ -293,6 +287,10 @@ func (rts *RouterTestSuite) TestGetAllModules() {
 	var pr httputil.PaginationResponse
 	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
 	rts.Require().Empty(pr.Results)
+	rts.Require().Equal(int64(1), pr.Page)
+	rts.Require().Equal(int64(10), pr.Limit)
+	rts.Require().Empty(pr.PrevURI)
+	rts.Require().Empty(pr.NextURI)
 
 	for i := 0; i < 25; i++ {
 		mod := models.Module{
@@ -316,68 +314,61 @@ func (rts *RouterTestSuite) TestGetAllModules() {
 		rts.Require().NoError(err)
 	}
 
-	// first page (full)
-	path = "/api/v1/modules?cursor=0&limit=10&page=next"
+	// first page (full) ordered by newest
+	path = "/api/v1/modules?page=1&limit=10&order=created_at&reverse=true"
 	req, err = http.NewRequest("GET", path, nil)
 	rts.Require().NoError(err)
 
 	response = rts.executeRequest(req)
 	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
 	rts.Require().Len(pr.Results, 10)
+	rts.Require().Equal(int64(1), pr.Page)
+	rts.Require().Equal(int64(10), pr.Limit)
+	rts.Require().Empty(pr.PrevURI)
+	rts.Require().Equal("?page=2&limit=10&reverse=true&order=created_at,id", pr.NextURI)
 
-	modules := pr.Results.([]interface{})
-	nextCursor := strconv.Itoa(int(modules[len(modules)-1].(map[string]interface{})["id"].(float64)))
-	rts.Require().Equal("10", nextCursor)
-	rts.Require().Empty(pr.PrevCursor)
-	rts.Require().Equal(nextCursor, pr.NextCursor)
+	mods := pr.Results.([]interface{})
+	rts.Require().Equal(uint(25), uint(mods[0].(map[string]interface{})["id"].(float64)))
+	rts.Require().Equal(uint(16), uint(mods[len(mods)-1].(map[string]interface{})["id"].(float64)))
+
+	// first page (full)
+	path = "/api/v1/modules?page=1&limit=10"
+	req, err = http.NewRequest("GET", path, nil)
+	rts.Require().NoError(err)
+
+	response = rts.executeRequest(req)
+	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
+	rts.Require().Len(pr.Results, 10)
+	rts.Require().Equal(int64(1), pr.Page)
+	rts.Require().Equal(int64(10), pr.Limit)
+	rts.Require().Empty(pr.PrevURI)
+	rts.Require().Equal("?page=2&limit=10&reverse=false&order=id", pr.NextURI)
 
 	// second page (full)
-	path = fmt.Sprintf("/api/v1/modules?cursor=%s&limit=%d&page=next", nextCursor, 10)
+	path = fmt.Sprintf("/api/v1/modules%s", pr.NextURI)
 	req, err = http.NewRequest("GET", path, nil)
 	rts.Require().NoError(err)
 
 	response = rts.executeRequest(req)
 	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
 	rts.Require().Len(pr.Results, 10)
-
-	modules = pr.Results.([]interface{})
-	nextCursor = strconv.Itoa(int(modules[len(modules)-1].(map[string]interface{})["id"].(float64)))
-	prevCursor := strconv.Itoa(int(modules[0].(map[string]interface{})["id"].(float64)))
-	rts.Require().Equal("20", nextCursor)
-	rts.Require().Equal(prevCursor, pr.PrevCursor)
-	rts.Require().Equal(nextCursor, pr.NextCursor)
+	rts.Require().Equal(int64(2), pr.Page)
+	rts.Require().Equal(int64(10), pr.Limit)
+	rts.Require().Equal("?page=1&limit=10&reverse=false&order=id", pr.PrevURI)
+	rts.Require().Equal("?page=3&limit=10&reverse=false&order=id", pr.NextURI)
 
 	// third page (partially full)
-	path = fmt.Sprintf("/api/v1/modules?cursor=%s&limit=%d&page=next", nextCursor, 10)
+	path = fmt.Sprintf("/api/v1/modules%s", pr.NextURI)
 	req, err = http.NewRequest("GET", path, nil)
 	rts.Require().NoError(err)
 
 	response = rts.executeRequest(req)
 	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
 	rts.Require().Len(pr.Results, 5)
-
-	modules = pr.Results.([]interface{})
-	nextCursor = strconv.Itoa(int(modules[len(modules)-1].(map[string]interface{})["id"].(float64)))
-	prevCursor = strconv.Itoa(int(modules[0].(map[string]interface{})["id"].(float64)))
-	rts.Require().Equal("25", nextCursor)
-	rts.Require().Equal(prevCursor, pr.PrevCursor)
-	rts.Require().Empty(pr.NextCursor)
-
-	// previous (second) page
-	path = fmt.Sprintf("/api/v1/modules?cursor=%s&limit=%d&page=prev", prevCursor, 10)
-	req, err = http.NewRequest("GET", path, nil)
-	rts.Require().NoError(err)
-
-	response = rts.executeRequest(req)
-	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
-	rts.Require().Len(pr.Results, 10)
-
-	modules = pr.Results.([]interface{})
-	nextCursor = strconv.Itoa(int(modules[len(modules)-1].(map[string]interface{})["id"].(float64)))
-	prevCursor = strconv.Itoa(int(modules[0].(map[string]interface{})["id"].(float64)))
-	rts.Require().Equal("20", nextCursor)
-	rts.Require().Equal(prevCursor, pr.PrevCursor)
-	rts.Require().Equal(nextCursor, pr.NextCursor)
+	rts.Require().Equal(int64(3), pr.Page)
+	rts.Require().Equal(int64(10), pr.Limit)
+	rts.Require().Equal("?page=2&limit=10&reverse=false&order=id", pr.PrevURI)
+	rts.Require().Empty(pr.NextURI)
 }
 
 func (rts *RouterTestSuite) TestGetModuleByID() {
@@ -694,7 +685,7 @@ func (rts *RouterTestSuite) TestGetUserModules() {
 func (rts *RouterTestSuite) TestGetAllUsers() {
 	rts.resetDB()
 
-	path := "/api/v1/users?cursor=0&limit=100&page=next"
+	path := "/api/v1/users?page=1&limit=10"
 	req, err := http.NewRequest("GET", path, nil)
 	rts.Require().NoError(err)
 
@@ -703,6 +694,10 @@ func (rts *RouterTestSuite) TestGetAllUsers() {
 	var pr httputil.PaginationResponse
 	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
 	rts.Require().Empty(pr.Results)
+	rts.Require().Equal(int64(1), pr.Page)
+	rts.Require().Equal(int64(10), pr.Limit)
+	rts.Require().Empty(pr.PrevURI)
+	rts.Require().Empty(pr.NextURI)
 
 	for i := 0; i < 25; i++ {
 		mod := models.Module{
@@ -726,74 +721,67 @@ func (rts *RouterTestSuite) TestGetAllUsers() {
 		rts.Require().NoError(err)
 	}
 
-	// first page (full)
-	path = "/api/v1/users?cursor=0&limit=10&page=next"
+	// first page (full) ordered by newest
+	path = "/api/v1/users?page=1&limit=10&order=created_at&reverse=true"
 	req, err = http.NewRequest("GET", path, nil)
 	rts.Require().NoError(err)
 
 	response = rts.executeRequest(req)
 	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
 	rts.Require().Len(pr.Results, 10)
+	rts.Require().Equal(int64(1), pr.Page)
+	rts.Require().Equal(int64(10), pr.Limit)
+	rts.Require().Empty(pr.PrevURI)
+	rts.Require().Equal("?page=2&limit=10&reverse=true&order=created_at,id", pr.NextURI)
 
 	users := pr.Results.([]interface{})
-	nextCursor := strconv.Itoa(int(users[len(users)-1].(map[string]interface{})["id"].(float64)))
-	rts.Require().Equal("10", nextCursor)
-	rts.Require().Empty(pr.PrevCursor)
-	rts.Require().Equal(nextCursor, pr.NextCursor)
+	rts.Require().Equal(uint(25), uint(users[0].(map[string]interface{})["id"].(float64)))
+	rts.Require().Equal(uint(16), uint(users[len(users)-1].(map[string]interface{})["id"].(float64)))
 
-	// second page (full)
-	path = fmt.Sprintf("/api/v1/users?cursor=%s&limit=%d&page=next", nextCursor, 10)
+	// first page (full)
+	path = "/api/v1/users?page=1&limit=10"
 	req, err = http.NewRequest("GET", path, nil)
 	rts.Require().NoError(err)
 
 	response = rts.executeRequest(req)
 	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
 	rts.Require().Len(pr.Results, 10)
+	rts.Require().Equal(int64(1), pr.Page)
+	rts.Require().Equal(int64(10), pr.Limit)
+	rts.Require().Empty(pr.PrevURI)
+	rts.Require().Equal("?page=2&limit=10&reverse=false&order=id", pr.NextURI)
 
-	users = pr.Results.([]interface{})
-	nextCursor = strconv.Itoa(int(users[len(users)-1].(map[string]interface{})["id"].(float64)))
-	prevCursor := strconv.Itoa(int(users[0].(map[string]interface{})["id"].(float64)))
-	rts.Require().Equal("20", nextCursor)
-	rts.Require().Equal(prevCursor, pr.PrevCursor)
-	rts.Require().Equal(nextCursor, pr.NextCursor)
+	// second page (full)
+	path = fmt.Sprintf("/api/v1/users%s", pr.NextURI)
+	req, err = http.NewRequest("GET", path, nil)
+	rts.Require().NoError(err)
+
+	response = rts.executeRequest(req)
+	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
+	rts.Require().Len(pr.Results, 10)
+	rts.Require().Equal(int64(2), pr.Page)
+	rts.Require().Equal(int64(10), pr.Limit)
+	rts.Require().Equal("?page=1&limit=10&reverse=false&order=id", pr.PrevURI)
+	rts.Require().Equal("?page=3&limit=10&reverse=false&order=id", pr.NextURI)
 
 	// third page (partially full)
-	path = fmt.Sprintf("/api/v1/users?cursor=%s&limit=%d&page=next", nextCursor, 10)
+	path = fmt.Sprintf("/api/v1/users%s", pr.NextURI)
 	req, err = http.NewRequest("GET", path, nil)
 	rts.Require().NoError(err)
 
 	response = rts.executeRequest(req)
 	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
 	rts.Require().Len(pr.Results, 5)
-
-	users = pr.Results.([]interface{})
-	nextCursor = strconv.Itoa(int(users[len(users)-1].(map[string]interface{})["id"].(float64)))
-	prevCursor = strconv.Itoa(int(users[0].(map[string]interface{})["id"].(float64)))
-	rts.Require().Equal("25", nextCursor)
-	rts.Require().Equal(prevCursor, pr.PrevCursor)
-	rts.Require().Empty(pr.NextCursor)
-
-	// previous (second) page
-	path = fmt.Sprintf("/api/v1/users?cursor=%s&limit=%d&page=prev", prevCursor, 10)
-	req, err = http.NewRequest("GET", path, nil)
-	rts.Require().NoError(err)
-
-	response = rts.executeRequest(req)
-	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
-	rts.Require().Len(pr.Results, 10)
-
-	users = pr.Results.([]interface{})
-	nextCursor = strconv.Itoa(int(users[len(users)-1].(map[string]interface{})["id"].(float64)))
-	prevCursor = strconv.Itoa(int(users[0].(map[string]interface{})["id"].(float64)))
-	rts.Require().Equal("20", nextCursor)
-	rts.Require().Equal(prevCursor, pr.PrevCursor)
-	rts.Require().Equal(nextCursor, pr.NextCursor)
+	rts.Require().Equal(int64(3), pr.Page)
+	rts.Require().Equal(int64(10), pr.Limit)
+	rts.Require().Equal("?page=2&limit=10&reverse=false&order=id", pr.PrevURI)
+	rts.Require().Empty(pr.NextURI)
 }
 
 func (rts *RouterTestSuite) TestGetAllKeywords() {
 	rts.resetDB()
 
-	path := "/api/v1/keywords?cursor=0&limit=100&page=next"
+	path := "/api/v1/keywords?page=1&limit=10"
 	req, err := http.NewRequest("GET", path, nil)
 	rts.Require().NoError(err)
 
@@ -802,6 +790,10 @@ func (rts *RouterTestSuite) TestGetAllKeywords() {
 	var pr httputil.PaginationResponse
 	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
 	rts.Require().Empty(pr.Results)
+	rts.Require().Equal(int64(1), pr.Page)
+	rts.Require().Equal(int64(10), pr.Limit)
+	rts.Require().Empty(pr.PrevURI)
+	rts.Require().Empty(pr.NextURI)
 
 	for i := 0; i < 25; i++ {
 		mod := models.Module{
@@ -825,68 +817,61 @@ func (rts *RouterTestSuite) TestGetAllKeywords() {
 		rts.Require().NoError(err)
 	}
 
-	// first page (full)
-	path = "/api/v1/keywords?cursor=0&limit=10&page=next"
+	// first page (full) ordered by newest
+	path = "/api/v1/keywords?page=1&limit=10&order=created_at&reverse=true"
 	req, err = http.NewRequest("GET", path, nil)
 	rts.Require().NoError(err)
 
 	response = rts.executeRequest(req)
 	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
 	rts.Require().Len(pr.Results, 10)
+	rts.Require().Equal(int64(1), pr.Page)
+	rts.Require().Equal(int64(10), pr.Limit)
+	rts.Require().Empty(pr.PrevURI)
+	rts.Require().Equal("?page=2&limit=10&reverse=true&order=created_at,id", pr.NextURI)
 
 	keywords := pr.Results.([]interface{})
-	nextCursor := strconv.Itoa(int(keywords[len(keywords)-1].(map[string]interface{})["id"].(float64)))
-	rts.Require().Equal("10", nextCursor)
-	rts.Require().Empty(pr.PrevCursor)
-	rts.Require().Equal(nextCursor, pr.NextCursor)
+	rts.Require().Equal(uint(25), uint(keywords[0].(map[string]interface{})["id"].(float64)))
+	rts.Require().Equal(uint(16), uint(keywords[len(keywords)-1].(map[string]interface{})["id"].(float64)))
 
-	// second page (full)
-	path = fmt.Sprintf("/api/v1/keywords?cursor=%s&limit=%d&page=next", nextCursor, 10)
+	// first page (full)
+	path = "/api/v1/keywords?page=1&limit=10"
 	req, err = http.NewRequest("GET", path, nil)
 	rts.Require().NoError(err)
 
 	response = rts.executeRequest(req)
 	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
 	rts.Require().Len(pr.Results, 10)
+	rts.Require().Equal(int64(1), pr.Page)
+	rts.Require().Equal(int64(10), pr.Limit)
+	rts.Require().Empty(pr.PrevURI)
+	rts.Require().Equal("?page=2&limit=10&reverse=false&order=id", pr.NextURI)
 
-	keywords = pr.Results.([]interface{})
-	nextCursor = strconv.Itoa(int(keywords[len(keywords)-1].(map[string]interface{})["id"].(float64)))
-	prevCursor := strconv.Itoa(int(keywords[0].(map[string]interface{})["id"].(float64)))
-	rts.Require().Equal("20", nextCursor)
-	rts.Require().Equal(prevCursor, pr.PrevCursor)
-	rts.Require().Equal(nextCursor, pr.NextCursor)
+	// second page (full)
+	path = fmt.Sprintf("/api/v1/keywords%s", pr.NextURI)
+	req, err = http.NewRequest("GET", path, nil)
+	rts.Require().NoError(err)
+
+	response = rts.executeRequest(req)
+	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
+	rts.Require().Len(pr.Results, 10)
+	rts.Require().Equal(int64(2), pr.Page)
+	rts.Require().Equal(int64(10), pr.Limit)
+	rts.Require().Equal("?page=1&limit=10&reverse=false&order=id", pr.PrevURI)
+	rts.Require().Equal("?page=3&limit=10&reverse=false&order=id", pr.NextURI)
 
 	// third page (partially full)
-	path = fmt.Sprintf("/api/v1/keywords?cursor=%s&limit=%d&page=next", nextCursor, 10)
+	path = fmt.Sprintf("/api/v1/keywords%s", pr.NextURI)
 	req, err = http.NewRequest("GET", path, nil)
 	rts.Require().NoError(err)
 
 	response = rts.executeRequest(req)
 	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
 	rts.Require().Len(pr.Results, 5)
-
-	keywords = pr.Results.([]interface{})
-	nextCursor = strconv.Itoa(int(keywords[len(keywords)-1].(map[string]interface{})["id"].(float64)))
-	prevCursor = strconv.Itoa(int(keywords[0].(map[string]interface{})["id"].(float64)))
-	rts.Require().Equal("25", nextCursor)
-	rts.Require().Equal(prevCursor, pr.PrevCursor)
-	rts.Require().Empty(pr.NextCursor)
-
-	// previous (second) page
-	path = fmt.Sprintf("/api/v1/keywords?cursor=%s&limit=%d&page=prev", prevCursor, 10)
-	req, err = http.NewRequest("GET", path, nil)
-	rts.Require().NoError(err)
-
-	response = rts.executeRequest(req)
-	rts.Require().NoError(json.Unmarshal(response.Body.Bytes(), &pr))
-	rts.Require().Len(pr.Results, 10)
-
-	keywords = pr.Results.([]interface{})
-	nextCursor = strconv.Itoa(int(keywords[len(keywords)-1].(map[string]interface{})["id"].(float64)))
-	prevCursor = strconv.Itoa(int(keywords[0].(map[string]interface{})["id"].(float64)))
-	rts.Require().Equal("20", nextCursor)
-	rts.Require().Equal(prevCursor, pr.PrevCursor)
-	rts.Require().Equal(nextCursor, pr.NextCursor)
+	rts.Require().Equal(int64(3), pr.Page)
+	rts.Require().Equal(int64(10), pr.Limit)
+	rts.Require().Equal("?page=2&limit=10&reverse=false&order=id", pr.PrevURI)
+	rts.Require().Empty(pr.NextURI)
 }
 
 func (rts *RouterTestSuite) TestUpsertModule() {
