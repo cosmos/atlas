@@ -154,6 +154,7 @@ import { Table, TableColumn } from "element-ui";
 import APIClient from "../plugins/apiClient";
 import axios from "axios";
 import VueMarkdown from "vue-markdown";
+import xss from "xss";
 
 export default {
   bodyClass: "profile-page",
@@ -214,7 +215,7 @@ export default {
       axios
         .get(this.module.documentation)
         .then(resp => {
-          this.documentation = resp.data;
+          this.documentation = xss(resp.data);
         })
         .catch(err => {
           console.log(err);
