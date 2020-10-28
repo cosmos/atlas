@@ -193,42 +193,23 @@ func QueryUser(db *gorm.DB, query map[string]interface{}) (User, error) {
 	return record, nil
 }
 
-// GetAllUsers returns a slice of User objects paginated by a cursor and a
+// GetAllUsers returns a slice of User objects paginated by an offset, order and
 // limit. An error is returned upon database query failure.
 func GetAllUsers(db *gorm.DB, pq httputil.PaginationQuery) ([]User, Paginator, error) {
 	var (
 		users []User
-		tx    *gorm.DB
+		total int64
 	)
 
-	switch pq.Page {
-	case httputil.PagePrev:
-		tx = db.Scopes(prevPageScope(pq, "users"))
-
-	case httputil.PageNext:
-		tx = db.Scopes(nextPageScope(pq, "users"))
-
-	default:
-		return nil, Paginator{}, ErrInvalidPaginationQuery
-	}
-
-	if err := tx.Find(&users).Error; err != nil {
+	if err := db.Scopes(paginateScope(pq, &users)).Error; err != nil {
 		return nil, Paginator{}, fmt.Errorf("failed to query for users: %w", err)
 	}
 
-	var (
-		paginator Paginator
-		err       error
-	)
-
-	if len(users) > 0 {
-		paginator, err = buildPaginator(db, pq, User{}, len(users), users[0].ID, users[len(users)-1].ID)
-		if err != nil {
-			return nil, Paginator{}, err
-		}
+	if err := db.Model(&User{}).Count(&total).Error; err != nil {
+		return nil, Paginator{}, fmt.Errorf("failed to query for user count: %w", err)
 	}
 
-	return users, paginator, nil
+	return users, buildPaginator(pq, total), nil
 }
 
 // Revoke revokes a token. It returns an error upon failure.

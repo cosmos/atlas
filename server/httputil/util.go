@@ -24,81 +24,99 @@ const (
 	BearerSchema = "Bearer "
 )
 
-const (
-	// PageNext defines an enumerated value for retreiving the next page of
-	// paginated data.
-	PageNext = "next"
-
-	// PagePrev defines an enumerated value for retreiving the previous page of
-	// paginated data.
-	PagePrev = "prev"
-)
-
 // PaginationQuery defines the structure containing pagination request information
 // from client HTTP requests.
 type PaginationQuery struct {
-	Cursor string
-	Page   string
-	Limit  int
+	Order   string
+	Reverse bool
+	Page    int64
+	Limit   int64
 }
 
 // PaginationResponse defines a generic type encapsulating a paginated response.
 // Client should not rely on decoding into this type as the Results is an
 // interface.
 type PaginationResponse struct {
-	Limit      int         `json:"limit"`
-	Count      int         `json:"count"`
-	PrevCursor string      `json:"prev_cursor"`
-	NextCursor string      `json:"next_cursor"`
-	Results    interface{} `json:"results"`
+	Order   string      `json:"order"`
+	Reverse bool        `json:"reverse"`
+	Page    int64       `json:"page"`
+	Limit   int64       `json:"limit"`
+	Count   int64       `json:"count"`
+	Total   int64       `json:"total"`
+	Results interface{} `json:"results"`
 }
 
-func NewPaginationResponse(limit, count int, prevC, nextC string, results interface{}) PaginationResponse {
+func NewPaginationResponse(pq PaginationQuery, count, total int64, results interface{}) PaginationResponse {
 	return PaginationResponse{
-		Limit:      limit,
-		Count:      count,
-		PrevCursor: prevC,
-		NextCursor: nextC,
-		Results:    results,
+		Order:   pq.Order,
+		Reverse: pq.Reverse,
+		Page:    pq.Page,
+		Limit:   pq.Limit,
+		Count:   count,
+		Total:   total,
+		Results: results,
 	}
 }
 
 // ParsePaginationQueryParams parses pagination values from an HTTP request
 // returning an error upon failure.
 func ParsePaginationQueryParams(req *http.Request) (PaginationQuery, error) {
-	cursor := req.URL.Query().Get("cursor")
-	if cursor == "" {
-		return PaginationQuery{}, errors.New("invalid pagination cursor: cannot be empty")
+	order := req.URL.Query().Get("order")
+	if order == "" {
+		order = "id"
+	} else {
+		addID := true
+		tokens := strings.Split(order, ",")
+
+		for _, token := range tokens {
+			if strings.ToLower(token) == "id" {
+				addID = false
+			}
+		}
+
+		if addID {
+			tokens = append(tokens, "id")
+		}
+
+		order = strings.Join(tokens, ",")
 	}
 
-	cursorInt, err := strconv.ParseInt(cursor, 10, 64)
+	var reverse bool
+
+	if reverseStr := req.URL.Query().Get("reverse"); reverseStr != "" {
+		ok, err := strconv.ParseBool(reverseStr)
+		if err != nil {
+			return PaginationQuery{}, fmt.Errorf("invalid pagination 'reverse' parameter: %w", err)
+		}
+
+		reverse = ok
+	}
+
+	pageStr := req.URL.Query().Get("page")
+	page, err := strconv.ParseInt(pageStr, 10, 64)
 	if err != nil {
-		return PaginationQuery{}, fmt.Errorf("invalid pagination cursor '%s': %w", cursor, err)
+		return PaginationQuery{}, fmt.Errorf("invalid pagination 'page' parameter: %w", err)
 	}
 
-	if cursorInt < 0 {
-		return PaginationQuery{}, fmt.Errorf("invalid pagination cursor '%s': cursor cannot be negative", cursor)
+	if page < 1 {
+		return PaginationQuery{}, errors.New("invalid pagination 'page' parameter: page must be positive")
 	}
 
 	limitStr := req.URL.Query().Get("limit")
 	limit, err := strconv.ParseInt(limitStr, 10, 64)
 	if err != nil {
-		return PaginationQuery{}, fmt.Errorf("invalid pagination limit: %w", err)
+		return PaginationQuery{}, fmt.Errorf("invalid pagination 'limit' parameter: %w", err)
 	}
 
 	if limit < 0 {
-		return PaginationQuery{}, fmt.Errorf("invalid pagination limit '%d': limit cannot be negative", limit)
-	}
-
-	page := req.URL.Query().Get("page")
-	if page != PagePrev && page != PageNext {
-		return PaginationQuery{}, fmt.Errorf("invalid pagination page: must be '%s' or '%s'", PagePrev, PageNext)
+		return PaginationQuery{}, errors.New("invalid pagination 'limit' parameter: limit must be non-negative")
 	}
 
 	return PaginationQuery{
-		Cursor: cursor,
-		Page:   page,
-		Limit:  int(limit),
+		Order:   order,
+		Reverse: reverse,
+		Page:    page,
+		Limit:   limit,
 	}, nil
 }
 
