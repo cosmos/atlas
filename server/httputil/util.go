@@ -41,21 +41,30 @@ type PaginationResponse struct {
 	Reverse bool        `json:"reverse"`
 	Page    int64       `json:"page"`
 	Limit   int64       `json:"limit"`
-	Count   int64       `json:"count"`
 	Total   int64       `json:"total"`
+	PrevURI string      `json:"prev_uri"`
+	NextURI string      `json:"next_uri"`
 	Results interface{} `json:"results"`
 }
 
-func NewPaginationResponse(pq PaginationQuery, count, total int64, results interface{}) PaginationResponse {
-	return PaginationResponse{
+func NewPaginationResponse(pq PaginationQuery, prev, next, total int64, results interface{}) PaginationResponse {
+	pr := PaginationResponse{
 		Order:   pq.Order,
 		Reverse: pq.Reverse,
 		Page:    pq.Page,
 		Limit:   pq.Limit,
-		Count:   count,
 		Total:   total,
 		Results: results,
 	}
+
+	if prev != 0 {
+		pr.PrevURI = fmt.Sprintf("?page=%d&limit=%d&reverse=%v&order=%s", prev, pq.Limit, pq.Reverse, pq.Order)
+	}
+	if next != 0 {
+		pr.NextURI = fmt.Sprintf("?page=%d&limit=%d&reverse=%v&order=%s", next, pq.Limit, pq.Reverse, pq.Order)
+	}
+
+	return pr
 }
 
 // ParsePaginationQueryParams parses pagination values from an HTTP request
