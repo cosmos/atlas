@@ -9,9 +9,49 @@
 
     <div
       class="main"
-      style="position: relative; padding-top: 25vh; min-height: 100vh;"
+      style="position: relative; padding-top: 20vh; min-height: 100vh;"
     >
       <div class="container">
+        <div class="row">
+          <div class="col-lg-12 text-lg-right align-self-lg-right">
+            <div class="py-4">
+              <base-dropdown class="dropdown">
+                <base-button
+                  type="primary"
+                  size="md"
+                  class="mr-4"
+                  role="button"
+                  slot="title"
+                  data-toggle="dropdown"
+                >
+                  <i class="ni ni-tablet-button d-lg-none"></i>
+                  <span class="nav-link-inner--text">Sort By</span>
+                </base-button>
+                <div
+                  class="dropdown-item"
+                  v-bind:class="{ selected: orderBy['alpha'] }"
+                  v-on:click="sortModules('alpha')"
+                >
+                  Alphabetical
+                </div>
+                <div
+                  class="dropdown-item"
+                  v-bind:class="{ selected: orderBy['updated'] }"
+                  v-on:click="sortModules('updated')"
+                >
+                  Recently Updated
+                </div>
+                <div
+                  class="dropdown-item"
+                  v-bind:class="{ selected: orderBy['new'] }"
+                  v-on:click="sortModules('new')"
+                >
+                  Newly Added
+                </div>
+              </base-dropdown>
+            </div>
+          </div>
+        </div>
         <div
           class="row"
           v-if="responseData.results && responseData.results.length > 0"
@@ -92,13 +132,13 @@
 
 <script>
 import { Table, TableColumn } from "element-ui";
-// import BaseDropdown from "@/components/BaseDropdown";
+import BaseDropdown from "@/components/BaseDropdown";
 import APIClient from "../plugins/apiClient";
 
 export default {
   bodyClass: "search-results-page",
   components: {
-    // BaseDropdown,
+    BaseDropdown,
     [Table.name]: Table,
     [TableColumn.name]: TableColumn
   },
@@ -115,6 +155,28 @@ export default {
 
     nextModules() {
       this.pageURI = this.responseData.next_uri;
+    },
+
+    sortModules(order) {
+      switch (order) {
+        case "alpha":
+          Object.keys(this.orderBy).forEach(v => (this.orderBy[v] = false));
+          this.orderBy["alpha"] = true;
+          this.pageURI = `?page=1&limit=${this.pageSize}&order=name,id`;
+          break;
+
+        case "updated":
+          Object.keys(this.orderBy).forEach(v => (this.orderBy[v] = false));
+          this.orderBy["updated"] = true;
+          this.pageURI = `?page=1&limit=${this.pageSize}&order=updated_at,id&reverse=true`;
+          break;
+
+        case "new":
+          Object.keys(this.orderBy).forEach(v => (this.orderBy[v] = false));
+          this.orderBy["new"] = true;
+          this.pageURI = `?page=1&limit=${this.pageSize}&order=created_at,id&reverse=true`;
+          break;
+      }
     },
 
     getModules() {
@@ -140,8 +202,13 @@ export default {
   data() {
     return {
       pageSize: 9,
-      pageURI: "?page=1&limit=9",
-      responseData: {}
+      pageURI: "?page=1&limit=9&order=name,id",
+      responseData: {},
+      orderBy: {
+        alpha: true,
+        updated: false,
+        name: false
+      }
     };
   },
   beforeRouteUpdate(to, from, next) {
@@ -157,6 +224,11 @@ export default {
 <style>
 .stats i {
   top: 0;
+}
+
+.selected {
+  background: #5064fb;
+  color: white;
 }
 
 .search-results-page .main {
