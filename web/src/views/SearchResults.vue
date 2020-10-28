@@ -12,7 +12,10 @@
       style="position: relative; padding-top: 20vh; min-height: 100vh;"
     >
       <div class="container mb-0">
-        <div class="row">
+        <div
+          class="row"
+          v-if="responseData.results && responseData.results.length > 0"
+        >
           <div class="col-lg-12 text-lg-right align-self-lg-right">
             <div class="py-4">
               <base-dropdown class="dropdown">
@@ -209,7 +212,7 @@ export default {
   data() {
     return {
       pageSize: 9,
-      pageURI: "?page=1&limit=9",
+      pageURI: "?page=1&limit=9&order=name,id",
       responseData: {},
       noMatch: false,
       orderBy: {
@@ -222,7 +225,7 @@ export default {
   beforeRouteUpdate(to, from, next) {
     next();
     this.$Progress.start();
-    this.pageURI = "?page=1&limit=9";
+    this.pageURI = "?page=1&limit=9&order=name,id";
     this.searchModules();
     this.$Progress.finish();
   }
