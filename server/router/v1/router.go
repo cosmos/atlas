@@ -578,6 +578,7 @@ func (r *Router) GetUserModules() http.HandlerFunc {
 // @Summary Create a user API token
 // @Tags users
 // @Produce  json
+// @Param token body Token true "token name"
 // @Success 200 {object} models.UserTokenJSON
 // @Failure 400 {object} httputil.ErrResponse
 // @Failure 401 {object} httputil.ErrResponse
@@ -592,13 +593,24 @@ func (r *Router) CreateUserToken() http.HandlerFunc {
 			return
 		}
 
+		var request Token
+		if err := json.NewDecoder(req.Body).Decode(&request); err != nil {
+			httputil.RespondWithError(w, http.StatusBadRequest, fmt.Errorf("failed to read request: %w", err))
+			return
+		}
+
+		if err := r.validate.Struct(request); err != nil {
+			httputil.RespondWithError(w, http.StatusBadRequest, fmt.Errorf("invalid request: %w", httputil.TransformValidationError(err)))
+			return
+		}
+
 		numTokens := authUser.CountTokens(r.db)
 		if numTokens >= MaxTokens {
 			httputil.RespondWithError(w, http.StatusBadRequest, errors.New("maximum number of user API tokens reached"))
 			return
 		}
 
-		token, err := authUser.CreateToken(r.db)
+		token, err := authUser.CreateToken(r.db, request.Name)
 		if err != nil {
 			httputil.RespondWithError(w, http.StatusInternalServerError, err)
 			return

@@ -18,20 +18,22 @@ type (
 	UserTokenJSON struct {
 		GormModelJSON
 
+		Name    string    `json:"name"`
 		UserID  uint      `json:"user_id"`
+		Count   uint      `json:"count"`
 		Token   uuid.UUID `json:"token"`
 		Revoked bool      `json:"revoked"`
-		Count   uint      `json:"count"`
 	}
 
 	// UserToken defines a user created API token.
 	UserToken struct {
 		gorm.Model
 
+		Name    string    `json:"name"`
 		UserID  uint      `json:"user_id"`
+		Count   uint      `json:"count"`
 		Token   uuid.UUID `json:"token"`
 		Revoked bool      `json:"revoked"`
-		Count   uint      `json:"count"`
 	}
 
 	// UserJSON defines the JSON-encodeable type for a User.
@@ -75,6 +77,7 @@ func (ut UserToken) MarshalJSON() ([]byte, error) {
 			CreatedAt: ut.CreatedAt,
 			UpdatedAt: ut.UpdatedAt,
 		},
+		Name:    ut.Name,
 		UserID:  ut.UserID,
 		Token:   ut.Token,
 		Revoked: ut.Revoked,
@@ -255,8 +258,8 @@ func QueryUserToken(db *gorm.DB, query map[string]interface{}) (UserToken, error
 
 // CreateToken creates a new UserToken for a given User model. It returns an
 // error upon failure.
-func (u User) CreateToken(db *gorm.DB) (UserToken, error) {
-	token := UserToken{UserID: u.ID}
+func (u User) CreateToken(db *gorm.DB, name string) (UserToken, error) {
+	token := UserToken{UserID: u.ID, Name: name}
 
 	// Note: The Append call will create a new UserToken record.
 	if err := db.Model(&u).Association("Tokens").Append(&token); err != nil {

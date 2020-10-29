@@ -1148,6 +1148,13 @@ func (rts *RouterTestSuite) TestCreateUserToken() {
 	req.URL = unAuthReq.URL
 
 	for i := int64(0); i < MaxTokens; i++ {
+		body := Token{Name: fmt.Sprintf("token-%d", i+1)}
+		bz, err := json.Marshal(body)
+		rts.Require().NoError(err)
+
+		req.Body = ioutil.NopCloser(bytes.NewBuffer(bz))
+		req.ContentLength = int64(len(bz))
+
 		rr = httptest.NewRecorder()
 		rts.mux.ServeHTTP(rr, req)
 		rts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
@@ -1184,6 +1191,13 @@ func (rts *RouterTestSuite) TestGetUserTokens() {
 	req.URL = unAuthReq.URL
 
 	for i := 0; i < 25; i++ {
+		body := Token{Name: fmt.Sprintf("token-%d", i+1)}
+		bz, err := json.Marshal(body)
+		rts.Require().NoError(err)
+
+		req.Body = ioutil.NopCloser(bytes.NewBuffer(bz))
+		req.ContentLength = int64(len(bz))
+
 		rr = httptest.NewRecorder()
 		rts.mux.ServeHTTP(rr, req)
 		rts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
@@ -1228,6 +1242,13 @@ func (rts *RouterTestSuite) TestRevokeUserToken() {
 	req.URL = createURL
 
 	for i := 0; i < 25; i++ {
+		body := Token{Name: fmt.Sprintf("token-%d", i+1)}
+		bz, err := json.Marshal(body)
+		rts.Require().NoError(err)
+
+		req.Body = ioutil.NopCloser(bytes.NewBuffer(bz))
+		req.ContentLength = int64(len(bz))
+
 		rr = httptest.NewRecorder()
 		rts.mux.ServeHTTP(rr, req)
 		rts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
