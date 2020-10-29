@@ -103,6 +103,9 @@ you must provide a `ATLAS_DATABASE_URL` environment variable.
 $ ATLAS_DATABASE_URL=... make migrate
 ```
 
+To install [migrate](https://github.com/golang-migrate/migrate), please visit [here](https://github.com/golang-migrate/migrate/tree/master/cmd/migrate)
+for instructions.
+
 ## Local Development
 
 To run, test and experiment with Atlas in a local development environment, execute
