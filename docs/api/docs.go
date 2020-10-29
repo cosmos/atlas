@@ -225,7 +225,7 @@ var doc = `{
                 "summary": "Create a user API token",
                 "parameters": [
                     {
-                        "description": "token",
+                        "description": "token name",
                         "name": "token",
                         "in": "body",
                         "required": true,

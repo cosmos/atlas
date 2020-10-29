@@ -436,7 +436,7 @@ paths:
       - users
     put:
       parameters:
-      - description: token
+      - description: token name
         in: body
         name: token
         required: true
