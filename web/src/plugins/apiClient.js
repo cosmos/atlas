@@ -20,8 +20,8 @@ const APIClient = {
     return this.perform('post', '/session/logout');
   },
 
-  createUserToken() {
-    return this.perform('put', '/me/tokens');
+  createUserToken(name) {
+    return this.perform('put', '/me/tokens', {name: name});
   },
 
   revokeUserToken(token) {
