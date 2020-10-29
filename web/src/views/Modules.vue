@@ -12,8 +12,11 @@
       style="position: relative; padding-top: 20vh; min-height: 100vh;"
     >
       <div class="container">
-        <div class="row">
-          <div class="col-lg-12 text-lg-right align-self-lg-right">
+        <div
+          class="row"
+          v-if="responseData.results && responseData.results.length > 0"
+        >
+          <div class="col-lg-12 text-lg-left align-self-lg-left">
             <div class="py-4">
               <base-dropdown class="dropdown">
                 <base-button

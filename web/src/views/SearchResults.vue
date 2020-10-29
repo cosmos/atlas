@@ -16,7 +16,7 @@
           class="row"
           v-if="responseData.results && responseData.results.length > 0"
         >
-          <div class="col-lg-12 text-lg-right align-self-lg-right">
+          <div class="col-lg-12 text-lg-left align-self-lg-left">
             <div class="py-4">
               <base-dropdown class="dropdown">
                 <base-button
@@ -105,6 +105,11 @@
           </div>
         </div>
         <div class="row justify-content-center" v-if="noMatch">
+          <img
+            class="card-img"
+            src="img/astro.png"
+            style="width: 300px; height: 300px"
+          />
           <h1 class="title text-white">
             Sorry, no modules match your search criteria :(
           </h1>

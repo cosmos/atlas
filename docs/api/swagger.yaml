@@ -202,6 +202,8 @@ definitions:
     properties:
       count:
         type: integer
+      name:
+        type: string
       revoked:
         type: boolean
       token:
@@ -217,6 +219,8 @@ definitions:
         type: string
       id:
         type: integer
+      name:
+        type: string
       revoked:
         type: boolean
       token:
@@ -283,6 +287,13 @@ definitions:
     - name
     - repo
     - team
+    type: object
+  v1.Token:
+    properties:
+      name:
+        type: string
+    required:
+    - name
     type: object
   v1.User:
     properties:
@@ -424,6 +435,13 @@ paths:
       tags:
       - users
     put:
+      parameters:
+      - description: token name
+        in: body
+        name: token
+        required: true
+        schema:
+          $ref: '#/definitions/v1.Token'
       produces:
       - application/json
       responses:

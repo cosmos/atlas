@@ -13,6 +13,7 @@ import (
 	migratepg "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"gorm.io/driver/postgres"
@@ -674,7 +675,7 @@ func (mts *ModelsTestSuite) TestUserTokens() {
 	mts.Require().NoError(err)
 	mts.Require().Equal(int64(0), record.CountTokens(mts.gormDB))
 
-	token1, err := record.CreateToken(mts.gormDB)
+	token1, err := record.CreateToken(mts.gormDB, "dev")
 	mts.Require().NoError(err)
 	mts.Require().NotEmpty(token1.Token)
 
@@ -685,7 +686,7 @@ func (mts *ModelsTestSuite) TestUserTokens() {
 		mts.Require().Equal(uint(i+1), token1.Count)
 	}
 
-	token2, err := record.CreateToken(mts.gormDB)
+	token2, err := record.CreateToken(mts.gormDB, "prod")
 	mts.Require().NoError(err)
 	mts.Require().NotEmpty(token2.Token)
 
@@ -703,6 +704,11 @@ func (mts *ModelsTestSuite) TestUserTokens() {
 	token, err := models.QueryUserToken(mts.gormDB, map[string]interface{}{"token": token1.Token.String()})
 	mts.Require().NoError(err)
 	mts.Require().Equal(token1, token)
+
+	// duplicate name
+	token3, err := record.CreateToken(mts.gormDB, "prod")
+	mts.Require().Error(err)
+	mts.Require().Equal(uuid.UUID{}, token3.Token)
 }
 
 func (mts *ModelsTestSuite) TestUserUpsert() {

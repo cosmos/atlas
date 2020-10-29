@@ -8,7 +8,7 @@
     </div>
 
     <div
-      class="main"
+      class="section bg-secondary"
       style="position: relative; padding-top: 40vh; min-height: 100vh;"
     >
       <div class="container bg-white card">
@@ -70,61 +70,83 @@
                           <h5 class="text-uppercase">Tokens</h5>
                         </header>
                         <br />
-
-                        <div>
+                        <div class="table table-striped table-flush">
                           <el-table
-                            class="table table-striped table-flush"
                             :data="paginatedUserTokens"
+                            style="width: 100%"
                           >
                             <el-table-column
-                              label="token"
-                              prop="active"
-                              sortable
+                              label="name"
                               scope="row"
+                              header-align="left"
+                              style="width:140px"
+                              max-width="140px"
                             >
                               <template v-slot="{ row }">
-                                <div class="media align-items-center">
+                                <div>
+                                  {{ row.name }}
+                                </div>
+                              </template>
+                            </el-table-column>
+
+                            <el-table-column
+                              label="token"
+                              scope="row"
+                              header-align="left"
+                            >
+                              <template v-slot="{ row }">
+                                <div>
                                   {{ row.token }}
                                 </div>
                               </template>
                             </el-table-column>
 
-                            <div class="last-col">
-                              <el-table-column
-                                label="Revoke"
-                                prop="revoke"
-                                class="foo"
-                              >
-                                <template v-slot="{ row }">
-                                  <base-button
-                                    size="sm"
-                                    icon="ni ni-fat-remove pt-1"
-                                    type="danger"
-                                    v-on:click="revokeUserToken(row)"
-                                  ></base-button>
-                                </template>
-                              </el-table-column>
-                            </div>
+                            <el-table-column
+                              label="Revoke"
+                              scope="row"
+                              align="right"
+                              header-align="right"
+                            >
+                              <template v-slot="{ row }">
+                                <base-button
+                                  size="sm"
+                                  icon="ni ni-fat-remove pt-1"
+                                  type="danger"
+                                  style="float: right;"
+                                  v-on:click="revokeUserToken(row)"
+                                ></base-button>
+                              </template>
+                            </el-table-column>
                           </el-table>
                           <div class="row">
-                            <div class="col-md-5 align-self-center">
+                            <div class="col-md-5">
+                              <base-pagination
+                                style="margin-top: revert;"
+                                type="primary"
+                                v-model="currentPage"
+                                v-if="userTokens.length > 0"
+                                :perPage="pageSize"
+                                :total="userTokens.length"
+                              ></base-pagination>
+                            </div>
+                          </div>
+                          <div class="row align-self-center mt-4">
+                            <div class="col-md-3">
                               <base-button
                                 nativeType="submit"
                                 type="primary"
+                                :disabled="!this.tokenName"
                                 v-on:click="createUserToken"
                                 >New Token</base-button
                               >
                             </div>
-
-                            <div class="col-md-5">
-                              <base-pagination
-                                style="margin-top: revert;"
-                                v-if="userTokens.length > 0"
-                                type="primary"
-                                v-model="currentPage"
-                                :perPage="pageSize"
-                                :total="userTokens.length"
-                              ></base-pagination>
+                            <div class="col-md-4">
+                              <base-input
+                                id="token-name"
+                                name="token-name"
+                                v-model="tokenName"
+                                placeholder="Name"
+                              ></base-input>
                             </div>
                           </div>
                         </div>
@@ -158,6 +180,7 @@ export default {
       query: "",
       accountTab: "General",
       userEmail: "",
+      tokenName: "",
       currentPage: 1,
       pageSize: 5
     };
@@ -221,8 +244,9 @@ export default {
     createUserToken() {
       this.$Progress.start();
       this.$store
-        .dispatch("createUserToken")
+        .dispatch("createUserToken", this.tokenName)
         .then(() => {
+          this.tokenName = "";
           this.$Progress.finish();
         })
         .catch(err => {
@@ -260,7 +284,7 @@ export default {
 </script>
 
 <style>
-div.main {
+div.bg-secondary {
   background: url(/img/stars.d8924548.d8924548.svg) repeat top,
     linear-gradient(145.11deg, #202854 9.49%, #171b39 91.06%);
 }
@@ -273,11 +297,13 @@ div.main {
   padding: 1rem 0;
 }
 
-.el-table .hidden-columns {
-  visibility: hidden;
-  position: absolute;
-  z-index: -1;
-  width: 100%;
+.table td,
+.table th {
+  white-space: normal;
+}
+
+.el-table_1_column_3 {
+  float: right;
 }
 
 .table th,

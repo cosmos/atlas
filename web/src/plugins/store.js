@@ -79,9 +79,9 @@ export default new Vuex.Store({
           });
     },
 
-    createUserToken(context) {
+    createUserToken(context, name) {
       return new Promise((resolve, reject) => {
-        APIClient.createUserToken()
+        APIClient.createUserToken(name)
             .then(resp => {
               let tokens = context.getters.userTokens;
               tokens.push(resp);
