@@ -114,6 +114,11 @@ func (r *Router) Register(rtr *mux.Router, prefix string) {
 	).Methods(httputil.MethodGET)
 
 	v1Router.Handle(
+		"/modules/{id:[0-9]+}/stars",
+		mChain.ThenFunc(r.GetModuleStars()),
+	).Methods(httputil.MethodGET)
+
+	v1Router.Handle(
 		"/modules/{id:[0-9]+}/versions",
 		mChain.ThenFunc(r.GetModuleVersions()),
 	).Methods(httputil.MethodGET)
@@ -308,6 +313,50 @@ func (r *Router) GetModuleByID() http.HandlerFunc {
 		}
 
 		httputil.RespondWithJSON(w, http.StatusOK, module)
+	}
+}
+
+// GetModuleStars implements a request handler to retrieve the total number of
+// favorites for a module by ID.
+// @Summary Get the total number of favorites for a module
+// @Tags modules
+// @Accept  json
+// @Produce  json
+// @Param id path int true "module ID"
+// @Success 200 {object} ModuleStars
+// @Failure 400 {object} httputil.ErrResponse
+// @Failure 404 {object} httputil.ErrResponse
+// @Failure 500 {object} httputil.ErrResponse
+// @Router /modules/{id}/stars [get]
+func (r *Router) GetModuleStars() http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		params := mux.Vars(req)
+		idStr := params["id"]
+
+		id, err := strconv.ParseUint(idStr, 10, 64)
+		if err != nil {
+			httputil.RespondWithError(w, http.StatusBadRequest, fmt.Errorf("invalid module ID: %w", err))
+			return
+		}
+
+		module, err := models.GetModuleByID(r.db, uint(id))
+		if err != nil {
+			code := http.StatusInternalServerError
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				code = http.StatusNotFound
+			}
+
+			httputil.RespondWithError(w, code, err)
+			return
+		}
+
+		stars, err := module.Stars(r.db)
+		if err != nil {
+			httputil.RespondWithError(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		httputil.RespondWithJSON(w, http.StatusOK, ModuleStars{Total: stars})
 	}
 }
 
