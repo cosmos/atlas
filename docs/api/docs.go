@@ -223,6 +223,17 @@ var doc = `{
                     "users"
                 ],
                 "summary": "Create a user API token",
+                "parameters": [
+                    {
+                        "description": "token",
+                        "name": "token",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/v1.Token"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1164,6 +1175,9 @@ var doc = `{
                 "count": {
                     "type": "integer"
                 },
+                "name": {
+                    "type": "string"
+                },
                 "revoked": {
                     "type": "boolean"
                 },
@@ -1186,6 +1200,9 @@ var doc = `{
                 },
                 "id": {
                     "type": "integer"
+                },
+                "name": {
+                    "type": "string"
                 },
                 "revoked": {
                     "type": "boolean"
@@ -1283,6 +1300,17 @@ var doc = `{
                     "type": "string"
                 },
                 "team": {
+                    "type": "string"
+                }
+            }
+        },
+        "v1.Token": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
                     "type": "string"
                 }
             }
