@@ -1147,6 +1147,18 @@ func (rts *RouterTestSuite) TestCreateUserToken() {
 	req.Method = httputil.MethodPUT
 	req.URL = unAuthReq.URL
 
+	// require empty name fails
+	body := Token{Name: ""}
+	bz, err := json.Marshal(body)
+	rts.Require().NoError(err)
+
+	req.Body = ioutil.NopCloser(bytes.NewBuffer(bz))
+	req.ContentLength = int64(len(bz))
+
+	rr = httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req)
+	rts.Require().Equal(http.StatusBadRequest, rr.Code, rr.Body.String())
+
 	for i := int64(0); i < MaxTokens; i++ {
 		body := Token{Name: fmt.Sprintf("token-%d", i+1)}
 		bz, err := json.Marshal(body)
