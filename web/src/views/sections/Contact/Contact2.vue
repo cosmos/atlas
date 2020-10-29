@@ -93,12 +93,11 @@
   </div>
 </template>
 <script>
-import { API_KEY } from "@/constants";
 import Vue from "vue";
 import * as VueGoogleMaps from "vue2-google-maps";
 Vue.use(VueGoogleMaps, {
   load: {
-    key: API_KEY
+    key: process.env.VUE_APP_API_KEY
   }
 });
 
