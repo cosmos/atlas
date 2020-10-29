@@ -1006,10 +1006,63 @@ func (mts *ModelsTestSuite) TestGetAllKeywords() {
 	mts.Require().Zero(paginator.NextPage)
 }
 
+func (mts *ModelsTestSuite) TestModuleStar() {
+	resetDB(mts.T(), mts.m)
+
+	mod := models.Module{
+		Name: "x/bank",
+		Team: "cosmonauts",
+		Repo: "https://github.com/cosmos/cosmos-sdk",
+		Owners: []models.User{
+			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
+		},
+		Authors: []models.User{
+			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
+		},
+		Version: models.ModuleVersion{Version: "v1.0.0"},
+		Keywords: []models.Keyword{
+			{Name: "tokens"}, {Name: "transfer"},
+		},
+		BugTracker: models.BugTracker{
+			URL:     models.NewNullString("cosmonauts.com"),
+			Contact: models.NewNullString("contact@cosmonauts.com"),
+		},
+	}
+
+	// create module
+	mod, err := mod.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
+
+	// ensure the owner has not favored it
+	ok, err := mod.UserStarred(mts.gormDB, mod.Owners[0].ID)
+	mts.Require().NoError(err)
+	mts.Require().False(ok)
+
+	// ensure we can favorite it and the count matches
+	stars, err := mod.Star(mts.gormDB, mod.Owners[0].ID)
+	mts.Require().NoError(err)
+	mts.Require().Equal(int64(1), stars)
+
+	// ensure the owner has favored the module
+	ok, err = mod.UserStarred(mts.gormDB, mod.Owners[0].ID)
+	mts.Require().NoError(err)
+	mts.Require().True(ok)
+
+	// ensure we can un-favorite it and the count matches
+	stars, err = mod.UnStar(mts.gormDB, mod.Owners[0].ID)
+	mts.Require().NoError(err)
+	mts.Require().Equal(int64(0), stars)
+
+	// ensure the owner has not favored it
+	ok, err = mod.UserStarred(mts.gormDB, mod.Owners[0].ID)
+	mts.Require().NoError(err)
+	mts.Require().False(ok)
+}
+
 func resetDB(t *testing.T, m *migrate.Migrate) {
 	t.Helper()
 
-	require.NoError(t, m.Force(1))
+	require.NoError(t, m.Force(3))
 	require.NoError(t, m.Down())
 	require.NoError(t, m.Up())
 }

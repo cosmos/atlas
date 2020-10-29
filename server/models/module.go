@@ -81,6 +81,12 @@ type (
 		Versions      []ModuleVersion `json:"versions"`
 	}
 
+	// UserModuleFavorite defines the behavior of a user staring a module record.
+	UserModuleFavorite struct {
+		UserID   uint `json:"user_id"`
+		ModuleID uint `json:"module_id"`
+	}
+
 	// Module defines a Cosmos SDK module.
 
 	Module struct {
@@ -285,6 +291,72 @@ func (m Module) Upsert(db *gorm.DB) (Module, error) {
 	}
 
 	return record, nil
+}
+
+// Stars returns the total number of favorites for a given module by ID. It
+// returns an error upon query failure.
+func (m Module) Stars(db *gorm.DB) (int64, error) {
+	var count int64
+
+	if err := db.Model(&UserModuleFavorite{}).Where("module_id = ?", m.ID).Count(&count).Error; err != nil {
+		return 0, fmt.Errorf("failed to query for module favorites count: %w", err)
+	}
+
+	return count, nil
+}
+
+// Starred returns a boolean defining if a given user by ID has starred a module.
+// It returns an error upon query failure.
+func (m Module) UserStarred(db *gorm.DB, userID uint) (bool, error) {
+	var record UserModuleFavorite
+
+	if err := db.Where(UserModuleFavorite{ModuleID: m.ID, UserID: userID}).First(&record).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, nil
+		}
+
+		return false, fmt.Errorf("failed to query for user module favorite: %w", err)
+	}
+
+	return true, nil
+}
+
+// Star favorites a module by ID for a given userID. It returns an error upon
+// failure, otherwise it returns the total nubmer of favorites for the module.
+func (m Module) Star(db *gorm.DB, userID uint) (int64, error) {
+	ok, err := m.UserStarred(db, userID)
+	if err != nil {
+		return 0, err
+	}
+	if ok {
+		return m.Stars(db)
+	}
+
+	if err := db.Create(&UserModuleFavorite{ModuleID: m.ID, UserID: userID}).Error; err != nil {
+		return 0, fmt.Errorf("failed to favorite module: %w", err)
+	}
+
+	return m.Stars(db)
+}
+
+// UnStar removes a favorite for a module by ID for a given userID. It returns an
+// error upon failure, otherwise it returns the total nubmer of favorites for the
+// module.
+func (m Module) UnStar(db *gorm.DB, userID uint) (int64, error) {
+	ok, err := m.UserStarred(db, userID)
+	if err != nil {
+		return 0, err
+	}
+	if !ok {
+		// user did not star this module, so we just simply return the existing total
+		return m.Stars(db)
+	}
+
+	if err := db.Delete(UserModuleFavorite{}, "module_id = ? AND user_id = ?", m.ID, userID).Error; err != nil {
+		return 0, fmt.Errorf("failed to remove favorite for module: %w", err)
+	}
+
+	return m.Stars(db)
 }
 
 // QueryModule performs a query for a Module record. The resulting record, if it
