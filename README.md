@@ -18,8 +18,10 @@ registry, viewable online at [atlas.cosmos.network](https://atlas.cosmos.network
   - [Background](#background)
   - [Usage](#usage)
     - [Server](#server)
+    - [API Documentation](#api-documentation)
     - [Web App](#web-app)
   - [Migrations](#migrations)
+  - [Local Development](#local-development)
   - [Tests](#tests)
   - [License](#license)
 
@@ -32,6 +34,14 @@ modules when building their blockchain applications.
 
 More information about the architecture, publishing and module configuration can
 be found under [docs](./docs/README.md).
+
+## Dependencies
+
+- [Golang 1.15+](https://golang.org/doc/install)
+- [migrate](https://github.com/golang-migrate/migrate/tree/master/cmd/migrate)
+- [Node.js/npm](https://nodejs.org/en/)
+- [Vue.js](https://vuejs.org/)
+- [Docker/Docker-Compose](https://docs.docker.com/get-docker/)
 
 ## Usage
 
@@ -103,9 +113,6 @@ you must provide a `ATLAS_DATABASE_URL` environment variable.
 $ ATLAS_DATABASE_URL=... make migrate
 ```
 
-To install [migrate](https://github.com/golang-migrate/migrate), please visit [here](https://github.com/golang-migrate/migrate/tree/master/cmd/migrate)
-for instructions.
-
 ## Local Development
 
 To run, test and experiment with Atlas in a local development environment, execute
@@ -145,6 +152,12 @@ the following:
 
    ```shell
    $ atlas server --dev=true --log.level=debug
+   ```
+
+5. Watch for web app changes:
+
+   ```shell
+   $ cd web && npm run build-watch
    ```
 
 Note, if you run Atlas with a custom listening address, be sure to update the
