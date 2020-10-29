@@ -140,7 +140,7 @@
                                 >New Token</base-button
                               >
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-9">
                               <base-input
                                 id="token-name"
                                 name="token-name"
