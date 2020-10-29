@@ -238,6 +238,11 @@ export default {
 </script>
 
 <style>
+div.main {
+  background: url(/img/stars.d8924548.d8924548.svg) repeat top,
+    linear-gradient(145.11deg, #202854 9.49%, #171b39 91.06%);
+}
+
 .stats i {
   top: 0;
 }
