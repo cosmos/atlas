@@ -32,7 +32,7 @@ func TestModuleFromManifest(t *testing.T) {
 		},
 	}
 
-	module := ModuleFromManifest(manifest)
+	module := ModuleFromManifest(manifest, newSanitizer())
 	require.Equal(t, manifest.Module.Name, module.Name)
 	require.Equal(t, manifest.Module.Team, module.Team)
 	require.Equal(t, manifest.Module.Repo, module.Repo)

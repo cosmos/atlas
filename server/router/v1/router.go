@@ -18,6 +18,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	_ "github.com/lib/pq"
+	"github.com/microcosm-cc/bluemonday"
 	"github.com/rs/zerolog"
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/oauth2"
@@ -58,6 +59,7 @@ type Router struct {
 	oauth2Cfg     *oauth2.Config
 	healthChecker *health.Health
 	validate      *validator.Validate
+	sanitizer     Sanitizer
 }
 
 func NewRouter(logger zerolog.Logger, cfg config.Config, db *gorm.DB, cookieCfg gologin.CookieConfig, sStore *sessions.CookieStore, oauth2Cfg *oauth2.Config) (*Router, error) {
@@ -76,6 +78,7 @@ func NewRouter(logger zerolog.Logger, cfg config.Config, db *gorm.DB, cookieCfg 
 		oauth2Cfg:     oauth2Cfg,
 		healthChecker: healthChecker,
 		validate:      validator.New(),
+		sanitizer:     newSanitizer(),
 	}, nil
 }
 
@@ -225,7 +228,7 @@ func (r *Router) UpsertModule() http.HandlerFunc {
 			return
 		}
 
-		module := ModuleFromManifest(request)
+		module := ModuleFromManifest(request, r.sanitizer)
 
 		// The publisher must already be an existing owner or must have accepted an
 		// invitation by an existing owner.
@@ -939,4 +942,11 @@ func (r *Router) authorize(req *http.Request) (models.User, bool, error) {
 	}
 
 	return user, true, nil
+}
+
+func newSanitizer() Sanitizer {
+	return bluemonday.NewPolicy().
+		RequireParseableURLs(true).
+		AllowRelativeURLs(false).
+		AllowURLSchemes("http", "https")
 }

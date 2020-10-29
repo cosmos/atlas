@@ -44,8 +44,13 @@ type (
 	}
 )
 
+// Sanitizer defines a sanitization interface for cleaning HTML input.
+type Sanitizer interface {
+	Sanitize(string) string
+}
+
 // ModuleFromManifest converts a Manifest to a Module model.
-func ModuleFromManifest(manifest Manifest) models.Module {
+func ModuleFromManifest(manifest Manifest, sanitizer Sanitizer) models.Module {
 	authors := make([]models.User, len(manifest.Authors))
 	for i, a := range manifest.Authors {
 		authors[i] = models.User{Name: a.Name, Email: models.NewNullString(a.Email)}
@@ -57,8 +62,8 @@ func ModuleFromManifest(manifest Manifest) models.Module {
 	}
 
 	bugTracker := models.BugTracker{
-		URL:     models.NewNullString(manifest.BugTracker.URL),
-		Contact: models.NewNullString(manifest.BugTracker.Contact),
+		URL:     models.NewNullString(sanitizer.Sanitize(manifest.BugTracker.URL)),
+		Contact: models.NewNullString(sanitizer.Sanitize(manifest.BugTracker.Contact)),
 	}
 
 	modVer := models.ModuleVersion{
@@ -69,10 +74,10 @@ func ModuleFromManifest(manifest Manifest) models.Module {
 	return models.Module{
 		Name:          manifest.Module.Name,
 		Team:          manifest.Module.Team,
-		Repo:          manifest.Module.Repo,
-		Description:   manifest.Module.Description,
-		Documentation: manifest.Module.Documentation,
-		Homepage:      manifest.Module.Homepage,
+		Repo:          sanitizer.Sanitize(manifest.Module.Repo),
+		Description:   sanitizer.Sanitize(manifest.Module.Description),
+		Documentation: sanitizer.Sanitize(manifest.Module.Documentation),
+		Homepage:      sanitizer.Sanitize(manifest.Module.Homepage),
 		Version:       modVer,
 		Authors:       authors,
 		Keywords:      keywords,
