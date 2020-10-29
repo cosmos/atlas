@@ -288,6 +288,11 @@ definitions:
     - repo
     - team
     type: object
+  v1.ModuleStars:
+    properties:
+      total:
+        type: integer
+    type: object
   v1.Token:
     properties:
       name:
@@ -675,6 +680,78 @@ paths:
           schema:
             $ref: '#/definitions/httputil.ErrResponse'
       summary: Get all keywords for a Cosmos SDK module by ID
+      tags:
+      - modules
+  /modules/{id}/star:
+    put:
+      parameters:
+      - description: module ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/v1.ModuleStars'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httputil.ErrResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/httputil.ErrResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httputil.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/httputil.ErrResponse'
+      security:
+      - APIKeyAuth: []
+      summary: Add a favorite for a module
+      tags:
+      - modules
+  /modules/{id}/unstar:
+    put:
+      parameters:
+      - description: module ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/v1.ModuleStars'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httputil.ErrResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/httputil.ErrResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httputil.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/httputil.ErrResponse'
+      security:
+      - APIKeyAuth: []
+      summary: Remove a favorite for a module
       tags:
       - modules
   /modules/{id}/versions:

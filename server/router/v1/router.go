@@ -155,6 +155,16 @@ func (r *Router) Register(rtr *mux.Router, prefix string) {
 	).Methods(httputil.MethodPUT)
 
 	v1Router.Handle(
+		"/modules/{id:[0-9]+}/star",
+		mChain.ThenFunc(r.StarModule()),
+	).Methods(httputil.MethodPUT)
+
+	v1Router.Handle(
+		"/modules/{id:[0-9]+}/unstar",
+		mChain.ThenFunc(r.UnStarModule()),
+	).Methods(httputil.MethodPUT)
+
+	v1Router.Handle(
 		"/me",
 		mChain.ThenFunc(r.GetUser()),
 	).Methods(httputil.MethodGET)
@@ -676,7 +686,7 @@ func (r *Router) RevokeUserToken() http.HandlerFunc {
 
 		id, err := strconv.ParseUint(idStr, 10, 64)
 		if err != nil {
-			httputil.RespondWithError(w, http.StatusBadRequest, fmt.Errorf("invalid module ID: %w", err))
+			httputil.RespondWithError(w, http.StatusBadRequest, fmt.Errorf("invalid user ID: %w", err))
 			return
 		}
 
@@ -698,6 +708,108 @@ func (r *Router) RevokeUserToken() http.HandlerFunc {
 		}
 
 		httputil.RespondWithJSON(w, http.StatusOK, token)
+	}
+}
+
+// StarModule implements a request handler for adding a favorite by a user to a
+// given module.
+// @Summary Add a favorite for a module
+// @Tags modules
+// @Produce  json
+// @Param id path int true "module ID"
+// @Success 200 {object} ModuleStars
+// @Failure 400 {object} httputil.ErrResponse
+// @Failure 401 {object} httputil.ErrResponse
+// @Failure 404 {object} httputil.ErrResponse
+// @Failure 500 {object} httputil.ErrResponse
+// @Security APIKeyAuth
+// @Router /modules/{id}/star [put]
+func (r *Router) StarModule() http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		authUser, ok, err := r.authorize(req)
+		if err != nil || !ok {
+			httputil.RespondWithError(w, http.StatusUnauthorized, err)
+			return
+		}
+
+		params := mux.Vars(req)
+		idStr := params["id"]
+
+		id, err := strconv.ParseUint(idStr, 10, 64)
+		if err != nil {
+			httputil.RespondWithError(w, http.StatusBadRequest, fmt.Errorf("invalid module ID: %w", err))
+			return
+		}
+
+		module, err := models.GetModuleByID(r.db, uint(id))
+		if err != nil {
+			code := http.StatusInternalServerError
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				code = http.StatusNotFound
+			}
+
+			httputil.RespondWithError(w, code, err)
+			return
+		}
+
+		stars, err := module.Star(r.db, authUser.ID)
+		if err != nil {
+			httputil.RespondWithError(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		httputil.RespondWithJSON(w, http.StatusOK, ModuleStars{Total: stars})
+	}
+}
+
+// UnStarModule implements a request handler for removing a favorite by a user
+// to a given module.
+// @Summary Remove a favorite for a module
+// @Tags modules
+// @Produce  json
+// @Param id path int true "module ID"
+// @Success 200 {object} ModuleStars
+// @Failure 400 {object} httputil.ErrResponse
+// @Failure 401 {object} httputil.ErrResponse
+// @Failure 404 {object} httputil.ErrResponse
+// @Failure 500 {object} httputil.ErrResponse
+// @Security APIKeyAuth
+// @Router /modules/{id}/unstar [put]
+func (r *Router) UnStarModule() http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		authUser, ok, err := r.authorize(req)
+		if err != nil || !ok {
+			httputil.RespondWithError(w, http.StatusUnauthorized, err)
+			return
+		}
+
+		params := mux.Vars(req)
+		idStr := params["id"]
+
+		id, err := strconv.ParseUint(idStr, 10, 64)
+		if err != nil {
+			httputil.RespondWithError(w, http.StatusBadRequest, fmt.Errorf("invalid module ID: %w", err))
+			return
+		}
+
+		module, err := models.GetModuleByID(r.db, uint(id))
+		if err != nil {
+			code := http.StatusInternalServerError
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				code = http.StatusNotFound
+			}
+
+			httputil.RespondWithError(w, code, err)
+			return
+		}
+
+		stars, err := module.UnStar(r.db, authUser.ID)
+		if err != nil {
+			httputil.RespondWithError(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		httputil.RespondWithJSON(w, http.StatusOK, ModuleStars{Total: stars})
 	}
 }
 
