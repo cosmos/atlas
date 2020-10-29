@@ -45,11 +45,15 @@ verify-clean-swagger-docs: update-swagger-docs
 #                                 Migrations                                  #
 ###############################################################################
 
-migrate:
+migrate-down:
 	@migrate -database ${ATLAS_DATABASE_URL} -path db/migrations down
+
+migrate-up:
 	@migrate -database ${ATLAS_DATABASE_URL} -path db/migrations up
 
-.PHONY: migrate
+migrate: migrate-down migrate-up
+
+.PHONY: migrate-down migrate-up migrate
 
 ###############################################################################
 #                                    Tests                                    #
