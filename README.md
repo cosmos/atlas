@@ -103,6 +103,50 @@ you must provide a `ATLAS_DATABASE_URL` environment variable.
 $ ATLAS_DATABASE_URL=... make migrate
 ```
 
+## Local Development
+
+To run, test and experiment with Atlas in a local development environment, execute
+the following:
+
+1. Start a postgres database using Docker:
+
+   ```shell
+   $ docker-compose up -d
+   ```
+
+2. Run migrations:
+
+   ```shell
+   $ ATLAS_DATABASE_URL="postgres://postgres:postgres@localhost:6432/postgres?sslmode=disable" make migrate
+   ```
+
+3. Populate your Atlas server config or root `.env`:
+
+   ```env
+   # .env
+
+   # Database and Atlas server options
+   ATLAS_DATABASE_URL=postgres://postgres:postgres@localhost:6432/postgres?sslmode=disable
+   ATLAS_LOG_FORMAT=text
+
+   # GitHub OAuth
+   ATLAS_GH_CLIENT_ID=...
+   ATLAS_GH_CLIENT_SECRET=...
+   ATLAS_GH_REDIRECT_URL=http://localhost:8080/api/v1/session/authorize
+
+   # Testing session cookie (e.g. securecookie.GenerateRandomKey(32))
+   ATLAS_SESSION_KEY=UIla7DSIVXzhvd9yHxexEExel9HQpSCQ+Rsn3y+e2Rs=
+   ```
+
+4. Start Atlas:
+
+   ```shell
+   $ atlas server --dev=true --log.level=debug
+   ```
+
+Note, if you run Atlas with a custom listening address, be sure to update the
+`VUE_APP_ATLAS_API_ADDR` environment variable in `web/.env` and the `ATLAS_GH_REDIRECT_URL`.
+
 ## Tests
 
 Atlas performs all database relevant tests through a Docker Postgres instance.
