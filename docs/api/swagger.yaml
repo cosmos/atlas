@@ -115,6 +115,8 @@ definitions:
         type: array
       repo:
         type: string
+      stars:
+        type: integer
       team:
         type: string
       updated_at:

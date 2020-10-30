@@ -1157,6 +1157,9 @@ var doc = `{
                 "repo": {
                     "type": "string"
                 },
+                "stars": {
+                    "type": "integer"
+                },
                 "team": {
                     "type": "string"
                 },
