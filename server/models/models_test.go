@@ -402,10 +402,15 @@ func (mts *ModelsTestSuite) TestModuleUpdateAuthors() {
 
 	record, err = mod.Upsert(mts.gormDB)
 	mts.Require().NoError(err)
+
 	sort.Slice(mod.Authors, func(i, j int) bool { return mod.Authors[i].ID < mod.Authors[j].ID })
 	sort.Slice(record.Authors, func(i, j int) bool { return record.Authors[i].ID < record.Authors[j].ID })
-	mts.Require().Equal(mod.Authors, record.Authors)
-	mts.Require().Equal(mod.Owners, record.Owners)
+	for i := 0; i < len(record.Authors); i++ {
+		mts.Require().True(mod.Authors[i].Equal(record.Authors[i]))
+	}
+	for i := 0; i < len(record.Owners); i++ {
+		mts.Require().True(mod.Owners[i].Equal(record.Owners[i]))
+	}
 
 	mod.Authors = []models.User{
 		{Name: "admin"}, {Name: "user2"},
@@ -413,10 +418,15 @@ func (mts *ModelsTestSuite) TestModuleUpdateAuthors() {
 
 	record, err = mod.Upsert(mts.gormDB)
 	mts.Require().NoError(err)
+
 	sort.Slice(mod.Authors, func(i, j int) bool { return mod.Authors[i].ID < mod.Authors[j].ID })
 	sort.Slice(record.Authors, func(i, j int) bool { return record.Authors[i].ID < record.Authors[j].ID })
-	mts.Require().Equal(mod.Authors, record.Authors)
-	mts.Require().Equal(mod.Owners, record.Owners)
+	for i := 0; i < len(record.Authors); i++ {
+		mts.Require().True(mod.Authors[i].Equal(record.Authors[i]))
+	}
+	for i := 0; i < len(record.Owners); i++ {
+		mts.Require().True(mod.Owners[i].Equal(record.Owners[i]))
+	}
 
 	mod.Authors = []models.User{}
 
@@ -453,9 +463,15 @@ func (mts *ModelsTestSuite) TestModuleUpdateOwners() {
 	record, err = mod.Upsert(mts.gormDB)
 	mts.Require().NoError(err)
 	mts.Require().Equal(mod.Authors, record.Authors)
+
 	sort.Slice(mod.Owners, func(i, j int) bool { return mod.Owners[i].ID < mod.Owners[j].ID })
 	sort.Slice(record.Owners, func(i, j int) bool { return record.Owners[i].ID < record.Owners[j].ID })
-	mts.Require().Equal(mod.Owners, record.Owners)
+	for i := 0; i < len(record.Authors); i++ {
+		mts.Require().True(mod.Authors[i].Equal(record.Authors[i]))
+	}
+	for i := 0; i < len(record.Owners); i++ {
+		mts.Require().True(mod.Owners[i].Equal(record.Owners[i]))
+	}
 
 	mod.Owners = []models.User{
 		{Name: "admin"}, {Name: "user2"},
@@ -464,9 +480,15 @@ func (mts *ModelsTestSuite) TestModuleUpdateOwners() {
 	record, err = mod.Upsert(mts.gormDB)
 	mts.Require().NoError(err)
 	mts.Require().Equal(mod.Authors, record.Authors)
+
 	sort.Slice(mod.Owners, func(i, j int) bool { return mod.Owners[i].ID < mod.Owners[j].ID })
 	sort.Slice(record.Owners, func(i, j int) bool { return record.Owners[i].ID < record.Owners[j].ID })
-	mts.Require().Equal(mod.Owners, record.Owners)
+	for i := 0; i < len(record.Authors); i++ {
+		mts.Require().True(mod.Authors[i].Equal(record.Authors[i]))
+	}
+	for i := 0; i < len(record.Owners); i++ {
+		mts.Require().True(mod.Owners[i].Equal(record.Owners[i]))
+	}
 
 	mod.Owners = []models.User{}
 
