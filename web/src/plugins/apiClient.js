@@ -44,6 +44,14 @@ const APIClient = {
     return this.perform('get', `/modules${pageURI}`);
   },
 
+  starModule(id) {
+    return this.perform('put', `/modules/${id}/star`);
+  },
+
+  unstarModule(id) {
+    return this.perform('put', `/modules/${id}/unstar`);
+  },
+
   searchModules(query, pageURI) {
     return this.perform('get', `/modules/search${pageURI}&q=${query}`);
   },

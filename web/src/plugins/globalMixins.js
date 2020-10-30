@@ -27,9 +27,17 @@ const GlobalMixins = {
       computed: {
         isAuthenticated() {
           return this.$store.getters.isAuthenticated;
+        },
+
+        user() {
+          return this.$store.getters.userRecord;
         }
       },
       methods: {
+        objectEmpty(obj) {
+          return Object.keys(obj).length === 0;
+        },
+
         avatarPicture(author) {
           return author.avatar_url != ""
             ? author.avatar_url
