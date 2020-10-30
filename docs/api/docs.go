@@ -1424,7 +1424,7 @@ var doc = `{
         "v1.ModuleStars": {
             "type": "object",
             "properties": {
-                "total": {
+                "stars": {
                     "type": "integer"
                 }
             }

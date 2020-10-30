@@ -1518,6 +1518,78 @@ func (rts *RouterTestSuite) TestUpdateUser() {
 	rts.Require().Equal(http.StatusUnauthorized, rr.Code, rr.Body.String())
 }
 
+func (rts *RouterTestSuite) TestStarModule() {
+	rts.resetDB()
+
+	req1, err := http.NewRequest("GET", "/", nil)
+	rts.Require().NoError(err)
+
+	req1 = rts.authorizeRequest(req1, "test_token1", "test_user1", 12345)
+
+	upsertURL, err := url.Parse("/api/v1/modules")
+	rts.Require().NoError(err)
+
+	body := map[string]interface{}{
+		"module": map[string]interface{}{
+			"name":     "x/bank",
+			"team":     "cosmonauts",
+			"repo":     "https://github.com/cosmos/cosmos-sdk",
+			"keywords": []string{"tokens"},
+		},
+		"authors": []map[string]interface{}{
+			{
+				"name": "foo", "email": "foo@email.com",
+			},
+		},
+		"version": map[string]interface{}{
+			"version": "v1.0.0",
+		},
+		"bug_tracker": map[string]interface{}{
+			"url":     "https://cosmonauts.com",
+			"contact": "contact@cosmonauts.com",
+		},
+	}
+
+	// create module published by test_user1
+	bz, err := json.Marshal(body)
+	rts.Require().NoError(err)
+
+	req1.Method = httputil.MethodPUT
+	req1.URL = upsertURL
+	req1.Body = ioutil.NopCloser(bytes.NewBuffer(bz))
+	req1.ContentLength = int64(len(bz))
+
+	rr := httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req1)
+	rts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
+
+	var resp map[string]interface{}
+	rts.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &resp))
+	rts.Require().Equal(int64(0), int64(resp["stars"].(float64)))
+
+	modID := resp["id"]
+
+	starURL, err := url.Parse(fmt.Sprintf("/api/v1/modules/%v/star", modID))
+	rts.Require().NoError(err)
+
+	req1.URL = starURL
+	rr = httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req1)
+	rts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
+	rts.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &resp))
+	rts.Require().Equal(int64(1), int64(resp["stars"].(float64)))
+
+	unStarURL, err := url.Parse(fmt.Sprintf("/api/v1/modules/%v/unstar", modID))
+	rts.Require().NoError(err)
+
+	req1.URL = unStarURL
+	rr = httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req1)
+	rts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
+	rts.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &resp))
+	rts.Require().Equal(int64(0), int64(resp["stars"].(float64)))
+}
+
 func (rts *RouterTestSuite) resetDB() {
 	rts.T().Helper()
 

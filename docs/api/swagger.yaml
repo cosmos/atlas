@@ -292,7 +292,7 @@ definitions:
     type: object
   v1.ModuleStars:
     properties:
-      total:
+      stars:
         type: integer
     type: object
   v1.Token:

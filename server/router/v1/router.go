@@ -758,7 +758,7 @@ func (r *Router) StarModule() http.HandlerFunc {
 			return
 		}
 
-		httputil.RespondWithJSON(w, http.StatusOK, ModuleStars{Total: stars})
+		httputil.RespondWithJSON(w, http.StatusOK, ModuleStars{Stars: stars})
 	}
 }
 
@@ -809,7 +809,7 @@ func (r *Router) UnStarModule() http.HandlerFunc {
 			return
 		}
 
-		httputil.RespondWithJSON(w, http.StatusOK, ModuleStars{Total: stars})
+		httputil.RespondWithJSON(w, http.StatusOK, ModuleStars{Stars: stars})
 	}
 }
 
