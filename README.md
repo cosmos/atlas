@@ -137,7 +137,7 @@ the following:
 
    # Database and Atlas server options
    ATLAS_DATABASE_URL=postgres://postgres:postgres@localhost:6432/postgres?sslmode=disable
-   ATLAS_LOG_FORMAT=text
+   ATLAS_LOG_FORMAT=debug
    ATLAS_DEV=true
 
    # GitHub OAuth
@@ -152,7 +152,7 @@ the following:
 4. Start Atlas:
 
    ```shell
-   $ atlas server --dev=true --log.level=debug
+   $ atlas server
    ```
 
 5. Watch for web app changes:
