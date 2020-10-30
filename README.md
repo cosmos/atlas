@@ -138,6 +138,7 @@ the following:
    # Database and Atlas server options
    ATLAS_DATABASE_URL=postgres://postgres:postgres@localhost:6432/postgres?sslmode=disable
    ATLAS_LOG_FORMAT=text
+   ATLAS_DEV=true
 
    # GitHub OAuth
    ATLAS_GH_CLIENT_ID=...
