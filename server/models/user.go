@@ -46,6 +46,7 @@ type (
 		URL        string      `json:"url"`
 		AvatarURL  string      `json:"avatar_url"`
 		GravatarID string      `json:"gravatar_id"`
+		Stars      []uint      `json:"stars"`
 	}
 
 	// User defines an entity that contributes to a Module type.
@@ -66,6 +67,8 @@ type (
 
 		// one-to-many relationships
 		Tokens []UserToken `gorm:"foreignKey:user_id"`
+
+		Stars []uint `gorm:"-" json:"-"`
 	}
 )
 
@@ -101,6 +104,7 @@ func (u User) MarshalJSON() ([]byte, error) {
 		URL:        u.URL,
 		AvatarURL:  u.AvatarURL,
 		GravatarID: u.GravatarID,
+		Stars:      u.Stars,
 	})
 }
 
@@ -145,6 +149,32 @@ func (u User) Upsert(db *gorm.DB) (User, error) {
 	}
 
 	return QueryUser(db, map[string]interface{}{"name": u.Name})
+}
+
+// AfterFind implements a GORM hook for updating a User record after it has
+// been queried for.
+func (u *User) AfterFind(tx *gorm.DB) error {
+	var records []UserModuleFavorite
+
+	if err := tx.Where("user_id = ?", u.ID).Find(&records).Error; err != nil {
+		return err
+	}
+
+	moduleIDs := make([]uint, len(records))
+	for i, record := range records {
+		moduleIDs[i] = record.ModuleID
+	}
+
+	u.Stars = moduleIDs
+	return nil
+}
+
+// Equal implements an equality check for two User records.
+func (u User) Equal(other User) bool {
+	return u.ID == other.ID &&
+		u.CreatedAt == other.CreatedAt &&
+		u.UpdatedAt == other.UpdatedAt &&
+		u.Name == other.Name
 }
 
 // GetUserByID returns a User by ID. If the user doesn't exist or if the

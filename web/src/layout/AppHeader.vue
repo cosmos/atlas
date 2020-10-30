@@ -100,16 +100,6 @@ export default {
     showSearch: Boolean,
     navbarType: String
   },
-  computed: {
-    user() {
-      return this.$store.getters.userRecord;
-    },
-
-    isAuthenticated() {
-      return this.$store.getters.isAuthenticated;
-    }
-  },
-  methods: {},
   created() {
     this.$store.dispatch("getUser");
   },

@@ -659,6 +659,120 @@ var doc = `{
                 }
             }
         },
+        "/modules/{id}/star": {
+            "put": {
+                "security": [
+                    {
+                        "APIKeyAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "modules"
+                ],
+                "summary": "Add a favorite for a module",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "module ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/v1.ModuleStars"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/modules/{id}/unstar": {
+            "put": {
+                "security": [
+                    {
+                        "APIKeyAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "modules"
+                ],
+                "summary": "Remove a favorite for a module",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "module ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/v1.ModuleStars"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/modules/{id}/versions": {
             "get": {
                 "consumes": [
@@ -986,6 +1100,9 @@ var doc = `{
                 "repo": {
                     "type": "string"
                 },
+                "stars": {
+                    "type": "integer"
+                },
                 "team": {
                     "type": "string"
                 },
@@ -1042,6 +1159,9 @@ var doc = `{
                 },
                 "repo": {
                     "type": "string"
+                },
+                "stars": {
+                    "type": "integer"
                 },
                 "team": {
                     "type": "string"
@@ -1160,6 +1280,12 @@ var doc = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "stars": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
                 },
                 "updated_at": {
                     "type": "string"
@@ -1301,6 +1427,14 @@ var doc = `{
                 },
                 "team": {
                     "type": "string"
+                }
+            }
+        },
+        "v1.ModuleStars": {
+            "type": "object",
+            "properties": {
+                "stars": {
+                    "type": "integer"
                 }
             }
         },

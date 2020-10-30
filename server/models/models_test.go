@@ -78,7 +78,7 @@ func TestModelsTestSuite(t *testing.T) {
 }
 
 func (mts *ModelsTestSuite) TestModuleCreate() {
-	resetDB(mts.T(), mts.m)
+	mts.resetDB()
 
 	testCases := []struct {
 		name      string
@@ -163,7 +163,7 @@ func (mts *ModelsTestSuite) TestModuleCreate() {
 }
 
 func (mts *ModelsTestSuite) TestGetModuleByID() {
-	resetDB(mts.T(), mts.m)
+	mts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -203,7 +203,7 @@ func (mts *ModelsTestSuite) TestGetModuleByID() {
 }
 
 func (mts *ModelsTestSuite) TestGetAllModules() {
-	resetDB(mts.T(), mts.m)
+	mts.resetDB()
 
 	mods, paginator, err := models.GetAllModules(mts.gormDB, httputil.PaginationQuery{Page: 1, Limit: 10, Order: "id"})
 	mts.Require().NoError(err)
@@ -265,7 +265,7 @@ func (mts *ModelsTestSuite) TestGetAllModules() {
 }
 
 func (mts *ModelsTestSuite) TestModuleUpdateBasic() {
-	resetDB(mts.T(), mts.m)
+	mts.resetDB()
 
 	mod := models.Module{
 		Name:          "x/bank",
@@ -302,7 +302,7 @@ func (mts *ModelsTestSuite) TestModuleUpdateBasic() {
 }
 
 func (mts *ModelsTestSuite) TestModuleUpdateBugTracker() {
-	resetDB(mts.T(), mts.m)
+	mts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -337,7 +337,7 @@ func (mts *ModelsTestSuite) TestModuleUpdateBugTracker() {
 }
 
 func (mts *ModelsTestSuite) TestModuleUpdateKeywords() {
-	resetDB(mts.T(), mts.m)
+	mts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -377,7 +377,7 @@ func (mts *ModelsTestSuite) TestModuleUpdateKeywords() {
 }
 
 func (mts *ModelsTestSuite) TestModuleUpdateAuthors() {
-	resetDB(mts.T(), mts.m)
+	mts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -402,10 +402,15 @@ func (mts *ModelsTestSuite) TestModuleUpdateAuthors() {
 
 	record, err = mod.Upsert(mts.gormDB)
 	mts.Require().NoError(err)
+
 	sort.Slice(mod.Authors, func(i, j int) bool { return mod.Authors[i].ID < mod.Authors[j].ID })
 	sort.Slice(record.Authors, func(i, j int) bool { return record.Authors[i].ID < record.Authors[j].ID })
-	mts.Require().Equal(mod.Authors, record.Authors)
-	mts.Require().Equal(mod.Owners, record.Owners)
+	for i := 0; i < len(record.Authors); i++ {
+		mts.Require().True(mod.Authors[i].Equal(record.Authors[i]))
+	}
+	for i := 0; i < len(record.Owners); i++ {
+		mts.Require().True(mod.Owners[i].Equal(record.Owners[i]))
+	}
 
 	mod.Authors = []models.User{
 		{Name: "admin"}, {Name: "user2"},
@@ -413,10 +418,15 @@ func (mts *ModelsTestSuite) TestModuleUpdateAuthors() {
 
 	record, err = mod.Upsert(mts.gormDB)
 	mts.Require().NoError(err)
+
 	sort.Slice(mod.Authors, func(i, j int) bool { return mod.Authors[i].ID < mod.Authors[j].ID })
 	sort.Slice(record.Authors, func(i, j int) bool { return record.Authors[i].ID < record.Authors[j].ID })
-	mts.Require().Equal(mod.Authors, record.Authors)
-	mts.Require().Equal(mod.Owners, record.Owners)
+	for i := 0; i < len(record.Authors); i++ {
+		mts.Require().True(mod.Authors[i].Equal(record.Authors[i]))
+	}
+	for i := 0; i < len(record.Owners); i++ {
+		mts.Require().True(mod.Owners[i].Equal(record.Owners[i]))
+	}
 
 	mod.Authors = []models.User{}
 
@@ -427,7 +437,7 @@ func (mts *ModelsTestSuite) TestModuleUpdateAuthors() {
 }
 
 func (mts *ModelsTestSuite) TestModuleUpdateOwners() {
-	resetDB(mts.T(), mts.m)
+	mts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -453,9 +463,15 @@ func (mts *ModelsTestSuite) TestModuleUpdateOwners() {
 	record, err = mod.Upsert(mts.gormDB)
 	mts.Require().NoError(err)
 	mts.Require().Equal(mod.Authors, record.Authors)
+
 	sort.Slice(mod.Owners, func(i, j int) bool { return mod.Owners[i].ID < mod.Owners[j].ID })
 	sort.Slice(record.Owners, func(i, j int) bool { return record.Owners[i].ID < record.Owners[j].ID })
-	mts.Require().Equal(mod.Owners, record.Owners)
+	for i := 0; i < len(record.Authors); i++ {
+		mts.Require().True(mod.Authors[i].Equal(record.Authors[i]))
+	}
+	for i := 0; i < len(record.Owners); i++ {
+		mts.Require().True(mod.Owners[i].Equal(record.Owners[i]))
+	}
 
 	mod.Owners = []models.User{
 		{Name: "admin"}, {Name: "user2"},
@@ -464,9 +480,15 @@ func (mts *ModelsTestSuite) TestModuleUpdateOwners() {
 	record, err = mod.Upsert(mts.gormDB)
 	mts.Require().NoError(err)
 	mts.Require().Equal(mod.Authors, record.Authors)
+
 	sort.Slice(mod.Owners, func(i, j int) bool { return mod.Owners[i].ID < mod.Owners[j].ID })
 	sort.Slice(record.Owners, func(i, j int) bool { return record.Owners[i].ID < record.Owners[j].ID })
-	mts.Require().Equal(mod.Owners, record.Owners)
+	for i := 0; i < len(record.Authors); i++ {
+		mts.Require().True(mod.Authors[i].Equal(record.Authors[i]))
+	}
+	for i := 0; i < len(record.Owners); i++ {
+		mts.Require().True(mod.Owners[i].Equal(record.Owners[i]))
+	}
 
 	mod.Owners = []models.User{}
 
@@ -477,7 +499,7 @@ func (mts *ModelsTestSuite) TestModuleUpdateOwners() {
 }
 
 func (mts *ModelsTestSuite) TestModuleUpdateVersion() {
-	resetDB(mts.T(), mts.m)
+	mts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -534,7 +556,7 @@ func (mts *ModelsTestSuite) TestModuleUpdateVersion() {
 }
 
 func (mts *ModelsTestSuite) TestModuleSearch() {
-	resetDB(mts.T(), mts.m)
+	mts.resetDB()
 
 	teams := []string{"teamA", "teamB", "teamC", "teamD"}
 	bugTrackers := []models.BugTracker{
@@ -660,7 +682,7 @@ func (mts *ModelsTestSuite) TestModuleSearch() {
 }
 
 func (mts *ModelsTestSuite) TestUserTokens() {
-	resetDB(mts.T(), mts.m)
+	mts.resetDB()
 
 	u := models.User{
 		Name:              "foo",
@@ -712,7 +734,7 @@ func (mts *ModelsTestSuite) TestUserTokens() {
 }
 
 func (mts *ModelsTestSuite) TestUserUpsert() {
-	resetDB(mts.T(), mts.m)
+	mts.resetDB()
 
 	testCases := []struct {
 		name      string
@@ -814,7 +836,7 @@ func (mts *ModelsTestSuite) TestUserUpsert() {
 }
 
 func (mts *ModelsTestSuite) TestGetUserModules() {
-	resetDB(mts.T(), mts.m)
+	mts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -846,7 +868,7 @@ func (mts *ModelsTestSuite) TestGetUserModules() {
 }
 
 func (mts *ModelsTestSuite) TestGetUserByID() {
-	resetDB(mts.T(), mts.m)
+	mts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -883,7 +905,7 @@ func (mts *ModelsTestSuite) TestGetUserByID() {
 }
 
 func (mts *ModelsTestSuite) TestGetAllUsers() {
-	resetDB(mts.T(), mts.m)
+	mts.resetDB()
 
 	users, paginator, err := models.GetAllUsers(mts.gormDB, httputil.PaginationQuery{Page: 1, Limit: 10, Order: "id"})
 	mts.Require().NoError(err)
@@ -945,7 +967,7 @@ func (mts *ModelsTestSuite) TestGetAllUsers() {
 }
 
 func (mts *ModelsTestSuite) TestGetAllKeywords() {
-	resetDB(mts.T(), mts.m)
+	mts.resetDB()
 
 	keywords, paginator, err := models.GetAllKeywords(mts.gormDB, httputil.PaginationQuery{Page: 1, Limit: 10, Order: "id"})
 	mts.Require().NoError(err)
@@ -1006,10 +1028,66 @@ func (mts *ModelsTestSuite) TestGetAllKeywords() {
 	mts.Require().Zero(paginator.NextPage)
 }
 
-func resetDB(t *testing.T, m *migrate.Migrate) {
-	t.Helper()
+func (mts *ModelsTestSuite) TestModuleStar() {
+	mts.resetDB()
 
-	require.NoError(t, m.Force(1))
-	require.NoError(t, m.Down())
-	require.NoError(t, m.Up())
+	mod := models.Module{
+		Name: "x/bank",
+		Team: "cosmonauts",
+		Repo: "https://github.com/cosmos/cosmos-sdk",
+		Owners: []models.User{
+			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
+		},
+		Authors: []models.User{
+			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
+		},
+		Version: models.ModuleVersion{Version: "v1.0.0"},
+		Keywords: []models.Keyword{
+			{Name: "tokens"}, {Name: "transfer"},
+		},
+		BugTracker: models.BugTracker{
+			URL:     models.NewNullString("cosmonauts.com"),
+			Contact: models.NewNullString("contact@cosmonauts.com"),
+		},
+	}
+
+	// create module
+	mod, err := mod.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
+
+	// ensure the owner has not favored it
+	ok, err := mod.UserStarred(mts.gormDB, mod.Owners[0].ID)
+	mts.Require().NoError(err)
+	mts.Require().False(ok)
+
+	// ensure we can favorite it and the count matches
+	stars, err := mod.Star(mts.gormDB, mod.Owners[0].ID)
+	mts.Require().NoError(err)
+	mts.Require().Equal(int64(1), stars)
+
+	// ensure the owner has favored the module
+	ok, err = mod.UserStarred(mts.gormDB, mod.Owners[0].ID)
+	mts.Require().NoError(err)
+	mts.Require().True(ok)
+
+	// ensure we can un-favorite it and the count matches
+	stars, err = mod.UnStar(mts.gormDB, mod.Owners[0].ID)
+	mts.Require().NoError(err)
+	mts.Require().Equal(int64(0), stars)
+
+	// ensure the owner has not favored it
+	ok, err = mod.UserStarred(mts.gormDB, mod.Owners[0].ID)
+	mts.Require().NoError(err)
+	mts.Require().False(ok)
+}
+
+func (mts *ModelsTestSuite) resetDB() {
+	mts.T().Helper()
+
+	if err := mts.m.Down(); err != nil {
+		require.Equal(mts.T(), migrate.ErrNoChange, err)
+	}
+	if err := mts.m.Up(); err != nil {
+		require.Equal(mts.T(), migrate.ErrNoChange, err)
+	}
 }

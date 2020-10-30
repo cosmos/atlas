@@ -51,6 +51,13 @@
                 >
                   Newly Added
                 </div>
+                <div
+                  class="dropdown-item"
+                  v-bind:class="{ selected: orderBy['popular'] }"
+                  v-on:click="sortModules('popular')"
+                >
+                  Highest Rated
+                </div>
               </base-dropdown>
             </div>
           </div>
@@ -96,7 +103,7 @@
                   </p>
                 </div>
                 <div class="stats stats-right">
-                  <i class="fa fa-star"></i> 0 ·
+                  <i class="fa fa-star"></i> {{ mod.stars }} ·
                   <i class="ni ni-archive-2"></i>
                   {{ latestVersion(mod.versions) }}
                 </div>
@@ -179,6 +186,12 @@ export default {
           this.orderBy["new"] = true;
           this.pageURI = `?page=1&limit=${this.pageSize}&order=created_at,id&reverse=true`;
           break;
+
+        case "popular":
+          Object.keys(this.orderBy).forEach(v => (this.orderBy[v] = false));
+          this.orderBy["popular"] = true;
+          this.pageURI = `?page=1&limit=${this.pageSize}&order=stars,id&reverse=true`;
+          break;
       }
     },
 
@@ -210,16 +223,13 @@ export default {
       orderBy: {
         alpha: true,
         updated: false,
-        name: false
+        name: false,
+        popular: false
       }
     };
   },
   beforeRouteUpdate(to, from, next) {
     next();
-    // this.$Progress.start();
-    // this.cursor = 0;
-    // this.getModules();
-    // this.$Progress.finish();
   }
 };
 </script>

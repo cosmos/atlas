@@ -74,11 +74,18 @@ type (
 		Documentation string          `json:"documentation"`
 		Homepage      string          `json:"homepage"`
 		Repo          string          `json:"repo"`
+		Stars         int64           `json:"stars"`
 		BugTracker    BugTracker      `json:"bug_tracker"`
 		Keywords      []Keyword       `json:"keywords"`
 		Authors       []User          `json:"authors"`
 		Owners        []User          `json:"owners"`
 		Versions      []ModuleVersion `json:"versions"`
+	}
+
+	// UserModuleFavorite defines the behavior of a user staring a module record.
+	UserModuleFavorite struct {
+		UserID   uint `json:"user_id"`
+		ModuleID uint `json:"module_id"`
 	}
 
 	// Module defines a Cosmos SDK module.
@@ -93,6 +100,7 @@ type (
 		Documentation string `json:"documentation"`
 		Homepage      string `json:"homepage"`
 		Repo          string `gorm:"not null;default:null" json:"repo"`
+		Stars         int64  `json:"stars"`
 
 		// one-to-one relationships
 		BugTracker BugTracker `json:"bug_tracker" gorm:"foreignKey:module_id"`
@@ -160,6 +168,7 @@ func (m Module) MarshalJSON() ([]byte, error) {
 		Authors:       m.Authors,
 		Owners:        m.Owners,
 		Versions:      m.Versions,
+		Stars:         m.Stars,
 	})
 }
 
@@ -285,6 +294,82 @@ func (m Module) Upsert(db *gorm.DB) (Module, error) {
 	}
 
 	return record, nil
+}
+
+// BeforeSave implements a GORM hook for updating a Module record before it is
+// created or updated.
+func (m *Module) BeforeSave(tx *gorm.DB) error {
+	var count int64
+
+	if err := tx.Model(&UserModuleFavorite{}).Where("module_id = ?", m.ID).Count(&count).Error; err != nil {
+		return fmt.Errorf("failed to query for module favorites count: %w", err)
+	}
+
+	m.Stars = count
+	return nil
+}
+
+// Starred returns a boolean defining if a given user by ID has starred a module.
+// It returns an error upon query failure.
+func (m Module) UserStarred(db *gorm.DB, userID uint) (bool, error) {
+	var record UserModuleFavorite
+
+	if err := db.Where(UserModuleFavorite{ModuleID: m.ID, UserID: userID}).First(&record).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, nil
+		}
+
+		return false, fmt.Errorf("failed to query for user module favorite: %w", err)
+	}
+
+	return true, nil
+}
+
+// Star favorites a module by ID for a given userID. It returns an error upon
+// failure, otherwise it returns the total nubmer of favorites for the module.
+func (m Module) Star(db *gorm.DB, userID uint) (int64, error) {
+	ok, err := m.UserStarred(db, userID)
+	if err != nil {
+		return 0, err
+	}
+	if ok {
+		// user already favored, so we just return the stars count
+		return m.Stars, nil
+	}
+
+	if err := db.Create(&UserModuleFavorite{ModuleID: m.ID, UserID: userID}).Error; err != nil {
+		return 0, fmt.Errorf("failed to favorite module: %w", err)
+	}
+
+	if err := db.Save(&m).Error; err != nil {
+		return 0, fmt.Errorf("failed to update module: %w", err)
+	}
+
+	return m.Stars, nil
+}
+
+// UnStar removes a favorite for a module by ID for a given userID. It returns an
+// error upon failure, otherwise it returns the total nubmer of favorites for the
+// module.
+func (m Module) UnStar(db *gorm.DB, userID uint) (int64, error) {
+	ok, err := m.UserStarred(db, userID)
+	if err != nil {
+		return 0, err
+	}
+	if !ok {
+		// user did not star this module, so we just simply return the existing total
+		return m.Stars, nil
+	}
+
+	if err := db.Delete(UserModuleFavorite{}, "module_id = ? AND user_id = ?", m.ID, userID).Error; err != nil {
+		return 0, fmt.Errorf("failed to remove favorite for module: %w", err)
+	}
+
+	if err := db.Save(&m).Error; err != nil {
+		return 0, fmt.Errorf("failed to update module: %w", err)
+	}
+
+	return m.Stars, nil
 }
 
 // QueryModule performs a query for a Module record. The resulting record, if it

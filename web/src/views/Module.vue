@@ -58,15 +58,27 @@
               </div>
               <div class="col-lg-4 order-lg-1">
                 <div class="card-profile-stats d-flex justify-content-center">
-                  <div class="module-header">
-                    <span>Updated: {{ formatDate(module.updated_at) }}</span>
+                  <div class="title text-center justify-content-center">
+                    <div class="module-header mb-2">
+                      <base-button
+                        type="primary"
+                        size="sm"
+                        :disabled="!isAuthenticated"
+                        v-on:click="handleFavorite(starToggle)"
+                        style="margin-right: 10px;"
+                        ><i class="fa fa-star"></i>
+                        {{ starToggle }}</base-button
+                      >
+                      {{ moduleStars }}
+                    </div>
+                    <div>
+                      <span>Updated: {{ formatDate(module.updated_at) }}</span>
+                    </div>
                   </div>
-                  <!-- <div class="module-header"><i class="fa fa-star"></i> 0</div> -->
                 </div>
               </div>
             </div>
-            <div class="text-center mt-5"></div>
-            <div class="mt-5 py-5 border-top text-center">
+            <div class="py-5 border-top text-center">
               <div class="row">
                 <div
                   class="col-lg-8 text-left"
@@ -169,6 +181,7 @@ export default {
   data() {
     return {
       module: {},
+      moduleStars: 0,
       documentation: "",
       anchorAttrs: {
         target: "_blank",
@@ -183,8 +196,16 @@ export default {
     this.$Progress.finish();
   },
   computed: {
+    starToggle() {
+      if (!this.objectEmpty(this.user) && !this.objectEmpty(this.module)) {
+        return this.user.stars.includes(this.module.id) ? "unstar" : "star";
+      }
+
+      return "";
+    },
+
     sortedVersions() {
-      if (Object.keys(this.module).length === 0) {
+      if (this.objectEmpty(this.module)) {
         return [];
       }
 
@@ -207,6 +228,42 @@ export default {
     }
   },
   methods: {
+    handleFavorite(toggle) {
+      if (toggle === "star") {
+        APIClient.starModule(this.module.id)
+          .then(resp => {
+            this.moduleStars = resp.stars;
+            this.$store.dispatch("getUser");
+          })
+          .catch(err => {
+            console.log(err);
+            this.$notify({
+              group: "errors",
+              type: "error",
+              duration: 3000,
+              title: "Error",
+              text: err
+            });
+          });
+      } else if (toggle === "unstar") {
+        APIClient.unstarModule(this.module.id)
+          .then(resp => {
+            this.moduleStars = resp.stars;
+            this.$store.dispatch("getUser");
+          })
+          .catch(err => {
+            console.log(err);
+            this.$notify({
+              group: "errors",
+              type: "error",
+              duration: 3000,
+              title: "Error",
+              text: err
+            });
+          });
+      }
+    },
+
     avatarPicture(user) {
       return user.avatar_url != "" ? user.avatar_url : "img/generic-avatar.png";
     },
@@ -233,6 +290,7 @@ export default {
       APIClient.getModule(this.$route.params.id)
         .then(resp => {
           this.module = resp;
+          this.moduleStars = resp.stars;
           this.getDocumentation();
         })
         .catch(err => {
