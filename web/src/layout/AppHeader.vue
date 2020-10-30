@@ -103,10 +103,6 @@ export default {
   computed: {
     user() {
       return this.$store.getters.userRecord;
-    },
-
-    isAuthenticated() {
-      return this.$store.getters.isAuthenticated;
     }
   },
   methods: {},

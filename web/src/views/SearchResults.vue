@@ -96,7 +96,7 @@
                   </p>
                 </div>
                 <div class="stats stats-right">
-                  <i class="fa fa-star"></i> 0 ·
+                  <i class="fa fa-star"></i> {{ mod.stars }} ·
                   <i class="ni ni-archive-2"></i>
                   {{ latestVersion(mod.versions) }}
                 </div>

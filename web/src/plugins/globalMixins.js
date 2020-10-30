@@ -24,6 +24,11 @@ const GlobalMixins = {
           document.body.classList.remove(bodyClass);
         }
       },
+      computed: {
+        isAuthenticated() {
+          return this.$store.getters.isAuthenticated;
+        }
+      },
       methods: {
         avatarPicture(author) {
           return author.avatar_url != ""
