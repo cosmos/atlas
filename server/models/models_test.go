@@ -78,7 +78,7 @@ func TestModelsTestSuite(t *testing.T) {
 }
 
 func (mts *ModelsTestSuite) TestModuleCreate() {
-	resetDB(mts.T(), mts.m)
+	mts.resetDB()
 
 	testCases := []struct {
 		name      string
@@ -163,7 +163,7 @@ func (mts *ModelsTestSuite) TestModuleCreate() {
 }
 
 func (mts *ModelsTestSuite) TestGetModuleByID() {
-	resetDB(mts.T(), mts.m)
+	mts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -203,7 +203,7 @@ func (mts *ModelsTestSuite) TestGetModuleByID() {
 }
 
 func (mts *ModelsTestSuite) TestGetAllModules() {
-	resetDB(mts.T(), mts.m)
+	mts.resetDB()
 
 	mods, paginator, err := models.GetAllModules(mts.gormDB, httputil.PaginationQuery{Page: 1, Limit: 10, Order: "id"})
 	mts.Require().NoError(err)
@@ -265,7 +265,7 @@ func (mts *ModelsTestSuite) TestGetAllModules() {
 }
 
 func (mts *ModelsTestSuite) TestModuleUpdateBasic() {
-	resetDB(mts.T(), mts.m)
+	mts.resetDB()
 
 	mod := models.Module{
 		Name:          "x/bank",
@@ -302,7 +302,7 @@ func (mts *ModelsTestSuite) TestModuleUpdateBasic() {
 }
 
 func (mts *ModelsTestSuite) TestModuleUpdateBugTracker() {
-	resetDB(mts.T(), mts.m)
+	mts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -337,7 +337,7 @@ func (mts *ModelsTestSuite) TestModuleUpdateBugTracker() {
 }
 
 func (mts *ModelsTestSuite) TestModuleUpdateKeywords() {
-	resetDB(mts.T(), mts.m)
+	mts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -377,7 +377,7 @@ func (mts *ModelsTestSuite) TestModuleUpdateKeywords() {
 }
 
 func (mts *ModelsTestSuite) TestModuleUpdateAuthors() {
-	resetDB(mts.T(), mts.m)
+	mts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -427,7 +427,7 @@ func (mts *ModelsTestSuite) TestModuleUpdateAuthors() {
 }
 
 func (mts *ModelsTestSuite) TestModuleUpdateOwners() {
-	resetDB(mts.T(), mts.m)
+	mts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -477,7 +477,7 @@ func (mts *ModelsTestSuite) TestModuleUpdateOwners() {
 }
 
 func (mts *ModelsTestSuite) TestModuleUpdateVersion() {
-	resetDB(mts.T(), mts.m)
+	mts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -534,7 +534,7 @@ func (mts *ModelsTestSuite) TestModuleUpdateVersion() {
 }
 
 func (mts *ModelsTestSuite) TestModuleSearch() {
-	resetDB(mts.T(), mts.m)
+	mts.resetDB()
 
 	teams := []string{"teamA", "teamB", "teamC", "teamD"}
 	bugTrackers := []models.BugTracker{
@@ -660,7 +660,7 @@ func (mts *ModelsTestSuite) TestModuleSearch() {
 }
 
 func (mts *ModelsTestSuite) TestUserTokens() {
-	resetDB(mts.T(), mts.m)
+	mts.resetDB()
 
 	u := models.User{
 		Name:              "foo",
@@ -712,7 +712,7 @@ func (mts *ModelsTestSuite) TestUserTokens() {
 }
 
 func (mts *ModelsTestSuite) TestUserUpsert() {
-	resetDB(mts.T(), mts.m)
+	mts.resetDB()
 
 	testCases := []struct {
 		name      string
@@ -814,7 +814,7 @@ func (mts *ModelsTestSuite) TestUserUpsert() {
 }
 
 func (mts *ModelsTestSuite) TestGetUserModules() {
-	resetDB(mts.T(), mts.m)
+	mts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -846,7 +846,7 @@ func (mts *ModelsTestSuite) TestGetUserModules() {
 }
 
 func (mts *ModelsTestSuite) TestGetUserByID() {
-	resetDB(mts.T(), mts.m)
+	mts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -883,7 +883,7 @@ func (mts *ModelsTestSuite) TestGetUserByID() {
 }
 
 func (mts *ModelsTestSuite) TestGetAllUsers() {
-	resetDB(mts.T(), mts.m)
+	mts.resetDB()
 
 	users, paginator, err := models.GetAllUsers(mts.gormDB, httputil.PaginationQuery{Page: 1, Limit: 10, Order: "id"})
 	mts.Require().NoError(err)
@@ -945,7 +945,7 @@ func (mts *ModelsTestSuite) TestGetAllUsers() {
 }
 
 func (mts *ModelsTestSuite) TestGetAllKeywords() {
-	resetDB(mts.T(), mts.m)
+	mts.resetDB()
 
 	keywords, paginator, err := models.GetAllKeywords(mts.gormDB, httputil.PaginationQuery{Page: 1, Limit: 10, Order: "id"})
 	mts.Require().NoError(err)
@@ -1007,7 +1007,7 @@ func (mts *ModelsTestSuite) TestGetAllKeywords() {
 }
 
 func (mts *ModelsTestSuite) TestModuleStar() {
-	resetDB(mts.T(), mts.m)
+	mts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
@@ -1059,10 +1059,13 @@ func (mts *ModelsTestSuite) TestModuleStar() {
 	mts.Require().False(ok)
 }
 
-func resetDB(t *testing.T, m *migrate.Migrate) {
-	t.Helper()
+func (mts *ModelsTestSuite) resetDB() {
+	mts.T().Helper()
 
-	require.NoError(t, m.Force(3))
-	require.NoError(t, m.Down())
-	require.NoError(t, m.Up())
+	if err := mts.m.Down(); err != nil {
+		require.Equal(mts.T(), migrate.ErrNoChange, err)
+	}
+	if err := mts.m.Up(); err != nil {
+		require.Equal(mts.T(), migrate.ErrNoChange, err)
+	}
 }

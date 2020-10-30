@@ -1521,7 +1521,10 @@ func (rts *RouterTestSuite) TestUpdateUser() {
 func (rts *RouterTestSuite) resetDB() {
 	rts.T().Helper()
 
-	require.NoError(rts.T(), rts.m.Force(3))
-	require.NoError(rts.T(), rts.m.Down())
-	require.NoError(rts.T(), rts.m.Up())
+	if err := rts.m.Down(); err != nil {
+		require.Equal(rts.T(), migrate.ErrNoChange, err)
+	}
+	if err := rts.m.Up(); err != nil {
+		require.Equal(rts.T(), migrate.ErrNoChange, err)
+	}
 }
