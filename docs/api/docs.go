@@ -1100,6 +1100,9 @@ var doc = `{
                 "repo": {
                     "type": "string"
                 },
+                "stars": {
+                    "type": "integer"
+                },
                 "team": {
                     "type": "string"
                 },
@@ -1277,6 +1280,12 @@ var doc = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "stars": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
                 },
                 "updated_at": {
                     "type": "string"

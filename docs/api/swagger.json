@@ -1080,6 +1080,9 @@
                 "repo": {
                     "type": "string"
                 },
+                "stars": {
+                    "type": "integer"
+                },
                 "team": {
                     "type": "string"
                 },
@@ -1257,6 +1260,12 @@
                 },
                 "name": {
                     "type": "string"
+                },
+                "stars": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
                 },
                 "updated_at": {
                     "type": "string"

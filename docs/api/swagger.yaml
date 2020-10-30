@@ -77,6 +77,8 @@ definitions:
         type: array
       repo:
         type: string
+      stars:
+        type: integer
       team:
         type: string
       versions:
@@ -195,6 +197,10 @@ definitions:
         type: integer
       name:
         type: string
+      stars:
+        items:
+          type: integer
+        type: array
       updated_at:
         type: string
       url:
