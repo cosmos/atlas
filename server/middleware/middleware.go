@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/justinas/alice"
@@ -10,7 +11,6 @@ import (
 	"github.com/rs/zerolog/hlog"
 
 	"github.com/cosmos/atlas/config"
-	"github.com/cosmos/atlas/server/httputil"
 )
 
 // Build returns a new middleware chain.
@@ -46,25 +46,27 @@ func AddRequestLoggingMiddleware(mChain alice.Chain, logger zerolog.Logger) alic
 
 // AddCORSMiddleware appends CORS middleware to a provided middleware chain.
 func AddCORSMiddleware(mChain alice.Chain, logger zerolog.Logger, cfg config.Config) alice.Chain {
-	c := cors.New(cors.Options{
+	opts := cors.Options{
 		AllowedMethods: []string{
-			httputil.MethodGET,
-			httputil.MethodGET,
-			httputil.MethodPOST,
-			httputil.MethodPUT,
-			httputil.MethodDELETE,
+			http.MethodHead,
+			http.MethodGet,
+			http.MethodPost,
+			http.MethodPut,
+			http.MethodPatch,
+			http.MethodDelete,
 		},
 		AllowCredentials: true,
-		AllowedOrigins:   []string{"https://atlas.cosmos.network"},
 		AllowedHeaders:   []string{"*"},
-		Debug:            false,
-	})
-
-	if cfg.Bool(config.FlagDev) {
-		c = cors.AllowAll()
+		AllowedOrigins:   strings.Split(cfg.String(config.AllowedOrigins), ","),
 	}
 
+	if cfg.Bool(config.Dev) {
+		opts.Debug = true
+	}
+
+	c := cors.New(opts)
 	c.Log = &logger
+
 	mChain = mChain.Append(c.Handler)
 
 	return mChain
