@@ -32,36 +32,36 @@ func TestParseServerConfig(t *testing.T) {
 
 	configBz := []byte(fmt.Sprintf(`%s="1"
 %s="2"
-%s="3"
-`, config.FlagListenAddr, config.FlagGHClientSecret, config.FlagGHRedirectURL))
+%s=true
+`, config.ListenAddr, config.GHClientSecret, config.Dev))
 	_, err = configFile.Write(configBz)
 	require.NoError(t, err)
 
 	// set config file path flag
-	require.NoError(t, ctx.Set(config.FlagConfig, configFile.Name()))
+	require.NoError(t, ctx.Set(config.ConfigPath, configFile.Name()))
 
 	// parse config and ensure all values are read from file
 	cfg, err := cmd.ParseServerConfig(ctx)
 	require.NoError(t, err)
-	require.Equal(t, "1", cfg.String(config.FlagListenAddr))
-	require.Equal(t, "2", cfg.String(config.FlagGHClientSecret))
-	require.Equal(t, "3", cfg.String(config.FlagGHRedirectURL))
+	require.Equal(t, "1", cfg.String(config.ListenAddr))
+	require.Equal(t, "2", cfg.String(config.GHClientSecret))
+	require.Equal(t, true, cfg.Bool(config.Dev))
 
 	// set OS environment variables and ensure environment variables take precedence
-	os.Setenv("ATLAS_"+strings.ReplaceAll(strings.ToUpper(config.FlagListenAddr), ".", "_"), "11")
-	os.Setenv("ATLAS_"+strings.ReplaceAll(strings.ToUpper(config.FlagGHClientSecret), ".", "_"), "12")
+	os.Setenv("ATLAS_"+strings.ReplaceAll(strings.ToUpper(config.ListenAddr), ".", "_"), "11")
+	os.Setenv("ATLAS_"+strings.ReplaceAll(strings.ToUpper(config.GHClientSecret), ".", "_"), "12")
 
 	cfg, err = cmd.ParseServerConfig(ctx)
 	require.NoError(t, err)
-	require.Equal(t, "11", cfg.String(config.FlagListenAddr))
-	require.Equal(t, "12", cfg.String(config.FlagGHClientSecret))
-	require.Equal(t, "3", cfg.String(config.FlagGHRedirectURL))
+	require.Equal(t, "11", cfg.String(config.ListenAddr))
+	require.Equal(t, "12", cfg.String(config.GHClientSecret))
+	require.Equal(t, true, cfg.Bool(config.Dev))
 
 	// set a flag and ensure it takes precedence over env and file
-	require.NoError(t, ctx.Set(config.FlagListenAddr, "21"))
+	require.NoError(t, ctx.Set(config.ListenAddr, "21"))
 	cfg, err = cmd.ParseServerConfig(ctx)
 	require.NoError(t, err)
-	require.Equal(t, "21", cfg.String(config.FlagListenAddr))
-	require.Equal(t, "12", cfg.String(config.FlagGHClientSecret))
-	require.Equal(t, "3", cfg.String(config.FlagGHRedirectURL))
+	require.Equal(t, "21", cfg.String(config.ListenAddr))
+	require.Equal(t, "12", cfg.String(config.GHClientSecret))
+	require.Equal(t, true, cfg.Bool(config.Dev))
 }
