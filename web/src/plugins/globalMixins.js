@@ -38,9 +38,9 @@ const GlobalMixins = {
           return Object.keys(obj).length === 0;
         },
 
-        avatarPicture(author) {
-          return author.avatar_url != ""
-            ? author.avatar_url
+        avatarPicture(user) {
+          return user.avatar_url != ""
+            ? user.avatar_url
             : "img/generic-avatar.png";
         },
         

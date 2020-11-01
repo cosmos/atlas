@@ -264,10 +264,6 @@ export default {
       }
     },
 
-    avatarPicture(user) {
-      return user.avatar_url != "" ? user.avatar_url : "img/generic-avatar.png";
-    },
-
     getDocumentation() {
       axios
         .get(this.module.documentation)
