@@ -64,6 +64,7 @@
             <span class="nav-link-inner--text">Account</span>
           </a>
           <router-link
+            v-if="user.name"
             :to="{ name: 'profile', params: { name: user.name } }"
             class="dropdown-item"
           >
