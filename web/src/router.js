@@ -1,17 +1,17 @@
-import Vue from 'vue';
-import Router from 'vue-router';
+import Vue from "vue";
+import Router from "vue-router";
 
-import AppFooter from './layout/AppFooter';
-import AppHeader from './layout/AppHeader';
-import store from './plugins/store';
-import Account from './views/Account.vue';
-import Components from './views/Components.vue';
-import Error from './views/Error.vue';
-import Error500 from './views/Error500.vue';
-import ProfilePage from './views/ProfilePage.vue';
-import ModulePage from './views/Module.vue';
-import ModulesPage from './views/Modules.vue';
-import SearchResults from './views/SearchResults.vue';
+import AppFooter from "./layout/AppFooter";
+import AppHeader from "./layout/AppHeader";
+import store from "./plugins/store";
+import Account from "./views/Account.vue";
+import Components from "./views/Components.vue";
+import Error from "./views/Error.vue";
+import Error500 from "./views/Error500.vue";
+import ProfilePage from "./views/ProfilePage.vue";
+import ModulePage from "./views/Module.vue";
+import ModulesPage from "./views/Modules.vue";
+import SearchResults from "./views/SearchResults.vue";
 
 Vue.use(Router);
 
@@ -21,71 +21,83 @@ const ifAuthenticated = (to, from, next) => {
     return;
   }
 
-  next('/');
+  next("/");
 };
 
 export default new Router({
-  linkExactActiveClass: 'active',
+  linkExactActiveClass: "active",
+  // mode: "history",
   routes: [
     {
-      path: '/',
-      name: 'home',
-      components: {header: AppHeader, default: Components, footer: AppFooter},
-      props: {header: {showSearch: false}}
+      path: "/",
+      name: "home",
+      components: { header: AppHeader, default: Components, footer: AppFooter },
+      props: { header: { showSearch: false } }
     },
     {
-      path: '/search',
-      name: 'search-results',
-      components: {header: AppHeader, default: SearchResults, footer: AppFooter},
-      props: {header: {showSearch: true}}
+      path: "/search",
+      name: "search-results",
+      components: {
+        header: AppHeader,
+        default: SearchResults,
+        footer: AppFooter
+      },
+      props: { header: { showSearch: true } }
     },
     {
-      path: '/account',
-      name: 'account',
-      components: {header: AppHeader, default: Account, footer: AppFooter},
-      props: {header: {showSearch: true}},
-      beforeEnter: ifAuthenticated,
+      path: "/account",
+      name: "account",
+      components: { header: AppHeader, default: Account, footer: AppFooter },
+      props: { header: { showSearch: true } },
+      beforeEnter: ifAuthenticated
     },
     {
-      path: '/profile/:name',
-      name: 'profile',
-      components: {header: AppHeader, default: ProfilePage, footer: AppFooter},
-      props: {header: {showSearch: true}},
+      path: "/profile/:name",
+      name: "profile",
+      components: {
+        header: AppHeader,
+        default: ProfilePage,
+        footer: AppFooter
+      },
+      props: { header: { showSearch: true } }
     },
     {
-      path: '/modules/:id',
-      name: 'modules',
-      components: {header: AppHeader, default: ModulePage, footer: AppFooter},
-      props: {header: {showSearch: true}},
+      path: "/modules/:id",
+      name: "modules",
+      components: { header: AppHeader, default: ModulePage, footer: AppFooter },
+      props: { header: { showSearch: true } }
     },
     {
-      path: '/modules',
-      name: 'browse',
-      components: {header: AppHeader, default: ModulesPage, footer: AppFooter},
-      props: {header: {showSearch: true}},
+      path: "/modules",
+      name: "browse",
+      components: {
+        header: AppHeader,
+        default: ModulesPage,
+        footer: AppFooter
+      },
+      props: { header: { showSearch: true } }
     },
 
     // ------------------------------------------------------------------------
 
-
     {
-      path: '/error',
-      name: 'error',
-      components: {header: AppHeader, default: Error},
-      props: {header: {navbarType: 'default'}}
+      path: "/error",
+      name: "error",
+      components: { header: AppHeader, default: Error },
+      props: { header: { navbarType: "default" } }
     },
     {
-      path: '/500-error',
-      name: '500-error',
-      components: {header: AppHeader, default: Error500},
-      props: {header: {navbarType: 'primary'}}
-    },
+      path: "/500-error",
+      name: "500-error",
+      components: { header: AppHeader, default: Error500 },
+      props: { header: { navbarType: "primary" } }
+    }
   ],
   scrollBehavior: to => {
     if (to.hash) {
-      return {selector: to.hash};
+      return { selector: to.hash };
     } else {
-      return {x: 0, y: 0};
+      return { x: 0, y: 0 };
     }
   }
 });
