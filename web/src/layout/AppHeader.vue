@@ -26,7 +26,10 @@
         class="navbar-nav navbar-nav-hover align-items-lg-center"
         style="width: -webkit-fill-available;"
       >
-        <form v-on:submit.prevent="queryModules" style="width: inherit;">
+        <form
+          v-on:submit.prevent="queryModules(searchCriteria)"
+          style="width: inherit;"
+        >
           <base-input
             v-if="showSearch"
             v-model="searchCriteria"
@@ -101,14 +104,29 @@ export default {
     showSearch: Boolean,
     navbarType: String
   },
+
+  watch: {
+    $route() {
+      if (this.$route.name !== "search") {
+        this.searchCriteria = "";
+      } else {
+        this.searchCriteria = this.$route.query.q;
+      }
+    }
+  },
+
   created() {
+    this.searchCriteria = this.$route.query.q;
     this.$store.dispatch("getUser");
   },
+
   data() {
     return {
+      searchCriteria: "",
       sessionStartURL: process.env.VUE_APP_ATLAS_API_ADDR + "/session/start"
     };
   },
+
   mounted: function() {
     let headroom = new Headroom(document.getElementById("navbar-main"), {
       offset: 300,

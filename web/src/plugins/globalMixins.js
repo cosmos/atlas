@@ -27,12 +27,6 @@ const GlobalMixins = {
         }
       },
 
-      data() {
-        return {
-          searchCriteria: ""
-        };
-      },
-
       computed: {
         isAuthenticated() {
           return this.$store.getters.isAuthenticated;
@@ -58,10 +52,10 @@ const GlobalMixins = {
           return moment(timestamp).fromNow();
         },
 
-        queryModules: function() {
+        queryModules: function(searchCriteria) {
           if (
             this.$route.name === "search" &&
-            this.$route.query.q === this.searchCriteria
+            this.$route.query.q === searchCriteria
           ) {
             // prevent routing when we're on the results page with the same query
             return;
@@ -69,9 +63,8 @@ const GlobalMixins = {
 
           this.$router.push({
             name: "search",
-            query: { q: this.searchCriteria }
+            query: { q: searchCriteria }
           });
-          this.searchCriteria = "";
         },
 
         logout: function() {
