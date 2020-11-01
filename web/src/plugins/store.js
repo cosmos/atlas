@@ -8,6 +8,7 @@ export default new Vuex.Store({
   state: {
     user: { authenticated: false, record: {}, tokens: [] }
   },
+
   getters: {
     isAuthenticated: state => {
       return localStorage.isLoggedIn === "1" || state.user.authenticated;
@@ -21,6 +22,7 @@ export default new Vuex.Store({
       return state.user.tokens;
     }
   },
+
   mutations: {
     setUserAuthenticated(state, authenticated) {
       state.user.authenticated = authenticated;
@@ -34,6 +36,7 @@ export default new Vuex.Store({
       state.user.tokens = tokens;
     }
   },
+
   actions: {
     getUser(context) {
       APIClient.getUser()

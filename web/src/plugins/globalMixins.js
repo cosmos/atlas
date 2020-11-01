@@ -27,6 +27,12 @@ const GlobalMixins = {
         }
       },
 
+      data() {
+        return {
+          searchCriteria: ""
+        };
+      },
+
       computed: {
         isAuthenticated() {
           return this.$store.getters.isAuthenticated;
@@ -42,10 +48,10 @@ const GlobalMixins = {
           return Object.keys(obj).length === 0;
         },
 
-        avatarPicture(user) {
-          return user.avatar_url != ""
-            ? user.avatar_url
-            : "img/generic-avatar.png";
+        avatarPicture(author) {
+          return author.avatar_url != ""
+            ? author.avatar_url
+            : "/img/generic-avatar.png";
         },
 
         formatDate(timestamp) {

@@ -32,7 +32,7 @@
                   <base-button
                     tag="a"
                     target="_blank"
-                    :href="`https://github.com/${profileUser.name}`"
+                    :href="`https://github.com/${user.name}`"
                     type="primary"
                     size="sm"
                     class="mr-4"
@@ -40,8 +40,8 @@
                   >
                   <base-button
                     tag="a"
-                    v-show="profileUser.email != null"
-                    :href="`mailto:${profileUser.email}`"
+                    v-show="user.email != null"
+                    :href="`mailto:${user.email}`"
                     type="default"
                     size="sm"
                     class="float-right"
@@ -55,10 +55,10 @@
                     <span class="heading">{{ userModules.length }}</span>
                     <span class="description">Published Modules</span>
                   </div>
-                  <!-- <div>
+                  <div>
                     <span class="heading">0</span>
                     <span class="description">Followers</span>
-                  </div> -->
+                  </div>
                 </div>
               </div>
             </div>

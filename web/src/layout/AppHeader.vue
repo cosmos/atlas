@@ -8,13 +8,13 @@
       expand
     >
       <router-link slot="brand" class="navbar-brand mr-lg-5" to="/">
-        <img src="img/brand/white.png" alt="logo" href="" target="_self" />
+        <img src="/img/brand/white.png" alt="logo" href="" target="_self" />
       </router-link>
 
       <div class="row" slot="content-header" slot-scope="{ closeMenu }">
         <div class="col-6 collapse-brand">
           <a href="" target="_self">
-            <img src="img/brand/white.png" />
+            <img src="/img/brand/white.png" />
           </a>
         </div>
         <div class="col-6 collapse-close">
@@ -105,7 +105,6 @@ export default {
   },
   data() {
     return {
-      searchCriteria: "",
       sessionStartURL: process.env.VUE_APP_ATLAS_API_ADDR + "/session/start"
     };
   },

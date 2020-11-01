@@ -1,13 +1,11 @@
 import Vue from "vue";
 import Router from "vue-router";
-
 import AppFooter from "./layout/AppFooter";
 import AppHeader from "./layout/AppHeader";
 import store from "./plugins/store";
 import Account from "./views/Account.vue";
 import Components from "./views/Components.vue";
 import Error from "./views/Error.vue";
-import Error500 from "./views/Error500.vue";
 import ProfilePage from "./views/ProfilePage.vue";
 import ModulePage from "./views/Module.vue";
 import ModulesPage from "./views/Modules.vue";
@@ -26,7 +24,7 @@ const ifAuthenticated = (to, from, next) => {
 
 export default new Router({
   linkExactActiveClass: "active",
-  mode: "history",
+  // mode: "history",
   routes: [
     {
       path: "/",
@@ -77,20 +75,11 @@ export default new Router({
       },
       props: { header: { showSearch: true } }
     },
-
-    // ------------------------------------------------------------------------
-
     {
-      path: "/error",
+      path: "*",
       name: "error",
       components: { header: AppHeader, default: Error },
-      props: { header: { navbarType: "default" } }
-    },
-    {
-      path: "/500-error",
-      name: "500-error",
-      components: { header: AppHeader, default: Error500 },
-      props: { header: { navbarType: "primary" } }
+      props: { header: { showSearch: true } }
     }
   ],
   scrollBehavior: to => {

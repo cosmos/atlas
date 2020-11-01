@@ -207,6 +207,7 @@ export default {
     },
 
     searchModules() {
+      console.log("this.searchCriteria:", this.searchCriteria);
       APIClient.searchModules(this.$route.query.q, this.pageURI)
         .then(resp => {
           this.noMatch = resp.results.length === 0;
