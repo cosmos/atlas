@@ -1,7 +1,11 @@
 import axios from "axios";
 
 const BASE_URI = process.env.VUE_APP_ATLAS_API_ADDR;
-const client = axios.create({ baseURL: BASE_URI, json: true });
+const client = axios.create({
+  baseURL: BASE_URI,
+  json: true,
+  withCredentials: true
+});
 
 const APIClient = {
   getUser() {
