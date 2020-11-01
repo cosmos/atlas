@@ -96,9 +96,6 @@ func NewService(logger zerolog.Logger, cfg config.Config) (*Service, error) {
 	// register v1 API routes
 	v1Router.Register(service.router, v1.V1APIPathPrefix)
 
-	// mount webapp
-	service.router.PathPrefix("/").Handler(http.FileServer(http.Dir("./web/dist/")))
-
 	return service, nil
 }
 
