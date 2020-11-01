@@ -14,7 +14,7 @@
               </p>
               <div class="row">
                 <div class="col-md-8 center">
-                  <form v-on:submit="queryModules">
+                  <form v-on:submit.prevent="queryModules">
                     <base-input
                       v-model="searchCriteria"
                       addonLeftIcon="fa fa-search"
@@ -31,8 +31,6 @@
   </div>
 </template>
 
-<script>
-export default {};
-</script>
+<script></script>
 
 <style></style>

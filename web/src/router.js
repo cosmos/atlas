@@ -24,7 +24,7 @@ const ifAuthenticated = (to, from, next) => {
 
 export default new Router({
   linkExactActiveClass: "active",
-  // mode: "history",
+  mode: "history",
   routes: [
     {
       path: "/",
@@ -34,7 +34,7 @@ export default new Router({
     },
     {
       path: "/search",
-      name: "search-results",
+      name: "search",
       components: {
         header: AppHeader,
         default: SearchResults,

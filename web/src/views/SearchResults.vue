@@ -160,11 +160,13 @@ export default {
   components: {
     BaseDropdown
   },
+
   watch: {
     pageURI: function() {
       this.searchModules();
     }
   },
+
   methods: {
     filteredModules(x, y) {
       return this.responseData.results.slice(x, y);
@@ -207,7 +209,6 @@ export default {
     },
 
     searchModules() {
-      console.log("this.searchCriteria:", this.searchCriteria);
       APIClient.searchModules(this.$route.query.q, this.pageURI)
         .then(resp => {
           this.noMatch = resp.results.length === 0;
@@ -225,9 +226,11 @@ export default {
         });
     }
   },
+
   created() {
     this.searchModules();
   },
+
   data() {
     return {
       pageSize: 9,
@@ -242,6 +245,7 @@ export default {
       }
     };
   },
+
   beforeRouteUpdate(to, from, next) {
     next();
     this.$Progress.start();

@@ -60,7 +60,7 @@ const GlobalMixins = {
 
         queryModules: function() {
           if (
-            this.$route.name === "search-results" &&
+            this.$route.name === "search" &&
             this.$route.query.q === this.searchCriteria
           ) {
             // prevent routing when we're on the results page with the same query
@@ -68,7 +68,7 @@ const GlobalMixins = {
           }
 
           this.$router.push({
-            name: "search-results",
+            name: "search",
             query: { q: this.searchCriteria }
           });
           this.searchCriteria = "";

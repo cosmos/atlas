@@ -26,7 +26,7 @@
         class="navbar-nav navbar-nav-hover align-items-lg-center"
         style="width: -webkit-fill-available;"
       >
-        <form v-on:submit="queryModules" style="width: inherit;">
+        <form v-on:submit.prevent="queryModules" style="width: inherit;">
           <base-input
             v-if="showSearch"
             v-model="searchCriteria"
