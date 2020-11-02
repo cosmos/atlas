@@ -54,6 +54,7 @@ func AddCORSMiddleware(mChain alice.Chain, logger zerolog.Logger, cfg config.Con
 			http.MethodPut,
 			http.MethodPatch,
 			http.MethodDelete,
+			http.MethodOptions,
 		},
 		AllowCredentials: true,
 		AllowedHeaders:   []string{"*"},

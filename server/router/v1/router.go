@@ -88,6 +88,16 @@ func NewRouter(logger zerolog.Logger, cfg config.Config, db *gorm.DB, cookieCfg 
 func (r *Router) Register(rtr *mux.Router, prefix string) {
 	v1Router := rtr.PathPrefix(prefix).Subrouter()
 
+	// handle all preflight request
+	v1Router.Methods("OPTIONS").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+		w.Header().Set("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "*")
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+		w.WriteHeader(http.StatusOK)
+		return
+	})
+
 	// build middleware chain
 	mChain := middleware.Build(r.logger, r.cfg)
 
