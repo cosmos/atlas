@@ -120,6 +120,16 @@
                       />
                     </router-link>
                   </div>
+                  <h5 class="card-title mt-4">Keywords</h5>
+                  <div class="avatar-group">
+                    <span
+                      class="badge badge-pill badge-primary"
+                      v-for="keyword in module.keywords"
+                      v-bind:key="keyword.name"
+                    >
+                      {{ keyword.name }}</span
+                    >
+                  </div>
                   <h5 class="card-title mt-4"></h5>
                   <el-table
                     class="table table-striped table-flush"
