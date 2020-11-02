@@ -927,8 +927,7 @@ func (r *Router) AuthorizeSession() http.Handler {
 			r.oauth2Cfg,
 			r.authorizeHandler(),
 			http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-				// redirect to home when the client cancels
-				http.Redirect(w, req, "/", http.StatusFound)
+				http.Redirect(w, req, req.Referer(), http.StatusFound)
 			}),
 		),
 	)
@@ -979,7 +978,7 @@ func (r *Router) authorizeHandler() http.HandlerFunc {
 			return
 		}
 
-		http.Redirect(w, req, "/", http.StatusFound)
+		http.Redirect(w, req, req.Referer(), http.StatusFound)
 	}
 }
 
