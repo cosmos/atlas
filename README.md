@@ -40,6 +40,7 @@ be found under [docs](./docs/README.md).
 - [Golang 1.15+](https://golang.org/doc/install)
 - [migrate](https://github.com/golang-migrate/migrate/tree/master/cmd/migrate)
 - [Node.js/npm](https://nodejs.org/en/)
+- [Yarn](https://classic.yarnpkg.com/en/)
 - [Vue.js](https://vuejs.org/)
 - [Docker/Docker-Compose](https://docs.docker.com/get-docker/)
 
@@ -86,21 +87,22 @@ $ make update-swagger-docs
 ### Web App
 
 The Atlas web application is built using [Vue.js](https://vuejs.org/) and is
-contained in the `web` directory. The web application is served as a static
-resource from the same service as the API. It contains a `.env` file at the root
-which must contain a `VUE_APP_ATLAS_API_ADDR` environment variable that describes
-how to reach the Atlas API.
+contained in the `web` directory. The web application is executed as a separate
+process external from the Atlas API server. The webapp requires `VUE_APP_ATLAS_API_ADDR`
+to be populated in order to know how to speak with the Atlas API. This can be
+set as an explicit environment variable or populated in a `.env` file at the root
+of the `web` directory.
 
-To build locally and watch for lives changes:
+To run the webapp locally and watch for lives changes:
 
 ```shell
-$ cd web && npm run build-watch
+$ cd web && yarn serve
 ```
 
 To build for production:
 
 ```shell
-$ cd web && npm run build
+$ cd web && yarn build
 ```
 
 ## Migrations
@@ -133,17 +135,12 @@ the following:
 3. Populate your Atlas server config or root `.env`:
 
    ```env
-   # .env
-
-   # Database and Atlas server options
    ATLAS_DATABASE_URL=postgres://postgres:postgres@localhost:6432/postgres?sslmode=disable
    ATLAS_LOG_FORMAT=debug
    ATLAS_DEV=true
-
-   # GitHub OAuth
    ATLAS_GH_CLIENT_ID=...
    ATLAS_GH_CLIENT_SECRET=...
-   ATLAS_GH_REDIRECT_URL=http://localhost:8080/api/v1/session/authorize
+   ATLAS_ALLOWED_ORIGINS=http://localhost:8081
 
    # Testing session cookie (e.g. securecookie.GenerateRandomKey(32))
    ATLAS_SESSION_KEY=UIla7DSIVXzhvd9yHxexEExel9HQpSCQ+Rsn3y+e2Rs=
@@ -155,14 +152,16 @@ the following:
    $ atlas server
    ```
 
-5. Watch for web app changes:
+5. Start the webapp:
 
    ```shell
-   $ cd web && npm run build-watch
+   $ cd web && yarn serve
    ```
 
-Note, if you run Atlas with a custom listening address, be sure to update the
-`VUE_APP_ATLAS_API_ADDR` environment variable in `web/.env` and the `ATLAS_GH_REDIRECT_URL`.
+Note, if you choose to run Atlas at a different listen address, be sure to populate
+`VUE_APP_ATLAS_API_ADDR` and `ATLAS_ALLOWED_ORIGINS` accordingly. Where the former
+is the listen address of the Atlas API server and the later is the address of
+the webapp (yarn will automatically allocate a free port).
 
 ## Tests
 
