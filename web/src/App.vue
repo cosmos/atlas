@@ -26,7 +26,6 @@ export default {
 };
 </script>
 
-
 <style>
 .error-notification {
   width: 500px;

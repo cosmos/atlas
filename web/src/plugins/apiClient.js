@@ -1,63 +1,67 @@
-import axios from 'axios';
+import axios from "axios";
 
 const BASE_URI = process.env.VUE_APP_ATLAS_API_ADDR;
-const client   = axios.create({baseURL: BASE_URI, json: true});
+const client = axios.create({
+  baseURL: BASE_URI,
+  json: true,
+  withCredentials: true
+});
 
 const APIClient = {
   getUser() {
-    return this.perform('get', '/me');
+    return this.perform("get", "/me");
   },
 
   getUserTokens() {
-    return this.perform('get', '/me/tokens');
+    return this.perform("get", "/me/tokens");
   },
 
   updateUser(user) {
-    return this.perform('put', '/me', user);
+    return this.perform("put", "/me", user);
   },
 
   logoutUser() {
-    return this.perform('post', '/session/logout');
+    return this.perform("post", "/session/logout");
   },
 
   createUserToken(name) {
-    return this.perform('put', '/me/tokens', {name: name});
+    return this.perform("put", "/me/tokens", { name: name });
   },
 
   revokeUserToken(token) {
-    return this.perform('delete', `/me/tokens/${token.id}`);
+    return this.perform("delete", `/me/tokens/${token.id}`);
   },
 
   getUserByName(name) {
-    return this.perform('get', `/users/${name}`);
+    return this.perform("get", `/users/${name}`);
   },
 
   getUserModules(name) {
-    return this.perform('get', `/users/${name}/modules`);
+    return this.perform("get", `/users/${name}/modules`);
   },
 
   getModule(id) {
-    return this.perform('get', `/modules/${id}`);
+    return this.perform("get", `/modules/${id}`);
   },
 
   getModules(pageURI) {
-    return this.perform('get', `/modules${pageURI}`);
+    return this.perform("get", `/modules${pageURI}`);
   },
 
   starModule(id) {
-    return this.perform('put', `/modules/${id}/star`);
+    return this.perform("put", `/modules/${id}/star`);
   },
 
   unstarModule(id) {
-    return this.perform('put', `/modules/${id}/unstar`);
+    return this.perform("put", `/modules/${id}/unstar`);
   },
 
   searchModules(query, pageURI) {
-    return this.perform('get', `/modules/search${pageURI}&q=${query}`);
+    return this.perform("get", `/modules/search${pageURI}&q=${query}`);
   },
 
   async perform(method, resource, data) {
-    return client({method, url: resource, data, headers: {}}).then(req => {
+    return client({ method, url: resource, data, headers: {} }).then(req => {
       return req.data;
     });
   }

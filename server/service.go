@@ -48,7 +48,7 @@ type Service struct {
 func NewService(logger zerolog.Logger, cfg config.Config) (*Service, error) {
 	dbLogger := NewDBLogger(logger).LogMode(gormlogger.Silent)
 
-	sessionKey, err := base64.StdEncoding.DecodeString(cfg.String(config.FlagSessionKey))
+	sessionKey, err := base64.StdEncoding.DecodeString(cfg.String(config.SessionKey))
 	if err != nil {
 		return nil, fmt.Errorf("failed to base64 decode session key: %w", err)
 	}
@@ -59,13 +59,13 @@ func NewService(logger zerolog.Logger, cfg config.Config) (*Service, error) {
 	sessionStore.Options.Secure = true
 	sessionStore.Options.MaxAge = 3600 * 24 * 7 // 1 week
 
-	if cfg.Bool(config.FlagDev) {
+	if cfg.Bool(config.Dev) {
 		dbLogger = dbLogger.LogMode(gormlogger.Info)
 		cookieCfg = gologin.DebugOnlyCookieConfig
 		sessionStore.Options.Secure = false
 	}
 
-	db, err := gorm.Open(postgres.Open(cfg.String(config.FlagDatabaseURL)), &gorm.Config{Logger: dbLogger})
+	db, err := gorm.Open(postgres.Open(cfg.String(config.DatabaseURL)), &gorm.Config{Logger: dbLogger})
 	if err != nil {
 		return nil, err
 	}
@@ -78,9 +78,8 @@ func NewService(logger zerolog.Logger, cfg config.Config) (*Service, error) {
 		sessionStore: sessionStore,
 		router:       mux.NewRouter(),
 		oauth2Cfg: &oauth2.Config{
-			ClientID:     cfg.String(config.FlagGHClientID),
-			ClientSecret: cfg.String(config.FlagGHClientSecret),
-			RedirectURL:  cfg.String(config.FlagGHRedirectURL),
+			ClientID:     cfg.String(config.GHClientID),
+			ClientSecret: cfg.String(config.GHClientSecret),
 			Endpoint:     githuboauth2.Endpoint,
 		},
 	}
@@ -96,9 +95,6 @@ func NewService(logger zerolog.Logger, cfg config.Config) (*Service, error) {
 	// register v1 API routes
 	v1Router.Register(service.router, v1.V1APIPathPrefix)
 
-	// mount webapp
-	service.router.PathPrefix("/").Handler(http.FileServer(http.Dir("./web/dist/")))
-
 	return service, nil
 }
 
@@ -106,9 +102,9 @@ func NewService(logger zerolog.Logger, cfg config.Config) (*Service, error) {
 func (s *Service) Start() error {
 	s.server = &http.Server{
 		Handler:      s.router,
-		Addr:         s.cfg.String(config.FlagListenAddr),
-		WriteTimeout: s.cfg.Duration(config.FlagHTTPReadTimeout),
-		ReadTimeout:  s.cfg.Duration(config.FlagHTTPWriteTimeout),
+		Addr:         s.cfg.String(config.ListenAddr),
+		WriteTimeout: s.cfg.Duration(config.HTTPReadTimeout),
+		ReadTimeout:  s.cfg.Duration(config.HTTPWriteTimeout),
 	}
 
 	s.logger.Info().Str("address", s.server.Addr).Msg("starting atlas server...")
@@ -135,8 +131,8 @@ func (s *Service) registerSwagger(cfg config.Config) {
 	api.SwaggerInfo.Version = "1.0"
 	api.SwaggerInfo.BasePath = v1.V1APIPathPrefix
 
-	if cfg.Bool(config.FlagDev) {
-		api.SwaggerInfo.Host = s.cfg.String(config.FlagListenAddr)
+	if cfg.Bool(config.Dev) {
+		api.SwaggerInfo.Host = s.cfg.String(config.ListenAddr)
 		api.SwaggerInfo.Schemes = []string{"http"}
 	} else {
 		api.SwaggerInfo.Host = "atlas.cosmos.network"

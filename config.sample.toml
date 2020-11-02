@@ -1,34 +1,38 @@
 # The database migrations path used for integration tests. Set this value to the
 # root directory of the database migrations. These migrations are called for each
 # isolated integration test to provide a clean database.
-migrations.dir = ""
+migrations.dir = "/path/to/db/migrations"
 
-# Credentials for integrating with the GitHub API. Typically, the redirect URL
-# will be empty, but in testing environments it should be set to the localhost
-# address (e.g. http://localhost:8080/api/v1/session/authorize)
-gh.client.id = ""
-gh.client.secret = ""
-gh.redirect.url = ""
+# Allowed origins for which you want to allow browser/client access to
+# authenticated endpoints. The value must be comma delimited.
+allowed.origins = "http://localhost:8181"
+
+# Credentials for integrating with the GitHub OAuth API.
+gh.client.id = "..."
+gh.client.secret = "..."
 
 # The PostgreSQL database connection string.
-database.url = ""
+database.url = "postgres://<user>:<password>@:<port>/<db>?..."
+
+# The PostgreSQL database connection string for tests.
+test.database.url = "postgres://<user>:<password>@:<port>/<db>?..."
 
 # Logging values to define the logging level and if text or JSON output is
 # preferred. The level must be one of (panic|fatal|error|warn|info|debug|trace)
 # and the format must be one of (text|json).
-log.format = ""
-log.level = ""
+log.format = "text"
+log.level = "info"
 
 # The atlas server HTTP settings.
 #
 # Defines the HTTP listening address
-listen.addr = ""
+listen.addr = "localhost:8080"
 #
 # Define the HTTP read timeout as a duration.
-http.read.timeout = ""
+http.read.timeout = "15s"
 #
 # Define the HTTP write timeout as a duration.
-http.write.timeout = ""
+http.write.timeout = "15s"
 
 # Enable development settings. This is typically used when running the service
 # locally mimicking a non-production environment. Must be (true|false).
@@ -36,4 +40,4 @@ dev = false
 
 # The base64 encoded session key used to encrypt and authenticate user session
 # cookies. It is recommended to use a key with 32 or 64 bytes.
-session.key = ""
+session.key = "UIla7DSIVXzhvd9yHxexEExel9HQpSCQ+Rsn3y+e2Rs="

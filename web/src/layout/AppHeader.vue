@@ -8,13 +8,13 @@
       expand
     >
       <router-link slot="brand" class="navbar-brand mr-lg-5" to="/">
-        <img src="img/brand/white.png" alt="logo" href="" target="_self" />
+        <img src="/img/brand/white.png" alt="logo" href="" target="_self" />
       </router-link>
 
       <div class="row" slot="content-header" slot-scope="{ closeMenu }">
         <div class="col-6 collapse-brand">
           <a href="" target="_self">
-            <img src="img/brand/white.png" />
+            <img src="/img/brand/white.png" />
           </a>
         </div>
         <div class="col-6 collapse-close">
@@ -26,7 +26,10 @@
         class="navbar-nav navbar-nav-hover align-items-lg-center"
         style="width: -webkit-fill-available;"
       >
-        <form v-on:submit="queryModules" style="width: inherit;">
+        <form
+          v-on:submit.prevent="queryModules(searchCriteria)"
+          style="width: inherit;"
+        >
           <base-input
             v-if="showSearch"
             v-model="searchCriteria"
@@ -64,6 +67,7 @@
             <span class="nav-link-inner--text">Account</span>
           </a>
           <router-link
+            v-if="user.name"
             :to="{ name: 'profile', params: { name: user.name } }"
             class="dropdown-item"
           >
@@ -100,15 +104,29 @@ export default {
     showSearch: Boolean,
     navbarType: String
   },
+
+  watch: {
+    $route() {
+      if (this.$route.name !== "search") {
+        this.searchCriteria = "";
+      } else {
+        this.searchCriteria = this.$route.query.q;
+      }
+    }
+  },
+
   created() {
+    this.searchCriteria = this.$route.query.q;
     this.$store.dispatch("getUser");
   },
+
   data() {
     return {
       searchCriteria: "",
       sessionStartURL: process.env.VUE_APP_ATLAS_API_ADDR + "/session/start"
     };
   },
+
   mounted: function() {
     let headroom = new Headroom(document.getElementById("navbar-main"), {
       offset: 300,

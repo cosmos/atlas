@@ -6,24 +6,27 @@ const GlobalMixins = {
       created() {
         this.$Progress.start();
       },
+
       mounted() {
-        let {bodyClass} = this.$options;
+        let { bodyClass } = this.$options;
         if (bodyClass) {
           document.body.classList.add(bodyClass);
         }
 
         if (this.$store != null && !this.$store.getters.isAuthenticated) {
-          this.$store.dispatch('getUser');
+          this.$store.dispatch("getUser");
         }
 
         this.$Progress.finish();
       },
+
       beforeDestroy() {
-        let {bodyClass} = this.$options;
+        let { bodyClass } = this.$options;
         if (bodyClass) {
           document.body.classList.remove(bodyClass);
         }
       },
+
       computed: {
         isAuthenticated() {
           return this.$store.getters.isAuthenticated;
@@ -33,6 +36,7 @@ const GlobalMixins = {
           return this.$store.getters.userRecord;
         }
       },
+
       methods: {
         objectEmpty(obj) {
           return Object.keys(obj).length === 0;
@@ -41,26 +45,31 @@ const GlobalMixins = {
         avatarPicture(author) {
           return author.avatar_url != ""
             ? author.avatar_url
-            : "img/generic-avatar.png";
+            : "/img/generic-avatar.png";
         },
-        
+
         formatDate(timestamp) {
           return moment(timestamp).fromNow();
         },
 
-        queryModules: function() {
-          if (this.$route.name === 'search-results' && this.$route.query.q === this.searchCriteria) {
+        queryModules: function(searchCriteria) {
+          if (
+            this.$route.name === "search" &&
+            this.$route.query.q === searchCriteria
+          ) {
             // prevent routing when we're on the results page with the same query
-            return
+            return;
           }
 
-          this.$router.push({name: 'search-results', query: {q: this.searchCriteria}});
-          this.searchCriteria = "";
+          this.$router.push({
+            name: "search",
+            query: { q: searchCriteria }
+          });
         },
 
         logout: function() {
           if (this.$store.getters.isAuthenticated) {
-            this.$store.dispatch('logoutUser', this.$router);
+            this.$store.dispatch("logoutUser", this.$router);
           }
         },
 
@@ -68,10 +77,10 @@ const GlobalMixins = {
           return versions.reduce((a, b) => {
             let aUpdated = new Date(a.updated_at);
             let bUpdated = new Date(b.updated_at);
-    
+
             return aUpdated > bUpdated ? a : b;
           }).version;
-        },
+        }
       }
     });
   }

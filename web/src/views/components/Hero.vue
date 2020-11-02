@@ -14,7 +14,7 @@
               </p>
               <div class="row">
                 <div class="col-md-8 center">
-                  <form v-on:submit="queryModules">
+                  <form v-on:submit.prevent="queryModules(searchCriteria)">
                     <base-input
                       v-model="searchCriteria"
                       addonLeftIcon="fa fa-search"
@@ -41,11 +41,4 @@ export default {
 };
 </script>
 
-<style>
-/* .el-table .hidden-columns {
-  visibility: hidden;
-  position: absolute;
-  z-index: -1;
-  width: 100%;
-} */
-</style>
+<style></style>

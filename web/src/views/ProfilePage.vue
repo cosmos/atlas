@@ -18,7 +18,10 @@
               <div class="col-lg-3 order-lg-2">
                 <div class="card-profile-image">
                   <a>
-                    <img :src="avatarPicture" class="rounded-circle" />
+                    <img
+                      :src="avatarPicture(profileUser)"
+                      class="rounded-circle"
+                    />
                   </a>
                 </div>
               </div>
@@ -157,7 +160,7 @@ export default {
   },
   data() {
     return {
-      user: {},
+      profileUser: {},
       userModulesQuery: "",
       userModules: [],
       currentPage: 1,
@@ -172,12 +175,6 @@ export default {
     this.$Progress.finish();
   },
   computed: {
-    avatarPicture() {
-      return this.user.avatar_url != ""
-        ? this.user.avatar_url
-        : "img/generic-avatar.png";
-    },
-
     paginatedUserModules() {
       return this.resultUserModulesQuery.filter((row, index) => {
         let start = (this.currentPage - 1) * this.pageSize;
@@ -206,7 +203,7 @@ export default {
     getUserByName() {
       APIClient.getUserByName(this.$route.params.name)
         .then(resp => {
-          this.user = resp;
+          this.profileUser = resp;
         })
         .catch(err => {
           console.log(err);

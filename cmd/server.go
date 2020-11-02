@@ -26,37 +26,37 @@ func StartServerCommand() *cli.Command {
 		Usage: "Start the atlas server",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:    config.FlagConfig,
+				Name:    config.ConfigPath,
 				Aliases: []string{"c"},
 				Usage:   "Server configuration file.",
 			},
 			&cli.StringFlag{
-				Name:  config.FlagLogLevel,
+				Name:  config.LogLevel,
 				Value: zerolog.InfoLevel.String(),
 				Usage: "The server logging level (panic|fatal|error|warn|info|debug|trace)",
 			},
 			&cli.StringFlag{
-				Name:  config.FlagLogFormat,
+				Name:  config.LogFormat,
 				Value: "json",
 				Usage: "The server logging format (text|json)",
 			},
 			&cli.StringFlag{
-				Name:  config.FlagListenAddr,
+				Name:  config.ListenAddr,
 				Value: "localhost:8080",
 				Usage: "The server listen address",
 			},
 			&cli.BoolFlag{
-				Name:  config.FlagDev,
+				Name:  config.Dev,
 				Value: false,
 				Usage: "Enable development settings used for non-production environments",
 			},
 			&cli.DurationFlag{
-				Name:  config.FlagHTTPReadTimeout,
+				Name:  config.HTTPReadTimeout,
 				Value: 15 * time.Second,
 				Usage: "Define the HTTP read timeout",
 			},
 			&cli.DurationFlag{
-				Name:  config.FlagHTTPWriteTimeout,
+				Name:  config.HTTPWriteTimeout,
 				Value: 15 * time.Second,
 				Usage: "Define the HTTP write timeout",
 			},
@@ -67,13 +67,13 @@ func StartServerCommand() *cli.Command {
 				return err
 			}
 
-			logLvl, err := zerolog.ParseLevel(konfig.String(config.FlagLogLevel))
+			logLvl, err := zerolog.ParseLevel(konfig.String(config.LogLevel))
 			if err != nil {
 				return fmt.Errorf("failed to parse log level: %w", err)
 			}
 
 			var logWriter io.Writer
-			if strings.ToLower(konfig.String(config.FlagLogFormat)) == "text" {
+			if strings.ToLower(konfig.String(config.LogFormat)) == "text" {
 				logWriter = zerolog.ConsoleWriter{Out: os.Stderr}
 			} else {
 				logWriter = os.Stderr
@@ -116,7 +116,7 @@ func ParseServerConfig(ctx *cli.Context) (*koanf.Koanf, error) {
 	konfig := koanf.New(".")
 
 	// load from file first (if provided)
-	if configPath := ctx.String(config.FlagConfig); len(configPath) != 0 {
+	if configPath := ctx.String(config.ConfigPath); len(configPath) != 0 {
 		if err := konfig.Load(file.Provider(configPath), toml.Parser()); err != nil {
 			return nil, err
 		}

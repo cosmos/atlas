@@ -9,18 +9,18 @@ import (
 // passed as CLI flags. All keys are dot delimitated except for environment
 // variables which are snake-cased and must be prefixed with ATLAS_*.
 const (
-	FlagConfig           = "config"
-	FlagLogLevel         = "log.level"
-	FlagLogFormat        = "log.format"
-	FlagListenAddr       = "listen.addr"
-	FlagDev              = "dev"
-	FlagDatabaseURL      = "database.url"
-	FlagHTTPReadTimeout  = "http.read.timeout"
-	FlagHTTPWriteTimeout = "http.write.timeout"
-	FlagGHClientID       = "gh.client.id"
-	FlagGHClientSecret   = "gh.client.secret"
-	FlagGHRedirectURL    = "gh.redirect.url"
-	FlagSessionKey       = "session.key"
+	ConfigPath       = "config"
+	LogLevel         = "log.level"
+	LogFormat        = "log.format"
+	ListenAddr       = "listen.addr"
+	Dev              = "dev"
+	DatabaseURL      = "database.url"
+	HTTPReadTimeout  = "http.read.timeout"
+	HTTPWriteTimeout = "http.write.timeout"
+	GHClientID       = "gh.client.id"
+	GHClientSecret   = "gh.client.secret"
+	SessionKey       = "session.key"
+	AllowedOrigins   = "allowed.origins"
 )
 
 // Config defines a configuration abstraction so we don't rely on any specific
