@@ -180,6 +180,12 @@ export default {
       this.pageURI = this.responseData.next_uri;
     },
 
+    reset() {
+      Object.keys(this.orderBy).forEach(v => (this.orderBy[v] = false));
+      this.orderBy["alpha"] = true;
+      this.pageURI = `?page=1&limit=${this.pageSize}&order=name,id`;
+    },
+
     sortModules(order) {
       switch (order) {
         case "alpha":
@@ -249,7 +255,7 @@ export default {
   beforeRouteUpdate(to, from, next) {
     next();
     this.$Progress.start();
-    this.pageURI = "?page=1&limit=9&order=name,id";
+    this.reset();
     this.searchModules();
     this.$Progress.finish();
   }
