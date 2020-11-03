@@ -21,6 +21,8 @@ const (
 	GHClientSecret   = "gh.client.secret"
 	SessionKey       = "session.key"
 	AllowedOrigins   = "allowed.origins"
+	SendGridAPIKey   = "sendgrid.api.key"
+	DomainName       = "domain.name"
 )
 
 // Config defines a configuration abstraction so we don't rely on any specific
