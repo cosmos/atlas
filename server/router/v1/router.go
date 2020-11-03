@@ -31,11 +31,11 @@ import (
 )
 
 const (
-	sessionName     = "atlas_session"
-	sessionGithubID = "github_id"
-	sessionUserID   = "user_Id"
-
-	V1APIPathPrefix = "/api/v1"
+	sessionName        = "atlas_session"
+	sessionGithubID    = "github_id"
+	sessionUserID      = "user_Id"
+	sessionRedirectURI = "redirect_uri"
+	V1APIPathPrefix    = "/api/v1"
 )
 
 var (
@@ -923,7 +923,36 @@ func (r *Router) GetAllKeywords() http.HandlerFunc {
 // granting access, Github will perform a callback where we create a session
 // and obtain a token.
 func (r *Router) StartSession() http.Handler {
-	return github.StateHandler(r.cookieCfg, github.LoginHandler(r.oauth2Cfg, nil))
+	loginHandler := func(w http.ResponseWriter, req *http.Request) {
+		req.Header.Set("Access-Control-Allow-Origin", "*")
+
+		ctx := req.Context()
+
+		state, err := oauth2login.StateFromContext(ctx)
+		if err != nil {
+			ctx = gologin.WithError(ctx, err)
+			gologin.DefaultFailureHandler.ServeHTTP(w, req.WithContext(ctx))
+			return
+		}
+
+		session, err := r.sessionStore.Get(req, sessionName)
+		if err != nil {
+			httputil.RespondWithError(w, http.StatusInternalServerError, fmt.Errorf("failed to get session: %w", err))
+			return
+		}
+
+		session.Values[sessionRedirectURI] = req.Referer()
+
+		if err = session.Save(req, w); err != nil {
+			httputil.RespondWithError(w, http.StatusInternalServerError, fmt.Errorf("failed to save session: %w", err))
+			return
+		}
+
+		authURL := r.oauth2Cfg.AuthCodeURL(state)
+		http.Redirect(w, req, authURL, http.StatusFound)
+	}
+
+	return github.StateHandler(r.cookieCfg, http.HandlerFunc(loginHandler))
 }
 
 // AuthorizeSession returns a callback request handler for Github OAuth user
@@ -937,7 +966,18 @@ func (r *Router) AuthorizeSession() http.Handler {
 			r.oauth2Cfg,
 			r.authorizeHandler(),
 			http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-				http.Redirect(w, req, req.Referer(), http.StatusFound)
+				session, err := r.sessionStore.Get(req, sessionName)
+				if err != nil {
+					httputil.RespondWithError(w, http.StatusInternalServerError, fmt.Errorf("failed to get session: %w", err))
+					return
+				}
+
+				referrer, ok := session.Values[sessionRedirectURI].(string)
+				if !ok || referrer == "" {
+					referrer = "/"
+				}
+
+				http.Redirect(w, req, referrer, http.StatusFound)
 			}),
 		),
 	)
@@ -988,7 +1028,12 @@ func (r *Router) authorizeHandler() http.HandlerFunc {
 			return
 		}
 
-		http.Redirect(w, req, req.Referer(), http.StatusFound)
+		referrer, ok := session.Values[sessionRedirectURI].(string)
+		if !ok || referrer == "" {
+			referrer = "/"
+		}
+
+		http.Redirect(w, req, referrer, http.StatusFound)
 	}
 }
 
