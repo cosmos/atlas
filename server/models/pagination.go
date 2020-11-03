@@ -70,7 +70,6 @@ func offsetFromPage(pq httputil.PaginationQuery) int64 {
 
 func hasPrevious(pq httputil.PaginationQuery) bool {
 	return (offsetFromPage(pq) - pq.Limit) >= 0
-
 }
 
 func hasNext(pq httputil.PaginationQuery, total int64) bool {

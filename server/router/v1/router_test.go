@@ -1283,7 +1283,7 @@ func (rts *RouterTestSuite) TestRevokeUserToken() {
 	rts.Require().NotEmpty(ut["token"])
 	rts.Require().True(ut["revoked"].(bool))
 
-	// attempt to revoke an non-existant token
+	// attempt to revoke an non-existent token
 	revokeURL, err := url.Parse("/api/v1/me/tokens/100")
 	rts.Require().NoError(err)
 
@@ -1351,7 +1351,7 @@ func (rts *RouterTestSuite) TestGetUserByName() {
 	rts.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &user))
 	rts.Require().Equal(user["name"], "foo")
 
-	// ensure a non-existant user returns an error
+	// ensure a non-existent user returns an error
 	req3, err := http.NewRequest("GET", "/api/v1/users/bar", nil)
 	rts.Require().NoError(err)
 

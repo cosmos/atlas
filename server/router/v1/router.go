@@ -95,7 +95,6 @@ func (r *Router) Register(rtr *mux.Router, prefix string) {
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With")
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
 		w.WriteHeader(http.StatusOK)
-		return
 	})
 
 	// build middleware chain

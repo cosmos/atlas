@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/InVisionApp/go-health/v2"
 	"github.com/dghubble/gologin/v2"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
@@ -34,15 +33,14 @@ import (
 // interacts the with Atlas data model. The Service is responsible for establishing
 // a database connection and managing session cookies.
 type Service struct {
-	logger        zerolog.Logger
-	cfg           config.Config
-	db            *gorm.DB
-	cookieCfg     gologin.CookieConfig
-	sessionStore  *sessions.CookieStore
-	oauth2Cfg     *oauth2.Config
-	router        *mux.Router
-	healthChecker *health.Health
-	server        *http.Server
+	logger       zerolog.Logger
+	cfg          config.Config
+	db           *gorm.DB
+	cookieCfg    gologin.CookieConfig
+	sessionStore *sessions.CookieStore
+	oauth2Cfg    *oauth2.Config
+	router       *mux.Router
+	server       *http.Server
 }
 
 func NewService(logger zerolog.Logger, cfg config.Config) (*Service, error) {

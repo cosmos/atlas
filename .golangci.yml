@@ -11,6 +11,7 @@ linters:
     - unconvert
     - unparam
     - whitespace
+    - maligned
 
 linters-settings:
   dogsled:
