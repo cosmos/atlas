@@ -934,6 +934,8 @@ func (r *Router) StartSession() http.Handler {
 			return
 		}
 
+		// Create and store a session with the client's referrer address so we know
+		// where to redirect to after authentication is complete.
 		session, err := r.sessionStore.Get(req, sessionName)
 		if err != nil {
 			httputil.RespondWithError(w, http.StatusInternalServerError, fmt.Errorf("failed to get session: %w", err))
