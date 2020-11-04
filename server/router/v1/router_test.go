@@ -1489,9 +1489,9 @@ func (rts *RouterTestSuite) TestUpdateUser() {
 	rts.mux.ServeHTTP(rr, req1)
 	rts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
 
-	var user map[string]interface{}
-	rts.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &user))
-	rts.Require().Equal(user["email"], body["email"])
+	var result bool
+	rts.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &result))
+	rts.Require().True(result)
 
 	// ensure an invalid request fails
 	body = map[string]interface{}{

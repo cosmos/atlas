@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/InVisionApp/go-health/v2"
 	"github.com/InVisionApp/go-health/v2/handlers"
@@ -187,6 +188,11 @@ func (r *Router) Register(rtr *mux.Router, prefix string) {
 	v1Router.Handle(
 		"/me",
 		mChain.ThenFunc(r.UpdateUser()),
+	).Methods(httputil.MethodPUT)
+
+	v1Router.Handle(
+		"/me/confirm/{emailToken}",
+		mChain.ThenFunc(r.ConfirmEmail()),
 	).Methods(httputil.MethodPUT)
 
 	v1Router.Handle(
@@ -856,7 +862,7 @@ func (r *Router) GetUser() http.HandlerFunc {
 // @Tags users
 // @Produce  json
 // @Param user body User true "user"
-// @Success 200 {object} models.UserJSON
+// @Success 200 {object} boolean
 // @Failure 400 {object} httputil.ErrResponse
 // @Failure 401 {object} httputil.ErrResponse
 // @Failure 500 {object} httputil.ErrResponse
@@ -886,15 +892,14 @@ func (r *Router) UpdateUser() http.HandlerFunc {
 			emailConfirmed = false
 		}
 
-		authUser.Email = models.NewNullString(request.Email)
 		authUser.EmailConfirmed = emailConfirmed
 
 		// If the email is non-empty and requires confirmation, either because it is
 		// new or it has been updated, we send an email confirmation.
 		if !emailConfirmed && request.Email != "" {
-			uec, err := models.UserEmailConfirmation{UserID: authUser.ID}.Upsert(r.db)
+			uec, err := models.UserEmailConfirmation{UserID: authUser.ID, Email: request.Email}.Upsert(r.db)
 			if err != nil {
-				httputil.RespondWithError(w, http.StatusInternalServerError, fmt.Errorf("failed to create email confirmation: %w", err))
+				httputil.RespondWithError(w, http.StatusInternalServerError, err)
 				return
 			}
 
@@ -906,13 +911,54 @@ func (r *Router) UpdateUser() http.HandlerFunc {
 			}
 		}
 
-		record, err := authUser.Upsert(r.db)
-		if err != nil {
-			httputil.RespondWithError(w, http.StatusInternalServerError, fmt.Errorf("failed to upsert user: %w", err))
+		if _, err := authUser.Upsert(r.db); err != nil {
+			httputil.RespondWithError(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		httputil.RespondWithJSON(w, http.StatusOK, record)
+		httputil.RespondWithJSON(w, http.StatusOK, true)
+	}
+}
+
+// ConfirmEmail implements a request handler for confirming a user email address.
+// @Summary Confirm a user email confirmation
+// @Tags users
+// @Produce  json
+// @Param emailToken path string true "email token"
+// @Success 200 {object} models.UserJSON
+// @Failure 400 {object} httputil.ErrResponse
+// @Failure 401 {object} httputil.ErrResponse
+// @Failure 404 {object} httputil.ErrResponse
+// @Failure 500 {object} httputil.ErrResponse
+// @Router /me/confirm/{emailToken} [put]
+func (r *Router) ConfirmEmail() http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		authUser, ok, err := r.authorize(req)
+		if err != nil || !ok {
+			httputil.RespondWithError(w, http.StatusUnauthorized, err)
+			return
+		}
+
+		emailToken := mux.Vars(req)["emailToken"]
+		uec, err := models.QueryUserEmailConfirmation(r.db, map[string]interface{}{"user_id": authUser.ID, "token": emailToken})
+		if err != nil {
+			httputil.RespondWithError(w, http.StatusNotFound, err)
+			return
+		}
+
+		// prevent stale confirmations from being accepted
+		if time.Since(uec.UpdatedAt) > 10*time.Minute {
+			httputil.RespondWithError(w, http.StatusBadRequest, errors.New("expired email confirmation"))
+			return
+		}
+
+		user, err := authUser.ConfirmEmail(r.db, uec)
+		if err != nil {
+			httputil.RespondWithError(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		httputil.RespondWithJSON(w, http.StatusOK, user)
 	}
 }
 
