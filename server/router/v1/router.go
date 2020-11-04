@@ -106,7 +106,10 @@ func (r *Router) Register(rtr *mux.Router, prefix string) {
 		mChain.Then(handlers.NewJSONHandlerFunc(r.healthChecker, nil)),
 	).Methods(httputil.MethodGET)
 
+	// ======================
 	// unauthenticated routes
+	// ======================
+
 	v1Router.Handle(
 		"/modules/search",
 		mChain.ThenFunc(r.SearchModules()),
@@ -157,7 +160,10 @@ func (r *Router) Register(rtr *mux.Router, prefix string) {
 		mChain.ThenFunc(r.GetAllKeywords()),
 	).Queries(paginationParams...).Methods(httputil.MethodGET)
 
+	// ====================
 	// authenticated routes
+	// ====================
+
 	v1Router.Handle(
 		"/modules",
 		mChain.ThenFunc(r.UpsertModule()),
@@ -198,7 +204,10 @@ func (r *Router) Register(rtr *mux.Router, prefix string) {
 		mChain.ThenFunc(r.RevokeUserToken()),
 	).Methods(httputil.MethodDELETE)
 
+	// ==============
 	// session routes
+	// ==============
+
 	v1Router.Handle(
 		"/session/start",
 		mChain.Then(r.StartSession()),
@@ -872,7 +881,30 @@ func (r *Router) UpdateUser() http.HandlerFunc {
 			return
 		}
 
+		emailConfirmed := authUser.EmailConfirmed
+		if request.Email != authUser.Email.String {
+			emailConfirmed = false
+		}
+
 		authUser.Email = models.NewNullString(request.Email)
+		authUser.EmailConfirmed = emailConfirmed
+
+		// If the email is non-empty and requires confirmation, either because it is
+		// new or it has been updated, we send an email confirmation.
+		if !emailConfirmed && request.Email != "" {
+			uec, err := models.UserEmailConfirmation{UserID: authUser.ID}.Upsert(r.db)
+			if err != nil {
+				httputil.RespondWithError(w, http.StatusInternalServerError, fmt.Errorf("failed to create email confirmation: %w", err))
+				return
+			}
+
+			confirmURL := fmt.Sprintf("%s/confirm/%s", r.cfg.String(config.DomainName), uec.Token)
+
+			if err := r.sendEmailConfirmation(authUser.Name, request.Email, confirmURL); err != nil {
+				httputil.RespondWithError(w, http.StatusInternalServerError, fmt.Errorf("failed to send email confirmation: %w", err))
+				return
+			}
+		}
 
 		record, err := authUser.Upsert(r.db)
 		if err != nil {
