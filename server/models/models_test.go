@@ -1089,10 +1089,10 @@ func (mts *ModelsTestSuite) TestUserEmailConfirmation_Upsert() {
 		Team: "cosmonauts",
 		Repo: "https://github.com/cosmos/cosmos-sdk",
 		Owners: []models.User{
-			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
+			{Name: "foo"},
 		},
 		Authors: []models.User{
-			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
+			{Name: "foo"},
 		},
 		Version: models.ModuleVersion{Version: "v1.0.0"},
 		Keywords: []models.Keyword{
@@ -1112,16 +1112,18 @@ func (mts *ModelsTestSuite) TestUserEmailConfirmation_Upsert() {
 	mts.Require().NoError(err)
 	mts.Require().False(user.EmailConfirmed)
 
-	uec, err := models.UserEmailConfirmation{UserID: mod.Owners[0].ID}.Upsert(mts.gormDB)
+	uec, err := models.UserEmailConfirmation{UserID: mod.Owners[0].ID, Email: "foo@email.com"}.Upsert(mts.gormDB)
 	token1 := uec.Token
 	mts.Require().NoError(err)
 	mts.Require().NotEqual(uuid.UUID{}, token1)
+	mts.Require().Equal("foo@email.com", uec.Email)
 
-	uec, err = models.UserEmailConfirmation{UserID: mod.Owners[0].ID}.Upsert(mts.gormDB)
+	uec, err = models.UserEmailConfirmation{UserID: mod.Owners[0].ID, Email: "bar@email.com"}.Upsert(mts.gormDB)
 	token2 := uec.Token
 	mts.Require().NoError(err)
 	mts.Require().NotEqual(uuid.UUID{}, token2)
 	mts.Require().NotEqual(token1, token2)
+	mts.Require().Equal("bar@email.com", uec.Email)
 
 	var count int64
 	mts.Require().NoError(mts.gormDB.Table("user_email_confirmations").Count(&count).Error)
@@ -1165,15 +1167,17 @@ func (mts *ModelsTestSuite) TestQueryUserEmailConfirmation() {
 	mts.Require().Error(err)
 	mts.Require().Empty(uec)
 
-	uec, err = models.UserEmailConfirmation{UserID: mod.Owners[0].ID}.Upsert(mts.gormDB)
+	uec, err = models.UserEmailConfirmation{UserID: mod.Owners[0].ID, Email: "foo@email.com"}.Upsert(mts.gormDB)
 	token := uec.Token
 	mts.Require().NoError(err)
 	mts.Require().NotEqual(uuid.UUID{}, token)
+	mts.Require().Equal("foo@email.com", uec.Email)
 
 	uec, err = models.QueryUserEmailConfirmation(mts.gormDB, query)
 	mts.Require().NoError(err)
 	mts.Require().Equal(mod.Owners[0].ID, uec.UserID)
 	mts.Require().Equal(token, uec.Token)
+	mts.Require().Equal("foo@email.com", uec.Email)
 }
 
 func (mts *ModelsTestSuite) TestUser_ConfirmEmail() {
@@ -1206,15 +1210,18 @@ func (mts *ModelsTestSuite) TestUser_ConfirmEmail() {
 	user, err := models.GetUserByID(mts.gormDB, mod.Owners[0].ID)
 	mts.Require().NoError(err)
 	mts.Require().False(user.EmailConfirmed)
+	mts.Require().Equal("foo@cosmonauts.com", user.Email.String)
 
-	uec, err := models.UserEmailConfirmation{UserID: mod.Owners[0].ID}.Upsert(mts.gormDB)
+	uec, err := models.UserEmailConfirmation{UserID: mod.Owners[0].ID, Email: "foo@email.com"}.Upsert(mts.gormDB)
 	token := uec.Token
 	mts.Require().NoError(err)
 	mts.Require().NotEqual(uuid.UUID{}, token)
+	mts.Require().Equal("foo@email.com", uec.Email)
 
-	user, err = user.ConfirmEmail(mts.gormDB)
+	user, err = user.ConfirmEmail(mts.gormDB, uec)
 	mts.Require().NoError(err)
 	mts.Require().True(user.EmailConfirmed)
+	mts.Require().Equal("foo@email.com", user.Email.String)
 
 	query := map[string]interface{}{"user_id": mod.Owners[0].ID}
 	uec, err = models.QueryUserEmailConfirmation(mts.gormDB, query)

@@ -30,11 +30,11 @@ type (
 	UserToken struct {
 		gorm.Model
 
-		Name    string    `json:"name"`
-		UserID  uint      `json:"user_id"`
-		Count   uint      `json:"count"`
-		Token   uuid.UUID `json:"token"`
-		Revoked bool      `json:"revoked"`
+		Name    string
+		UserID  uint
+		Count   uint
+		Token   uuid.UUID
+		Revoked bool
 	}
 
 	// UserJSON defines the JSON-encodeable type for a User.
@@ -71,17 +71,17 @@ type (
 		// one-to-many relationships
 		Tokens []UserToken `gorm:"foreignKey:user_id"`
 
-		Stars []uint `gorm:"-" json:"-"`
+		Stars []uint `gorm:"-"`
 	}
 
 	// UserEmailConfirmation defines a relation for confirming user email addresses.
 	UserEmailConfirmation struct {
 		CreatedAt time.Time
 		UpdatedAt time.Time
-		DeletedAt gorm.DeletedAt `gorm:"index"`
 
-		UserID uint      `json:"user_id"`
-		Token  uuid.UUID `json:"token"`
+		Email  string
+		UserID uint
+		Token  uuid.UUID
 	}
 )
 
@@ -143,16 +143,14 @@ func (u User) Upsert(db *gorm.DB) (User, error) {
 			}
 		}
 
-		// Note: Updates via structs only updates non-zero fields.
-		if err := tx.Model(&record).Updates(User{
-			Email:             u.Email,
-			EmailConfirmed:    u.EmailConfirmed,
-			FullName:          u.FullName,
-			GithubUserID:      u.GithubUserID,
-			GithubAccessToken: u.GithubAccessToken,
-			AvatarURL:         u.AvatarURL,
-			GravatarID:        u.GravatarID,
-		}).Error; err != nil {
+		record.Email = u.Email
+		record.EmailConfirmed = u.EmailConfirmed
+		record.FullName = u.FullName
+		record.GithubUserID = u.GithubUserID
+		record.GithubAccessToken = u.GithubAccessToken
+		record.AvatarURL = u.AvatarURL
+		record.GravatarID = u.GravatarID
+		if err := tx.Save(&record).Error; err != nil {
 			return fmt.Errorf("failed to update user: %w", err)
 		}
 
@@ -169,11 +167,12 @@ func (u User) Upsert(db *gorm.DB) (User, error) {
 // ConfirmEmail confirms a user email confirmation by updating the User record's
 // EmailConfirmed column and removing the associated UserEmailConfirmation record.
 // It returns an error upon database failure.
-func (u User) ConfirmEmail(db *gorm.DB) (User, error) {
+func (u User) ConfirmEmail(db *gorm.DB, uec UserEmailConfirmation) (User, error) {
 	var record User
 
 	err := db.Transaction(func(tx *gorm.DB) error {
 		u.EmailConfirmed = true
+		u.Email = NewNullString(uec.Email)
 
 		user, err := u.Upsert(tx)
 		if err != nil {
@@ -182,7 +181,7 @@ func (u User) ConfirmEmail(db *gorm.DB) (User, error) {
 
 		record = user
 
-		if err := tx.Where("user_id = ?", u.ID).Delete(UserEmailConfirmation{}).Error; err != nil {
+		if err := tx.Where("user_id = ?", uec.UserID).Delete(uec).Error; err != nil {
 			return fmt.Errorf("failed to delete user confirmation email: %w", err)
 		}
 
@@ -388,6 +387,8 @@ func (uec UserEmailConfirmation) Upsert(db *gorm.DB) (UserEmailConfirmation, err
 				return fmt.Errorf("failed to query for user email confirmation: %w", err)
 			}
 		}
+
+		record.Email = uec.Email
 
 		if err := tx.Where("user_id = ?", uec.UserID).Save(&record).Error; err != nil {
 			return fmt.Errorf("failed to update user email confirmation: %w", err)
