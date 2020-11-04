@@ -166,6 +166,36 @@ func (u User) Upsert(db *gorm.DB) (User, error) {
 	return QueryUser(db, map[string]interface{}{"name": u.Name})
 }
 
+// ConfirmEmail confirms a user email confirmation by updating the User record's
+// EmailConfirmed column and removing the associated UserEmailConfirmation record.
+// It returns an error upon database failure.
+func (u User) ConfirmEmail(db *gorm.DB) (User, error) {
+	var record User
+
+	err := db.Transaction(func(tx *gorm.DB) error {
+		u.EmailConfirmed = true
+
+		user, err := u.Upsert(tx)
+		if err != nil {
+			return err
+		}
+
+		record = user
+
+		if err := tx.Where("user_id = ?", u.ID).Delete(UserEmailConfirmation{}).Error; err != nil {
+			return fmt.Errorf("failed to delete user confirmation email: %w", err)
+		}
+
+		// commit the tx
+		return nil
+	})
+	if err != nil {
+		return User{}, err
+	}
+
+	return record, nil
+}
+
 // AfterFind implements a GORM hook for updating a User record after it has
 // been queried for.
 func (u *User) AfterFind(tx *gorm.DB) error {
