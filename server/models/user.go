@@ -373,3 +373,16 @@ func (uec UserEmailConfirmation) Upsert(db *gorm.DB) (UserEmailConfirmation, err
 	err = db.Where("user_id = ?", uec.UserID).First(&record).Error
 	return record, err
 }
+
+// QueryUserEmailConfirmation performs a query for a UserEmailConfirmation record.
+// The resulting record, if it exists, is returned. If the query fails or the
+// record does not exist, an error is returned.
+func QueryUserEmailConfirmation(db *gorm.DB, query map[string]interface{}) (UserEmailConfirmation, error) {
+	var record UserEmailConfirmation
+
+	if err := db.Where(query).First(&record).Error; err != nil {
+		return UserEmailConfirmation{}, fmt.Errorf("failed to query user email confirmation: %w", err)
+	}
+
+	return record, nil
+}

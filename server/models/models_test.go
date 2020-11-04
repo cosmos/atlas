@@ -1128,6 +1128,54 @@ func (mts *ModelsTestSuite) TestUserEmailConfirmation_Upsert() {
 	mts.Require().Equal(int64(1), count)
 }
 
+func (mts *ModelsTestSuite) TestQueryUserEmailConfirmation() {
+	mts.resetDB()
+
+	mod := models.Module{
+		Name: "x/bank",
+		Team: "cosmonauts",
+		Repo: "https://github.com/cosmos/cosmos-sdk",
+		Owners: []models.User{
+			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
+		},
+		Authors: []models.User{
+			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
+		},
+		Version: models.ModuleVersion{Version: "v1.0.0"},
+		Keywords: []models.Keyword{
+			{Name: "tokens"}, {Name: "transfer"},
+		},
+		BugTracker: models.BugTracker{
+			URL:     models.NewNullString("cosmonauts.com"),
+			Contact: models.NewNullString("contact@cosmonauts.com"),
+		},
+	}
+
+	// create module
+	mod, err := mod.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
+
+	user, err := models.GetUserByID(mts.gormDB, mod.Owners[0].ID)
+	mts.Require().NoError(err)
+	mts.Require().False(user.EmailConfirmed)
+
+	query := map[string]interface{}{"user_id": mod.Owners[0].ID}
+
+	uec, err := models.QueryUserEmailConfirmation(mts.gormDB, query)
+	mts.Require().Error(err)
+	mts.Require().Empty(uec)
+
+	uec, err = models.UserEmailConfirmation{UserID: mod.Owners[0].ID}.Upsert(mts.gormDB)
+	token := uec.Token
+	mts.Require().NoError(err)
+	mts.Require().NotEqual(uuid.UUID{}, token)
+
+	uec, err = models.QueryUserEmailConfirmation(mts.gormDB, query)
+	mts.Require().NoError(err)
+	mts.Require().Equal(mod.Owners[0].ID, uec.UserID)
+	mts.Require().Equal(token, uec.Token)
+}
+
 func (mts *ModelsTestSuite) resetDB() {
 	mts.T().Helper()
 
