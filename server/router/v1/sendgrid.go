@@ -2,6 +2,7 @@ package v1
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
@@ -32,8 +33,8 @@ func (r *Router) sendEmailConfirmation(name, email, confirmURL string) error {
 	if err != nil {
 		return err
 	}
-	if resp.StatusCode >= 300 {
-		return fmt.Errorf("failed to send email; unexpected status code (%d): %s", resp.StatusCode, resp.Body)
+	if resp.StatusCode != http.StatusAccepted {
+		return fmt.Errorf("failed to send email; unexpected status code (%d != %d): %s", resp.StatusCode, http.StatusAccepted, resp.Body)
 	}
 
 	return nil
