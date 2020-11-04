@@ -158,6 +158,8 @@ definitions:
         type: string
       email:
         type: string
+      emailConfirmed:
+        type: boolean
       fullName:
         type: string
       githubAccessToken:
@@ -173,6 +175,10 @@ definitions:
         type: array
       name:
         type: string
+      stars:
+        items:
+          type: integer
+        type: array
       tokens:
         description: one-to-many relationships
         items:
@@ -189,6 +195,8 @@ definitions:
         type: string
       email:
         type: object
+      email_confirmed:
+        type: boolean
       full_name:
         type: string
       gravatar_id:
@@ -216,7 +224,7 @@ definitions:
         type: boolean
       token:
         type: string
-      user_id:
+      userID:
         type: integer
     type: object
   models.UserTokenJSON:
@@ -405,7 +413,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.UserJSON'
+            type: boolean
         "400":
           description: Bad Request
           schema:
@@ -421,6 +429,40 @@ paths:
       security:
       - APIKeyAuth: []
       summary: Update the current authenticated user
+      tags:
+      - users
+  /me/confirm/{emailToken}:
+    put:
+      parameters:
+      - description: email token
+        in: path
+        name: emailToken
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.UserJSON'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httputil.ErrResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/httputil.ErrResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httputil.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/httputil.ErrResponse'
+      summary: Confirm a user email confirmation
       tags:
       - users
   /me/tokens:
