@@ -888,16 +888,13 @@ func (r *Router) UpdateUser() http.HandlerFunc {
 			return
 		}
 
-		emailConfirmed := authUser.EmailConfirmed
 		if request.Email != authUser.Email.String {
-			emailConfirmed = false
+			authUser.EmailConfirmed = false
 		}
-
-		authUser.EmailConfirmed = emailConfirmed
 
 		// If the email is non-empty and requires confirmation, either because it is
 		// new or it has been updated, we send an email confirmation.
-		if !emailConfirmed && request.Email != "" {
+		if !authUser.EmailConfirmed && request.Email != "" {
 			uec, err := models.UserEmailConfirmation{UserID: authUser.ID, Email: request.Email}.Upsert(r.db)
 			if err != nil {
 				httputil.RespondWithError(w, http.StatusInternalServerError, err)
