@@ -36,7 +36,8 @@ const (
 	sessionGithubID    = "github_id"
 	sessionUserID      = "user_Id"
 	sessionRedirectURI = "redirect_uri"
-	V1APIPathPrefix    = "/api/v1"
+
+	V1APIPathPrefix = "/api/v1"
 )
 
 var (
