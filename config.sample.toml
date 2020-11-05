@@ -43,7 +43,7 @@ dev = false
 session.key = "UIla7DSIVXzhvd9yHxexEExel9HQpSCQ+Rsn3y+e2Rs="
 
 # The SendGrid API key used for sending email confirmation requests.
-sendgrid.api.key=...
+sendgrid.api.key = "..."
 
 # The domain name used for sending email confirmation requests.
-domain.name=https://atlas.cosmos.network
+domain.name = "https://atlas.cosmos.network"
