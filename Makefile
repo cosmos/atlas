@@ -18,13 +18,9 @@ build: go.sum
 ifeq ($(OS),Windows_NT)
 	@echo "building atlas binary..."
 	@go build -mod=readonly $(BUILD_FLAGS) -o build/atlas.exe .
-	@echo "building webapp..."
-	@cd web && npm run build 
 else
 	@echo "building atlas binary..."
 	@go build -mod=readonly $(BUILD_FLAGS) -o build/atlas .
-	@echo "building webapp..."
-	@cd web && npm run build 
 endif
 
 install: go.sum

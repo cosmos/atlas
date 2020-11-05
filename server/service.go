@@ -133,7 +133,7 @@ func (s *Service) registerSwagger(cfg config.Config) {
 		api.SwaggerInfo.Host = s.cfg.String(config.ListenAddr)
 		api.SwaggerInfo.Schemes = []string{"http"}
 	} else {
-		api.SwaggerInfo.Host = "atlas.cosmos.network"
+		api.SwaggerInfo.Host = "api.atlas.cosmos.network"
 		api.SwaggerInfo.Schemes = []string{"https"}
 	}
 
