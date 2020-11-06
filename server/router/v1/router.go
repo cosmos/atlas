@@ -888,6 +888,11 @@ func (r *Router) UpdateUser() http.HandlerFunc {
 			return
 		}
 
+		if request.Email == authUser.Email.String && authUser.EmailConfirmed {
+			httputil.RespondWithError(w, http.StatusBadRequest, errors.New("email already confirmed"))
+			return
+		}
+
 		if request.Email != authUser.Email.String {
 			authUser.EmailConfirmed = false
 		}
