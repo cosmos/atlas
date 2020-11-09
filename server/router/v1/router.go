@@ -197,6 +197,16 @@ func (r *Router) Register(rtr *mux.Router, prefix string) {
 	).Methods(httputil.MethodPUT)
 
 	v1Router.Handle(
+		"/me/invite",
+		mChain.ThenFunc(r.InviteOwner()),
+	).Methods(httputil.MethodPUT)
+
+	// v1Router.Handle(
+	// 	"/me/invite/accept/{id:[0-9]+}",
+	// 	mChain.ThenFunc(r.AcceptOwnerInvite()),
+	// ).Methods(httputil.MethodPUT)
+
+	v1Router.Handle(
 		"/me/tokens",
 		mChain.ThenFunc(r.CreateUserToken()),
 	).Methods(httputil.MethodPUT)
@@ -611,6 +621,93 @@ func (r *Router) GetUserModules() http.HandlerFunc {
 	}
 }
 
+// InviteOwner implements a request handler to invite a user to be an owner of a
+// module.
+// @Summary Invite a user to be an owner of a module
+// @Tags users
+// @Produce  json
+// @Accept  json
+// @Param invite body ModuleInvite true "invitation"
+// @Success 200 {object} boolean
+// @Failure 400 {object} httputil.ErrResponse
+// @Failure 401 {object} httputil.ErrResponse
+// @Failure 404 {object} httputil.ErrResponse
+// @Failure 500 {object} httputil.ErrResponse
+// @Security APIKeyAuth
+// @Router /me/invite [put]
+func (r *Router) InviteOwner() http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		authUser, ok, err := r.authorize(req)
+		if err != nil || !ok {
+			httputil.RespondWithError(w, http.StatusUnauthorized, err)
+			return
+		}
+
+		var requestBody ModuleInvite
+		if err := json.NewDecoder(req.Body).Decode(&requestBody); err != nil {
+			httputil.RespondWithError(w, http.StatusBadRequest, fmt.Errorf("failed to read request: %w", err))
+			return
+		}
+
+		if err := r.validate.Struct(requestBody); err != nil {
+			httputil.RespondWithError(w, http.StatusBadRequest, fmt.Errorf("invalid request: %w", httputil.TransformValidationError(err)))
+			return
+		}
+
+		module, err := models.GetModuleByID(r.db, requestBody.ModuleID)
+		if err != nil {
+			code := http.StatusInternalServerError
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				code = http.StatusNotFound
+			}
+
+			httputil.RespondWithError(w, code, err)
+			return
+		}
+
+		// ensure invitee is not already an owner
+		for _, o := range module.Owners {
+			if o.Name == requestBody.User {
+				httputil.RespondWithError(w, http.StatusBadRequest, fmt.Errorf("'%s' is already an owner", requestBody.User))
+				return
+			}
+		}
+
+		invitee, err := models.QueryUser(r.db, map[string]interface{}{"name": requestBody.User})
+		if err != nil {
+			code := http.StatusInternalServerError
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				code = http.StatusNotFound
+			}
+
+			httputil.RespondWithError(w, code, err)
+			return
+		}
+
+		// ensure invitee has a verified email
+		if !invitee.EmailConfirmed {
+			httputil.RespondWithError(w, http.StatusBadRequest, fmt.Errorf("'%s' must confirm their email address", requestBody.User))
+			return
+		}
+
+		// upsert invite record
+		moi, err := models.ModuleOwnerInvite{ModuleID: module.ID, InvitedByUserID: authUser.ID, InvitedUserID: invitee.ID}.Upsert(r.db)
+		if err != nil {
+			httputil.RespondWithError(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		// send invite
+		acceptURL := fmt.Sprintf("%s/accept/%s", r.cfg.String(config.DomainName), moi.Token)
+		if err := r.sendOwnerInvitation(acceptURL, authUser.Name, invitee, module); err != nil {
+			httputil.RespondWithError(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		httputil.RespondWithJSON(w, http.StatusOK, true)
+	}
+}
+
 // CreateUserToken implements a request handler that creates a new API token for
 // the authenticated user.
 // @Summary Create a user API token
@@ -909,7 +1006,7 @@ func (r *Router) UpdateUser() http.HandlerFunc {
 			confirmURL := fmt.Sprintf("%s/confirm/%s", r.cfg.String(config.DomainName), uec.Token)
 
 			if err := r.sendEmailConfirmation(authUser.Name, request.Email, confirmURL); err != nil {
-				httputil.RespondWithError(w, http.StatusInternalServerError, fmt.Errorf("failed to send email confirmation: %w", err))
+				httputil.RespondWithError(w, http.StatusInternalServerError, err)
 				return
 			}
 		}

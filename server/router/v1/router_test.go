@@ -43,7 +43,6 @@ type RouterTestSuite struct {
 
 	m      *migrate.Migrate
 	db     *sql.DB
-	gormDB *gorm.DB
 	mux    *mux.Router
 	router *Router
 }
@@ -98,7 +97,6 @@ func (rts *RouterTestSuite) SetupSuite() {
 
 	rts.m = m
 	rts.db = db
-	rts.gormDB = gormDB
 	rts.router = router
 	rts.mux = mux
 }
@@ -1599,7 +1597,7 @@ func (rts *RouterTestSuite) TestConfirmEmail() {
 	rts.Require().Equal(http.StatusNotFound, rr.Code, rr.Body.String())
 
 	// get the valid token
-	uec, err := models.QueryUserEmailConfirmation(rts.gormDB, map[string]interface{}{"user_id": 1})
+	uec, err := models.QueryUserEmailConfirmation(rts.router.db, map[string]interface{}{"user_id": 1})
 	rts.Require().NoError(err)
 
 	// make a request with the valid token
@@ -1608,6 +1606,91 @@ func (rts *RouterTestSuite) TestConfirmEmail() {
 	rts.Require().NoError(err)
 
 	req1.URL = confirmEmailURL
+
+	rr = httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req1)
+	rts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
+}
+
+func (rts *RouterTestSuite) TestInviteModuleOwner() {
+	rts.resetDB()
+
+	mod := models.Module{
+		Name: "x/bank",
+		Team: "cosmonauts",
+		Repo: "https://github.com/cosmos/cosmos-sdk",
+		Owners: []models.User{
+			{Name: "foo", Email: models.NewNullString("foo@email.com")},
+		},
+		Authors: []models.User{
+			{Name: "bar", Email: models.NewNullString("bar@email.com")},
+		},
+		Version: models.ModuleVersion{Version: "v1.0.0"},
+		Keywords: []models.Keyword{
+			{Name: "tokens"}, {Name: "transfer"},
+		},
+		BugTracker: models.BugTracker{
+			URL:     models.NewNullString("cosmonauts.com"),
+			Contact: models.NewNullString("contact@cosmonauts.com"),
+		},
+	}
+
+	mod, err := mod.Upsert(rts.router.db)
+	rts.Require().NoError(err)
+
+	req1, err := http.NewRequest("GET", "/", nil)
+	rts.Require().NoError(err)
+
+	req1 = rts.authorizeRequest(req1, "test_token1", "test_user1", 12345)
+
+	inviteURL, err := url.Parse("/api/v1/me/invite")
+	rts.Require().NoError(err)
+
+	body := map[string]interface{}{
+		"module_id": mod.ID,
+		"user":      mod.Owners[0].Name,
+	}
+
+	bz, err := json.Marshal(body)
+	rts.Require().NoError(err)
+
+	req1.Method = httputil.MethodPUT
+	req1.URL = inviteURL
+	req1.Body = ioutil.NopCloser(bytes.NewBuffer(bz))
+	req1.ContentLength = int64(len(bz))
+
+	// assert failure due to invitee already being an owner
+	rr := httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req1)
+	rts.Require().Equal(http.StatusBadRequest, rr.Code, rr.Body.String())
+
+	body = map[string]interface{}{
+		"module_id": mod.ID,
+		"user":      mod.Authors[0].Name,
+	}
+
+	bz, err = json.Marshal(body)
+	rts.Require().NoError(err)
+
+	req1.Body = ioutil.NopCloser(bytes.NewBuffer(bz))
+	req1.ContentLength = int64(len(bz))
+
+	// assert failure due to invitee unconfirmed email
+	rr = httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req1)
+	rts.Require().Equal(http.StatusBadRequest, rr.Code, rr.Body.String())
+
+	// confirm email
+	author, err := models.GetUserByID(rts.router.db, mod.Authors[0].ID)
+	rts.Require().NoError(err)
+
+	author.EmailConfirmed = true
+	author, err = author.Upsert(rts.router.db)
+	rts.Require().NoError(err)
+
+	// assert successful invitation
+	req1.Body = ioutil.NopCloser(bytes.NewBuffer(bz))
+	req1.ContentLength = int64(len(bz))
 
 	rr = httptest.NewRecorder()
 	rts.mux.ServeHTTP(rr, req1)
