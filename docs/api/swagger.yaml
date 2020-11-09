@@ -281,6 +281,16 @@ definitions:
     - authors
     - version
     type: object
+  v1.ModuleInvite:
+    properties:
+      module_id:
+        type: integer
+      user:
+        type: string
+    required:
+    - module_id
+    - user
+    type: object
   v1.ModuleManifest:
     properties:
       description:
@@ -463,6 +473,45 @@ paths:
           schema:
             $ref: '#/definitions/httputil.ErrResponse'
       summary: Confirm a user email confirmation
+      tags:
+      - users
+  /me/invite:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: invitation
+        in: body
+        name: invite
+        required: true
+        schema:
+          $ref: '#/definitions/v1.ModuleInvite'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: boolean
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httputil.ErrResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/httputil.ErrResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httputil.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/httputil.ErrResponse'
+      security:
+      - APIKeyAuth: []
+      summary: Invite a user to be an owner of a module
       tags:
       - users
   /me/tokens:

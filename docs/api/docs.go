@@ -224,6 +224,68 @@ var doc = `{
                 }
             }
         },
+        "/me/invite": {
+            "put": {
+                "security": [
+                    {
+                        "APIKeyAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Invite a user to be an owner of a module",
+                "parameters": [
+                    {
+                        "description": "invitation",
+                        "name": "invite",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/v1.ModuleInvite"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/me/tokens": {
             "get": {
                 "security": [
@@ -1457,6 +1519,21 @@ var doc = `{
                 "version": {
                     "type": "object",
                     "$ref": "#/definitions/v1.VersionManifest"
+                }
+            }
+        },
+        "v1.ModuleInvite": {
+            "type": "object",
+            "required": [
+                "module_id",
+                "user"
+            ],
+            "properties": {
+                "module_id": {
+                    "type": "integer"
+                },
+                "user": {
+                    "type": "string"
                 }
             }
         },
