@@ -1229,6 +1229,107 @@ func (mts *ModelsTestSuite) TestUser_ConfirmEmail() {
 	mts.Require().Empty(uec)
 }
 
+func (mts *ModelsTestSuite) TestModuleOwnerInvite_Upsert() {
+	mts.resetDB()
+
+	mod := models.Module{
+		Name: "x/bank",
+		Team: "cosmonauts",
+		Repo: "https://github.com/cosmos/cosmos-sdk",
+		Owners: []models.User{
+			{Name: "foo"},
+		},
+		Authors: []models.User{
+			{Name: "bar"},
+		},
+		Version: models.ModuleVersion{Version: "v1.0.0"},
+		Keywords: []models.Keyword{
+			{Name: "tokens"}, {Name: "transfer"},
+		},
+		BugTracker: models.BugTracker{
+			URL:     models.NewNullString("cosmonauts.com"),
+			Contact: models.NewNullString("contact@cosmonauts.com"),
+		},
+	}
+
+	// create module
+	mod, err := mod.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
+
+	owner, err := models.GetUserByID(mts.gormDB, mod.Owners[0].ID)
+	mts.Require().NoError(err)
+
+	author, err := models.GetUserByID(mts.gormDB, mod.Authors[0].ID)
+	mts.Require().NoError(err)
+
+	moi, err := models.ModuleOwnerInvite{ModuleID: mod.ID, InvitedByUserID: owner.ID, InvitedUserID: author.ID}.Upsert(mts.gormDB)
+	token1 := moi.Token
+	mts.Require().NoError(err)
+	mts.Require().NotEqual(uuid.UUID{}, token1)
+
+	moi, err = models.ModuleOwnerInvite{ModuleID: mod.ID, InvitedByUserID: owner.ID, InvitedUserID: author.ID}.Upsert(mts.gormDB)
+	token2 := moi.Token
+	mts.Require().NoError(err)
+	mts.Require().NotEqual(uuid.UUID{}, token2)
+	mts.Require().NotEqual(token1, token2)
+
+	var count int64
+	mts.Require().NoError(mts.gormDB.Table("module_owner_invites").Count(&count).Error)
+	mts.Require().Equal(int64(1), count)
+}
+
+func (mts *ModelsTestSuite) TestQueryModuleOwnerInvite() {
+	mts.resetDB()
+
+	mod := models.Module{
+		Name: "x/bank",
+		Team: "cosmonauts",
+		Repo: "https://github.com/cosmos/cosmos-sdk",
+		Owners: []models.User{
+			{Name: "foo"},
+		},
+		Authors: []models.User{
+			{Name: "bar"},
+		},
+		Version: models.ModuleVersion{Version: "v1.0.0"},
+		Keywords: []models.Keyword{
+			{Name: "tokens"}, {Name: "transfer"},
+		},
+		BugTracker: models.BugTracker{
+			URL:     models.NewNullString("cosmonauts.com"),
+			Contact: models.NewNullString("contact@cosmonauts.com"),
+		},
+	}
+
+	// create module
+	mod, err := mod.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
+
+	owner, err := models.GetUserByID(mts.gormDB, mod.Owners[0].ID)
+	mts.Require().NoError(err)
+
+	author, err := models.GetUserByID(mts.gormDB, mod.Authors[0].ID)
+	mts.Require().NoError(err)
+
+	query := map[string]interface{}{"module_id": mod.ID, "invited_user_id": author.ID, "invited_by_user_id": owner.ID}
+
+	moi, err := models.QueryModuleOwnerInvite(mts.gormDB, query)
+	mts.Require().Error(err)
+	mts.Require().Empty(moi)
+
+	moi, err = models.ModuleOwnerInvite{ModuleID: mod.ID, InvitedByUserID: owner.ID, InvitedUserID: author.ID}.Upsert(mts.gormDB)
+	token := moi.Token
+	mts.Require().NoError(err)
+	mts.Require().NotEqual(uuid.UUID{}, token)
+
+	moi, err = models.QueryModuleOwnerInvite(mts.gormDB, query)
+	mts.Require().NoError(err)
+	mts.Require().Equal(mod.ID, moi.ModuleID)
+	mts.Require().Equal(author.ID, moi.InvitedUserID)
+	mts.Require().Equal(owner.ID, moi.InvitedByUserID)
+	mts.Require().Equal(token, moi.Token)
+}
+
 func (mts *ModelsTestSuite) resetDB() {
 	mts.T().Helper()
 
