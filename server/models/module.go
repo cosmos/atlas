@@ -410,6 +410,35 @@ func (m Module) GetLatestVersion(db *gorm.DB) (ModuleVersion, error) {
 	return mv, nil
 }
 
+// AddOwner adds a given User as an owner to a Module and deletes the corresponding
+// ModuleOwnerInvite record. It returns an error upon failure.
+func (m Module) AddOwner(db *gorm.DB, owner User) (Module, error) {
+	var record Module
+
+	err := db.Transaction(func(tx *gorm.DB) error {
+		m.Owners = append(m.Owners, owner)
+
+		module, err := m.Upsert(tx)
+		if err != nil {
+			return err
+		}
+
+		record = module
+
+		if err := tx.Where("module_id = ? AND invited_user_id = ?", m.ID, owner.ID).Delete(ModuleOwnerInvite{}).Error; err != nil {
+			return fmt.Errorf("failed to delete module owner invitation: %w", err)
+		}
+
+		// commit the tx
+		return nil
+	})
+	if err != nil {
+		return Module{}, err
+	}
+
+	return record, nil
+}
+
 // GetModuleByID returns a module by ID. If the module doesn't exist or if the
 // query fails, an error is returned.
 func GetModuleByID(db *gorm.DB, id uint) (Module, error) {

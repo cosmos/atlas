@@ -201,10 +201,10 @@ func (r *Router) Register(rtr *mux.Router, prefix string) {
 		mChain.ThenFunc(r.InviteOwner()),
 	).Methods(httputil.MethodPUT)
 
-	// v1Router.Handle(
-	// 	"/me/invite/accept/{id:[0-9]+}",
-	// 	mChain.ThenFunc(r.AcceptOwnerInvite()),
-	// ).Methods(httputil.MethodPUT)
+	v1Router.Handle(
+		"/me/invite/accept/{inviteToken}",
+		mChain.ThenFunc(r.AcceptOwnerInvite()),
+	).Methods(httputil.MethodPUT)
 
 	v1Router.Handle(
 		"/me/tokens",
@@ -705,6 +705,61 @@ func (r *Router) InviteOwner() http.HandlerFunc {
 		}
 
 		httputil.RespondWithJSON(w, http.StatusOK, true)
+	}
+}
+
+// AcceptOwnerInvite implements a request handler for accepting a module owner
+// invitation.
+// @Summary Accept a module owner invitation
+// @Tags users
+// @Produce  json
+// @Param inviteToken path string true "invite token"
+// @Success 200 {object} models.ModuleJSON
+// @Failure 400 {object} httputil.ErrResponse
+// @Failure 401 {object} httputil.ErrResponse
+// @Failure 404 {object} httputil.ErrResponse
+// @Failure 500 {object} httputil.ErrResponse
+// @Security APIKeyAuth
+// @Router /me/invite/accept/{inviteToken} [put]
+func (r *Router) AcceptOwnerInvite() http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		authUser, ok, err := r.authorize(req)
+		if err != nil || !ok {
+			httputil.RespondWithError(w, http.StatusUnauthorized, err)
+			return
+		}
+
+		inviteToken := mux.Vars(req)["inviteToken"]
+		moi, err := models.QueryModuleOwnerInvite(r.db, map[string]interface{}{"invited_user_id": authUser.ID, "token": inviteToken})
+		if err != nil {
+			httputil.RespondWithError(w, http.StatusNotFound, err)
+			return
+		}
+
+		// prevent stale invites from being accepted
+		if time.Since(moi.UpdatedAt) > 24*time.Hour {
+			httputil.RespondWithError(w, http.StatusBadRequest, errors.New("expired module owner invitation"))
+			return
+		}
+
+		module, err := models.GetModuleByID(r.db, moi.ModuleID)
+		if err != nil {
+			code := http.StatusInternalServerError
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				code = http.StatusNotFound
+			}
+
+			httputil.RespondWithError(w, code, err)
+			return
+		}
+
+		module, err = module.AddOwner(r.db, authUser)
+		if err != nil {
+			httputil.RespondWithError(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		httputil.RespondWithJSON(w, http.StatusOK, module)
 	}
 }
 
