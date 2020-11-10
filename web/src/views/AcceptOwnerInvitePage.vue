@@ -10,18 +10,17 @@
             <div class="col-lg-8 text-center">
               <div class="row">
                 <div class="col-md-12 text-center">
-                  <h1 style="color: white;" v-if="emailConfirmSuccess >= 1">
-                    Email confirmed!
+                  <h1 style="color: white;" v-if="moduleInviteAccepted >= 1">
+                    Invitation accepted!
                   </h1>
-                  <div v-if="emailConfirmSuccess <= -1">
+                  <div v-if="moduleInviteAccepted <= -1">
                     <img
                       class="card-img"
                       src="/img/astro.png"
                       style="width: 300px; height: 300px; padding-bottom: 30px;"
                     />
-
                     <h2 style="color: white;">
-                      Invalid link. Please reconfirm.
+                      Invalid link. Please contact module owner.
                     </h2>
                   </div>
                 </div>
@@ -39,10 +38,9 @@ import APIClient from "../plugins/apiClient";
 
 export default {
   created() {
-    APIClient.confirmEmail(this.$route.params.token)
-      .then(resp => {
-        this.$store.commit("setUser", resp);
-        this.emailConfirmSuccess = 1;
+    APIClient.acceptModuleOwnerInvite(this.$route.params.token)
+      .then(() => {
+        this.moduleInviteAccepted = 1;
 
         this.$confetti.start({
           windSpeedMax: 0,
@@ -61,7 +59,7 @@ export default {
       })
       .catch(err => {
         console.log(err);
-        this.emailConfirmSuccess = -1;
+        this.moduleInviteAccepted = -1;
       });
   },
 
@@ -71,7 +69,7 @@ export default {
 
   data() {
     return {
-      emailConfirmSuccess: 0
+      moduleInviteAccepted: 0
     };
   }
 };

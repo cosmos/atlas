@@ -64,6 +64,10 @@ const APIClient = {
     return this.perform("put", `/me/confirm/${token}`);
   },
 
+  acceptModuleOwnerInvite(token) {
+    return this.perform("put", `/me/invite/accept/${token}`);
+  },
+
   async perform(method, resource, data) {
     return client({ method, url: resource, data, headers: {} }).then(req => {
       return req.data;
