@@ -38,6 +38,14 @@ const GlobalMixins = {
       },
 
       methods: {
+        getResponseError(err) {
+          if (err.response) {
+            return err.response.data.error;
+          } else {
+            return err;
+          }
+        },
+
         objectEmpty(obj) {
           return Object.keys(obj).length === 0;
         },

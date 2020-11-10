@@ -1,6 +1,7 @@
 import Vue from "vue";
 import VueProgressBar from "vue-progressbar";
 import Notifications from "vue-notification";
+import VueConfetti from "vue-confetti";
 
 import App from "./App.vue";
 import Argon from "./plugins/argon-kit";
@@ -19,6 +20,7 @@ Vue.use(VueProgressBar, {
 });
 
 Vue.use(Notifications);
+Vue.use(VueConfetti);
 Vue.use(Argon);
 
 new Vue({ store, router, render: h => h(App) }).$mount("#app");

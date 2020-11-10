@@ -13,6 +13,31 @@
     >
       <div class="container" style="padding-top: 100px;">
         <div class="card card-profile shadow mt--300">
+          <modal :show.sync="showInviteModal">
+            <div class="row">
+              <div class="col-md-3 align-self-center">
+                <label class="labels" for="#userToInvite">User</label>
+              </div>
+              <div class="col-md-9 align-self-center">
+                <base-input
+                  id="userToInvite"
+                  name="userToInvite"
+                  v-model="userToInvite"
+                ></base-input>
+              </div>
+            </div>
+            <template slot="footer">
+              <base-button
+                type="primary"
+                v-on:click="inviteUser"
+                :disabled="!userToInvite"
+                >Invite</base-button
+              >
+              <base-button type="primary" @click="showInviteModal = false"
+                >Close
+              </base-button>
+            </template>
+          </modal>
           <div class="px-4">
             <div class="row justify-content-center">
               <div class="col-lg-4 order-lg-2">
@@ -104,6 +129,18 @@
                         :src="avatarPicture(owner)"
                       />
                     </router-link>
+                    <div
+                      class="avatar-group"
+                      style="padding-top: 15px"
+                      v-if="isOwner"
+                    >
+                      <base-button
+                        type="primary"
+                        size="sm"
+                        @click="showInviteModal = true"
+                        ><i class="fa fa-plus"></i> Invite</base-button
+                      >
+                    </div>
                   </div>
                   <h5 class="card-title mt-4">Authors</h5>
                   <div class="avatar-group">
@@ -124,6 +161,7 @@
                   <div class="avatar-group">
                     <span
                       class="badge badge-pill badge-primary"
+                      style="margin-right: 4px;"
                       v-for="keyword in module.keywords"
                       v-bind:key="keyword.name"
                     >
@@ -173,6 +211,7 @@
 
 <script>
 import { Table, TableColumn } from "element-ui";
+import Modal from "@/components/Modal.vue";
 import APIClient from "../plugins/apiClient";
 import axios from "axios";
 import VueMarkdown from "vue-markdown";
@@ -182,6 +221,7 @@ export default {
   bodyClass: "profile-page",
   components: {
     VueMarkdown,
+    Modal,
     [Table.name]: Table,
     [TableColumn.name]: TableColumn
   },
@@ -193,10 +233,12 @@ export default {
       module: {},
       moduleStars: 0,
       documentation: "",
+      userToInvite: "",
       anchorAttrs: {
         target: "_blank",
         rel: "noopener noreferrer nofollow"
-      }
+      },
+      showInviteModal: false
     };
   },
   beforeRouteUpdate(to, from, next) {
@@ -206,6 +248,14 @@ export default {
     this.$Progress.finish();
   },
   computed: {
+    isOwner() {
+      if (!this.objectEmpty(this.user) && !this.objectEmpty(this.module)) {
+        return this.module.owners.some(owner => owner.name === this.user.name);
+      }
+
+      return false;
+    },
+
     starToggle() {
       if (!this.objectEmpty(this.user) && !this.objectEmpty(this.module)) {
         return this.user.stars.includes(this.module.id) ? "unstar" : "star";
@@ -238,6 +288,28 @@ export default {
     }
   },
   methods: {
+    inviteUser() {
+      this.$Progress.start();
+
+      APIClient.inviteModuleOwner(this.userToInvite, this.module.id)
+        .then(() => {
+          this.showInviteModal = false;
+          this.userToInvite = "";
+          this.$Progress.finish();
+        })
+        .catch(err => {
+          console.log(err);
+          this.$Progress.fail();
+          this.$notify({
+            group: "errors",
+            type: "error",
+            duration: 3000,
+            title: "Error",
+            text: this.getResponseError(err)
+          });
+        });
+    },
+
     handleFavorite(toggle) {
       if (toggle === "star") {
         APIClient.starModule(this.module.id)
@@ -252,7 +324,7 @@ export default {
               type: "error",
               duration: 3000,
               title: "Error",
-              text: err
+              text: this.getResponseError(err)
             });
           });
       } else if (toggle === "unstar") {
@@ -268,7 +340,7 @@ export default {
               type: "error",
               duration: 3000,
               title: "Error",
-              text: err
+              text: this.getResponseError(err)
             });
           });
       }

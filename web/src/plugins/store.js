@@ -53,20 +53,30 @@ export default new Vuex.Store({
         });
     },
 
-    updateUser(context, user) {
+    updateUser({ dispatch }, user) {
       return new Promise((resolve, reject) => {
         APIClient.updateUser(user)
-          .then(resp => {
-            context.commit("setUser", resp);
-            resolve();
+          .then(() => {
+            dispatch("getUser")
+              .then(() => {
+                resolve();
+              })
+              .catch(err => {
+                console.log(err);
+                if (err.response) {
+                  reject(err.response.data.error);
+                } else {
+                  reject(err);
+                }
+              });
           })
           .catch(err => {
             console.log(err);
             if (err.response) {
               reject(err.response.data.error);
+            } else {
+              reject(err);
             }
-
-            reject(err);
           });
       });
     },
@@ -95,9 +105,9 @@ export default new Vuex.Store({
             console.log(err);
             if (err.response) {
               reject(err.response.data.error);
+            } else {
+              reject(err);
             }
-
-            reject(err);
           });
       });
     },
@@ -116,9 +126,9 @@ export default new Vuex.Store({
             console.log(err);
             if (err.response) {
               reject(err.response.data.error);
+            } else {
+              reject(err);
             }
-
-            reject(err);
           });
       });
     },

@@ -9,3 +9,10 @@ type User struct {
 type Token struct {
 	Name string `json:"name" validate:"required"`
 }
+
+// ModuleInvite defines the request type when inviting a user as an owner to a
+// module.
+type ModuleInvite struct {
+	ModuleID uint   `json:"module_id" validate:"required,gte=1"`
+	User     string `json:"user" validate:"required"`
+}

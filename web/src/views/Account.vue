@@ -12,6 +12,22 @@
       style="position: relative; padding-top: 40vh; min-height: 100vh;"
     >
       <div class="container bg-white card">
+        <div class="col-md-4">
+          <modal :show.sync="showEmailConfirmModal">
+            <h4 style="text-align: center;">
+              Email confirmation sent!
+            </h4>
+
+            <template slot="footer">
+              <base-button
+                type="primary"
+                class="ml-auto"
+                @click="showEmailConfirmModal = false"
+                >Close
+              </base-button>
+            </template>
+          </modal>
+        </div>
         <div class="row" style="padding-left: 25px; padding-right: 25px;">
           <div class="col-md-3">
             <div class="section">
@@ -23,6 +39,12 @@
                 />
                 <h3 class="title mt-4">{{ user.name }}</h3>
                 <p v-if="user.email">{{ user.email }}</p>
+                <span class="badge badge-success" v-if="user.email_confirmed"
+                  >verified</span
+                >
+                <span class="badge badge-warning" v-if="!user.email_confirmed"
+                  >Not verified</span
+                >
               </section>
             </div>
           </div>
@@ -164,12 +186,14 @@
 </template>
 <script>
 import { Table, TableColumn } from "element-ui";
+import Modal from "@/components/Modal.vue";
 
 export default {
   bodyClass: "account-settings",
   components: {
     [Table.name]: Table,
-    [TableColumn.name]: TableColumn
+    [TableColumn.name]: TableColumn,
+    Modal
   },
   created() {
     this.$store.dispatch("getUser");
@@ -182,7 +206,8 @@ export default {
       userEmail: "",
       tokenName: "",
       currentPage: 1,
-      pageSize: 5
+      pageSize: 5,
+      showEmailConfirmModal: false
     };
   },
   computed: {
@@ -230,9 +255,18 @@ export default {
         .dispatch("updateUser", { email: this.userEmail })
         .then(() => {
           this.$Progress.finish();
+          this.userEmail = "";
+          this.showEmailConfirmModal = true;
         })
-        .catch(() => {
+        .catch(err => {
           this.$Progress.fail();
+          this.$notify({
+            group: "errors",
+            type: "error",
+            duration: 3000,
+            title: "Error",
+            text: this.getResponseError(err)
+          });
         });
     },
 
@@ -256,7 +290,7 @@ export default {
             type: "error",
             duration: 3000,
             title: "Error",
-            text: err
+            text: this.getResponseError(err)
           });
         });
     },
@@ -275,7 +309,7 @@ export default {
             type: "error",
             duration: 3000,
             title: "Error",
-            text: err
+            text: this.getResponseError(err)
           });
         });
     }

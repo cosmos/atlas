@@ -1283,7 +1283,7 @@ func (rts *RouterTestSuite) TestRevokeUserToken() {
 	rts.Require().NotEmpty(ut["token"])
 	rts.Require().True(ut["revoked"].(bool))
 
-	// attempt to revoke an non-existant token
+	// attempt to revoke an non-existent token
 	revokeURL, err := url.Parse("/api/v1/me/tokens/100")
 	rts.Require().NoError(err)
 
@@ -1351,7 +1351,7 @@ func (rts *RouterTestSuite) TestGetUserByName() {
 	rts.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &user))
 	rts.Require().Equal(user["name"], "foo")
 
-	// ensure a non-existant user returns an error
+	// ensure a non-existent user returns an error
 	req3, err := http.NewRequest("GET", "/api/v1/users/bar", nil)
 	rts.Require().NoError(err)
 
@@ -1489,9 +1489,9 @@ func (rts *RouterTestSuite) TestUpdateUser() {
 	rts.mux.ServeHTTP(rr, req1)
 	rts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
 
-	var user map[string]interface{}
-	rts.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &user))
-	rts.Require().Equal(user["email"], body["email"])
+	var result bool
+	rts.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &result))
+	rts.Require().True(result)
 
 	// ensure an invalid request fails
 	body = map[string]interface{}{
@@ -1516,6 +1516,278 @@ func (rts *RouterTestSuite) TestUpdateUser() {
 	rr = httptest.NewRecorder()
 	rts.mux.ServeHTTP(rr, req2)
 	rts.Require().Equal(http.StatusUnauthorized, rr.Code, rr.Body.String())
+}
+
+func (rts *RouterTestSuite) TestConfirmEmail() {
+	rts.resetDB()
+
+	req1, err := http.NewRequest("GET", "/", nil)
+	rts.Require().NoError(err)
+
+	req1 = rts.authorizeRequest(req1, "test_token1", "test_user1", 12345)
+
+	upsertURL, err := url.Parse("/api/v1/modules")
+	rts.Require().NoError(err)
+
+	body := map[string]interface{}{
+		"module": map[string]interface{}{
+			"name":     "x/bank",
+			"team":     "cosmonauts",
+			"repo":     "https://github.com/cosmos/cosmos-sdk",
+			"keywords": []string{"tokens"},
+		},
+		"authors": []map[string]interface{}{
+			{
+				"name": "foo", "email": "foo@email.com",
+			},
+		},
+		"version": map[string]interface{}{
+			"version": "v1.0.0",
+		},
+		"bug_tracker": map[string]interface{}{
+			"url":     "https://cosmonauts.com",
+			"contact": "contact@cosmonauts.com",
+		},
+	}
+
+	// create module published by test_user1
+	bz, err := json.Marshal(body)
+	rts.Require().NoError(err)
+
+	req1.Method = httputil.MethodPUT
+	req1.URL = upsertURL
+	req1.Body = ioutil.NopCloser(bytes.NewBuffer(bz))
+	req1.ContentLength = int64(len(bz))
+
+	rr := httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req1)
+	rts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
+
+	// update the authenticated user
+	updateUserURL, err := url.Parse("/api/v1/me")
+	rts.Require().NoError(err)
+
+	body = map[string]interface{}{
+		"email": "bar@email.com",
+	}
+	bz, err = json.Marshal(body)
+	rts.Require().NoError(err)
+
+	req1.Method = httputil.MethodPUT
+	req1.URL = updateUserURL
+	req1.Body = ioutil.NopCloser(bytes.NewBuffer(bz))
+	req1.ContentLength = int64(len(bz))
+
+	rr = httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req1)
+	rts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
+
+	var result bool
+	rts.Require().NoError(json.Unmarshal(rr.Body.Bytes(), &result))
+	rts.Require().True(result)
+
+	// make a request with an invalid token
+	confirmEmailURL, err := url.Parse("/api/v1/me/confirm/badtoken")
+	rts.Require().NoError(err)
+
+	req1.URL = confirmEmailURL
+
+	rr = httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req1)
+	rts.Require().Equal(http.StatusNotFound, rr.Code, rr.Body.String())
+
+	// get the valid token
+	uec, err := models.QueryUserEmailConfirmation(rts.router.db, map[string]interface{}{"user_id": 1})
+	rts.Require().NoError(err)
+
+	// make a request with the valid token
+	token := uec.Token
+	confirmEmailURL, err = url.Parse(fmt.Sprintf("/api/v1/me/confirm/%s", token))
+	rts.Require().NoError(err)
+
+	req1.URL = confirmEmailURL
+
+	rr = httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req1)
+	rts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
+}
+
+func (rts *RouterTestSuite) TestInviteModuleOwner() {
+	rts.resetDB()
+
+	mod := models.Module{
+		Name: "x/bank",
+		Team: "cosmonauts",
+		Repo: "https://github.com/cosmos/cosmos-sdk",
+		Owners: []models.User{
+			{Name: "foo", Email: models.NewNullString("foo@email.com")},
+		},
+		Authors: []models.User{
+			{Name: "bar", Email: models.NewNullString("bar@email.com")},
+		},
+		Version: models.ModuleVersion{Version: "v1.0.0"},
+		Keywords: []models.Keyword{
+			{Name: "tokens"}, {Name: "transfer"},
+		},
+		BugTracker: models.BugTracker{
+			URL:     models.NewNullString("cosmonauts.com"),
+			Contact: models.NewNullString("contact@cosmonauts.com"),
+		},
+	}
+
+	mod, err := mod.Upsert(rts.router.db)
+	rts.Require().NoError(err)
+
+	req1, err := http.NewRequest("GET", "/", nil)
+	rts.Require().NoError(err)
+
+	req1 = rts.authorizeRequest(req1, "test_token1", "test_user1", 12345)
+
+	inviteURL, err := url.Parse("/api/v1/me/invite")
+	rts.Require().NoError(err)
+
+	body := map[string]interface{}{
+		"module_id": mod.ID,
+		"user":      mod.Owners[0].Name,
+	}
+
+	bz, err := json.Marshal(body)
+	rts.Require().NoError(err)
+
+	req1.Method = httputil.MethodPUT
+	req1.URL = inviteURL
+	req1.Body = ioutil.NopCloser(bytes.NewBuffer(bz))
+	req1.ContentLength = int64(len(bz))
+
+	// assert failure due to invitee already being an owner
+	rr := httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req1)
+	rts.Require().Equal(http.StatusBadRequest, rr.Code, rr.Body.String())
+
+	body = map[string]interface{}{
+		"module_id": mod.ID,
+		"user":      mod.Authors[0].Name,
+	}
+
+	bz, err = json.Marshal(body)
+	rts.Require().NoError(err)
+
+	req1.Body = ioutil.NopCloser(bytes.NewBuffer(bz))
+	req1.ContentLength = int64(len(bz))
+
+	// assert failure due to invitee unconfirmed email
+	rr = httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req1)
+	rts.Require().Equal(http.StatusBadRequest, rr.Code, rr.Body.String())
+
+	// confirm email
+	author, err := models.GetUserByID(rts.router.db, mod.Authors[0].ID)
+	rts.Require().NoError(err)
+
+	author.EmailConfirmed = true
+	author, err = author.Upsert(rts.router.db)
+	rts.Require().NoError(err)
+
+	// assert successful invitation
+	req1.Body = ioutil.NopCloser(bytes.NewBuffer(bz))
+	req1.ContentLength = int64(len(bz))
+
+	rr = httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req1)
+	rts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
+}
+
+func (rts *RouterTestSuite) TestAcceptOwnerInvite() {
+	rts.resetDB()
+
+	mod := models.Module{
+		Name: "x/bank",
+		Team: "cosmonauts",
+		Repo: "https://github.com/cosmos/cosmos-sdk",
+		Owners: []models.User{
+			{Name: "foo", Email: models.NewNullString("foo@email.com")},
+		},
+		Authors: []models.User{
+			{Name: "bar", Email: models.NewNullString("bar@email.com")},
+		},
+		Version: models.ModuleVersion{Version: "v1.0.0"},
+		Keywords: []models.Keyword{
+			{Name: "tokens"}, {Name: "transfer"},
+		},
+		BugTracker: models.BugTracker{
+			URL:     models.NewNullString("cosmonauts.com"),
+			Contact: models.NewNullString("contact@cosmonauts.com"),
+		},
+	}
+
+	mod, err := mod.Upsert(rts.router.db)
+	rts.Require().NoError(err)
+
+	// confirm email
+	author, err := models.GetUserByID(rts.router.db, mod.Authors[0].ID)
+	rts.Require().NoError(err)
+
+	author.EmailConfirmed = true
+	author, err = author.Upsert(rts.router.db)
+	rts.Require().NoError(err)
+
+	req1, err := http.NewRequest("GET", "/", nil)
+	rts.Require().NoError(err)
+
+	req1 = rts.authorizeRequest(req1, "test_token1", "foo", 1)
+
+	inviteURL, err := url.Parse("/api/v1/me/invite")
+	rts.Require().NoError(err)
+
+	body := map[string]interface{}{
+		"module_id": mod.ID,
+		"user":      mod.Authors[0].Name,
+	}
+
+	bz, err := json.Marshal(body)
+	rts.Require().NoError(err)
+
+	req1.Method = httputil.MethodPUT
+	req1.URL = inviteURL
+	req1.Body = ioutil.NopCloser(bytes.NewBuffer(bz))
+	req1.ContentLength = int64(len(bz))
+
+	rr := httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req1)
+	rts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
+
+	// make a request with an invalid token
+	acceptInviteURL, err := url.Parse("/api/v1/me/invite/accept/badtoken")
+	rts.Require().NoError(err)
+
+	req1.URL = acceptInviteURL
+
+	rr = httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req1)
+	rts.Require().Equal(http.StatusNotFound, rr.Code, rr.Body.String())
+
+	// get the valid token
+	moi, err := models.QueryModuleOwnerInvite(rts.router.db, map[string]interface{}{"invited_user_id": mod.Authors[0].ID})
+	rts.Require().NoError(err)
+
+	// make a request with the valid token
+	token := moi.Token
+	acceptInviteURL, err = url.Parse(fmt.Sprintf("/api/v1/me/invite/accept/%s", token))
+	rts.Require().NoError(err)
+
+	req2, err := http.NewRequest("GET", "/", nil)
+	rts.Require().NoError(err)
+
+	req2 = rts.authorizeRequest(req2, "test_token2", "bar", int64(mod.Authors[0].ID))
+
+	req2.Method = httputil.MethodPUT
+	req2.URL = acceptInviteURL
+	req2.Body = ioutil.NopCloser(bytes.NewBuffer(bz))
+	req2.ContentLength = int64(len(bz))
+
+	rr = httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req2)
+	rts.Require().Equal(http.StatusOK, rr.Code, rr.Body.String())
 }
 
 func (rts *RouterTestSuite) TestStarModule() {

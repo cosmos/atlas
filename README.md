@@ -50,6 +50,8 @@ Atlas is composed of two primary components, the server and the web application.
 The server is responsible for providing a RESTful API, handling user authentication
 via Github OAuth and persisting modules and relevant data to PostgreSQL.
 
+Further documentation can be found [here](./docs/README.md).
+
 ### Server
 
 In order to start the Atlas server, you must provide a series of configuration

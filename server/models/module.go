@@ -5,9 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+
+	uuid "github.com/satori/go.uuid"
 
 	"github.com/cosmos/atlas/server/httputil"
 )
@@ -88,8 +91,18 @@ type (
 		ModuleID uint `json:"module_id"`
 	}
 
-	// Module defines a Cosmos SDK module.
+	// ModuleOwnerInvite defines the a module owner invitation relationship.
+	ModuleOwnerInvite struct {
+		CreatedAt time.Time
+		UpdatedAt time.Time
 
+		ModuleID        uint
+		InvitedUserID   uint
+		InvitedByUserID uint
+		Token           uuid.UUID
+	}
+
+	// Module defines a Cosmos SDK module.
 	Module struct {
 		gorm.Model
 
@@ -397,6 +410,35 @@ func (m Module) GetLatestVersion(db *gorm.DB) (ModuleVersion, error) {
 	return mv, nil
 }
 
+// AddOwner adds a given User as an owner to a Module and deletes the corresponding
+// ModuleOwnerInvite record. It returns an error upon failure.
+func (m Module) AddOwner(db *gorm.DB, owner User) (Module, error) {
+	var record Module
+
+	err := db.Transaction(func(tx *gorm.DB) error {
+		m.Owners = append(m.Owners, owner)
+
+		module, err := m.Upsert(tx)
+		if err != nil {
+			return err
+		}
+
+		record = module
+
+		if err := tx.Where("module_id = ? AND invited_user_id = ?", m.ID, owner.ID).Delete(ModuleOwnerInvite{}).Error; err != nil {
+			return fmt.Errorf("failed to delete module owner invitation: %w", err)
+		}
+
+		// commit the tx
+		return nil
+	})
+	if err != nil {
+		return Module{}, err
+	}
+
+	return record, nil
+}
+
 // GetModuleByID returns a module by ID. If the module doesn't exist or if the
 // query fails, an error is returned.
 func GetModuleByID(db *gorm.DB, id uint) (Module, error) {
@@ -507,4 +549,61 @@ FROM
 	}
 
 	return modules, buildPaginator(pq, int64(len(moduleIDs))), nil
+}
+
+// BeforeSave will create and set the ModuleOwnerInvite UUID.
+func (moi *ModuleOwnerInvite) BeforeSave(_ *gorm.DB) error {
+	moi.Token = uuid.NewV4()
+	return nil
+}
+
+// Upsert creates or updates a ModuleOwnerInvite record. If no record exists, a
+// new record with a UUID token is created. Otherwise, the existing ModuleOwnerInvite
+// record's UUID token is updated/regenerated. It returns an error up database
+// failure.
+func (moi ModuleOwnerInvite) Upsert(db *gorm.DB) (ModuleOwnerInvite, error) {
+	var record ModuleOwnerInvite
+
+	query := "module_id = ? AND invited_user_id = ? AND invited_by_user_id = ?"
+	err := db.Transaction(func(tx *gorm.DB) error {
+		err := tx.Where(query, moi.ModuleID, moi.InvitedUserID, moi.InvitedByUserID).First(&record).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				if err := tx.Create(&moi).Error; err != nil {
+					return fmt.Errorf("failed to create module owner invitation: %w", err)
+				}
+
+				// commit the tx
+				return nil
+			} else {
+				return fmt.Errorf("failed to query for module owner invitation: %w", err)
+			}
+		}
+
+		if err := tx.Where(query, moi.ModuleID, moi.InvitedUserID, moi.InvitedByUserID).Save(&record).Error; err != nil {
+			return fmt.Errorf("failed to update module owner invitation: %w", err)
+		}
+
+		// commit the tx
+		return nil
+	})
+	if err != nil {
+		return ModuleOwnerInvite{}, err
+	}
+
+	err = db.Where(query, moi.ModuleID, moi.InvitedUserID, moi.InvitedByUserID).First(&record).Error
+	return record, err
+}
+
+// QueryModuleOwnerInvite performs a query for a ModuleOwnerInvite record.
+// The resulting record, if it exists, is returned. If the query fails or the
+// record does not exist, an error is returned.
+func QueryModuleOwnerInvite(db *gorm.DB, query map[string]interface{}) (ModuleOwnerInvite, error) {
+	var record ModuleOwnerInvite
+
+	if err := db.Where(query).First(&record).Error; err != nil {
+		return ModuleOwnerInvite{}, fmt.Errorf("failed to query module owner invitation: %w", err)
+	}
+
+	return record, nil
 }

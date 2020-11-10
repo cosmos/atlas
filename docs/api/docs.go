@@ -148,6 +148,52 @@ var doc = `{
                     "200": {
                         "description": "OK",
                         "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/me/confirm/{emailToken}": {
+            "put": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Confirm a user email confirmation",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "email token",
+                        "name": "emailToken",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
                             "$ref": "#/definitions/models.UserJSON"
                         }
                     },
@@ -159,6 +205,131 @@ var doc = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/me/invite": {
+            "put": {
+                "security": [
+                    {
+                        "APIKeyAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Invite a user to be an owner of a module",
+                "parameters": [
+                    {
+                        "description": "invitation",
+                        "name": "invite",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/v1.ModuleInvite"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/me/invite/accept/{inviteToken}": {
+            "put": {
+                "security": [
+                    {
+                        "APIKeyAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Accept a module owner invitation",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "invite token",
+                        "name": "inviteToken",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.ModuleJSON"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/httputil.ErrResponse"
                         }
@@ -1223,6 +1394,9 @@ var doc = `{
                 "email": {
                     "type": "string"
                 },
+                "emailConfirmed": {
+                    "type": "boolean"
+                },
                 "fullName": {
                     "type": "string"
                 },
@@ -1244,6 +1418,12 @@ var doc = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "stars": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
                 },
                 "tokens": {
                     "description": "one-to-many relationships",
@@ -1268,6 +1448,9 @@ var doc = `{
                 },
                 "email": {
                     "type": "object"
+                },
+                "email_confirmed": {
+                    "type": "boolean"
                 },
                 "full_name": {
                     "type": "string"
@@ -1310,7 +1493,7 @@ var doc = `{
                 "token": {
                     "type": "string"
                 },
-                "user_id": {
+                "userID": {
                     "type": "integer"
                 }
             }
@@ -1393,6 +1576,21 @@ var doc = `{
                 "version": {
                     "type": "object",
                     "$ref": "#/definitions/v1.VersionManifest"
+                }
+            }
+        },
+        "v1.ModuleInvite": {
+            "type": "object",
+            "required": [
+                "module_id",
+                "user"
+            ],
+            "properties": {
+                "module_id": {
+                    "type": "integer"
+                },
+                "user": {
+                    "type": "string"
                 }
             }
         },

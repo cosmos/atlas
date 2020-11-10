@@ -6,6 +6,8 @@ import store from "./plugins/store";
 import Account from "./views/Account.vue";
 import Components from "./views/Components.vue";
 import Error from "./views/Error.vue";
+import ConfirmEmailPage from "./views/ConfirmEmailPage.vue";
+import AcceptOwnerInvitePage from "./views/AcceptOwnerInvitePage.vue";
 import ProfilePage from "./views/ProfilePage.vue";
 import ModulePage from "./views/Module.vue";
 import ModulesPage from "./views/Modules.vue";
@@ -74,6 +76,26 @@ export default new Router({
         footer: AppFooter
       },
       props: { header: { showSearch: true } }
+    },
+    {
+      path: "/confirm/:token",
+      name: "confirmEmail",
+      components: {
+        header: AppHeader,
+        default: ConfirmEmailPage,
+        footer: AppFooter
+      },
+      props: { header: { showSearch: false } }
+    },
+    {
+      path: "/accept/:token",
+      name: "acceptOwnerInvite",
+      components: {
+        header: AppHeader,
+        default: AcceptOwnerInvitePage,
+        footer: AppFooter
+      },
+      props: { header: { showSearch: false } }
     },
     {
       path: "*",

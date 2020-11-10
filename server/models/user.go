@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	uuid "github.com/satori/go.uuid"
 	"gorm.io/gorm"
@@ -29,24 +30,25 @@ type (
 	UserToken struct {
 		gorm.Model
 
-		Name    string    `json:"name"`
-		UserID  uint      `json:"user_id"`
-		Count   uint      `json:"count"`
-		Token   uuid.UUID `json:"token"`
-		Revoked bool      `json:"revoked"`
+		Name    string
+		UserID  uint
+		Count   uint
+		Token   uuid.UUID
+		Revoked bool
 	}
 
 	// UserJSON defines the JSON-encodeable type for a User.
 	UserJSON struct {
 		GormModelJSON
 
-		Name       string      `json:"name"`
-		FullName   string      `json:"full_name"`
-		Email      interface{} `json:"email"`
-		URL        string      `json:"url"`
-		AvatarURL  string      `json:"avatar_url"`
-		GravatarID string      `json:"gravatar_id"`
-		Stars      []uint      `json:"stars"`
+		Name           string      `json:"name"`
+		FullName       string      `json:"full_name"`
+		URL            string      `json:"url"`
+		AvatarURL      string      `json:"avatar_url"`
+		GravatarID     string      `json:"gravatar_id"`
+		Email          interface{} `json:"email"`
+		EmailConfirmed bool        `json:"email_confirmed"`
+		Stars          []uint      `json:"stars"`
 	}
 
 	// User defines an entity that contributes to a Module type.
@@ -55,12 +57,13 @@ type (
 
 		Name              string
 		FullName          string
+		URL               string
+		GravatarID        string
+		AvatarURL         string
 		GithubUserID      sql.NullInt64
 		GithubAccessToken sql.NullString
 		Email             sql.NullString
-		URL               string
-		AvatarURL         string
-		GravatarID        string
+		EmailConfirmed    bool
 
 		// many-to-many relationships
 		Modules []Module `gorm:"many2many:module_owners"`
@@ -68,7 +71,17 @@ type (
 		// one-to-many relationships
 		Tokens []UserToken `gorm:"foreignKey:user_id"`
 
-		Stars []uint `gorm:"-" json:"-"`
+		Stars []uint `gorm:"-"`
+	}
+
+	// UserEmailConfirmation defines a relation for confirming user email addresses.
+	UserEmailConfirmation struct {
+		CreatedAt time.Time
+		UpdatedAt time.Time
+
+		Email  string
+		UserID uint
+		Token  uuid.UUID
 	}
 )
 
@@ -98,13 +111,14 @@ func (u User) MarshalJSON() ([]byte, error) {
 			CreatedAt: u.CreatedAt,
 			UpdatedAt: u.UpdatedAt,
 		},
-		Name:       u.Name,
-		Email:      email,
-		FullName:   u.FullName,
-		URL:        u.URL,
-		AvatarURL:  u.AvatarURL,
-		GravatarID: u.GravatarID,
-		Stars:      u.Stars,
+		Name:           u.Name,
+		Email:          email,
+		EmailConfirmed: u.EmailConfirmed,
+		FullName:       u.FullName,
+		URL:            u.URL,
+		AvatarURL:      u.AvatarURL,
+		GravatarID:     u.GravatarID,
+		Stars:          u.Stars,
 	})
 }
 
@@ -129,15 +143,14 @@ func (u User) Upsert(db *gorm.DB) (User, error) {
 			}
 		}
 
-		// Note: Updates via structs only updates non-zero fields.
-		if err := tx.Model(&record).Updates(User{
-			Email:             u.Email,
-			FullName:          u.FullName,
-			GithubUserID:      u.GithubUserID,
-			GithubAccessToken: u.GithubAccessToken,
-			AvatarURL:         u.AvatarURL,
-			GravatarID:        u.GravatarID,
-		}).Error; err != nil {
+		record.Email = u.Email
+		record.EmailConfirmed = u.EmailConfirmed
+		record.FullName = u.FullName
+		record.GithubUserID = u.GithubUserID
+		record.GithubAccessToken = u.GithubAccessToken
+		record.AvatarURL = u.AvatarURL
+		record.GravatarID = u.GravatarID
+		if err := tx.Save(&record).Error; err != nil {
 			return fmt.Errorf("failed to update user: %w", err)
 		}
 
@@ -149,6 +162,37 @@ func (u User) Upsert(db *gorm.DB) (User, error) {
 	}
 
 	return QueryUser(db, map[string]interface{}{"name": u.Name})
+}
+
+// ConfirmEmail confirms a user email confirmation by updating the User record's
+// EmailConfirmed column and removing the associated UserEmailConfirmation record.
+// It returns an error upon database failure.
+func (u User) ConfirmEmail(db *gorm.DB, uec UserEmailConfirmation) (User, error) {
+	var record User
+
+	err := db.Transaction(func(tx *gorm.DB) error {
+		u.EmailConfirmed = true
+		u.Email = NewNullString(uec.Email)
+
+		user, err := u.Upsert(tx)
+		if err != nil {
+			return err
+		}
+
+		record = user
+
+		if err := tx.Where("user_id = ?", uec.UserID).Delete(uec).Error; err != nil {
+			return fmt.Errorf("failed to delete user confirmation email: %w", err)
+		}
+
+		// commit the tx
+		return nil
+	})
+	if err != nil {
+		return User{}, err
+	}
+
+	return record, nil
 }
 
 // AfterFind implements a GORM hook for updating a User record after it has
@@ -268,7 +312,7 @@ func (ut UserToken) IncrCount(db *gorm.DB) (UserToken, error) {
 }
 
 // BeforeCreate will create and set the UserToken UUID.
-func (ut *UserToken) BeforeCreate(tx *gorm.DB) error {
+func (ut *UserToken) BeforeCreate(_ *gorm.DB) error {
 	ut.Token = uuid.NewV4()
 	return nil
 }
@@ -314,4 +358,62 @@ func (u User) GetTokens(db *gorm.DB) ([]UserToken, error) {
 // CountTokens returns the total number of API tokens belonging to a User.
 func (u User) CountTokens(db *gorm.DB) int64 {
 	return db.Model(&u).Association("Tokens").Count()
+}
+
+// BeforeSave will create and set the UserEmailConfirmation UUID.
+func (uec *UserEmailConfirmation) BeforeSave(_ *gorm.DB) error {
+	uec.Token = uuid.NewV4()
+	return nil
+}
+
+// Upsert creates or updates a UserEmailConfirmation record. If no record exists
+// for a given unique user ID, a new record with a UUID token is created. Otherwise,
+// the existing UserEmailConfirmation record's UUID token is updated/regenerated.
+// It returns an error up database failure.
+func (uec UserEmailConfirmation) Upsert(db *gorm.DB) (UserEmailConfirmation, error) {
+	var record UserEmailConfirmation
+
+	err := db.Transaction(func(tx *gorm.DB) error {
+		err := tx.Where("user_id = ?", uec.UserID).First(&record).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				if err := tx.Create(&uec).Error; err != nil {
+					return fmt.Errorf("failed to create user email confirmation: %w", err)
+				}
+
+				// commit the tx
+				return nil
+			} else {
+				return fmt.Errorf("failed to query for user email confirmation: %w", err)
+			}
+		}
+
+		record.Email = uec.Email
+
+		if err := tx.Where("user_id = ?", uec.UserID).Save(&record).Error; err != nil {
+			return fmt.Errorf("failed to update user email confirmation: %w", err)
+		}
+
+		// commit the tx
+		return nil
+	})
+	if err != nil {
+		return UserEmailConfirmation{}, err
+	}
+
+	err = db.Where("user_id = ?", uec.UserID).First(&record).Error
+	return record, err
+}
+
+// QueryUserEmailConfirmation performs a query for a UserEmailConfirmation record.
+// The resulting record, if it exists, is returned. If the query fails or the
+// record does not exist, an error is returned.
+func QueryUserEmailConfirmation(db *gorm.DB, query map[string]interface{}) (UserEmailConfirmation, error) {
+	var record UserEmailConfirmation
+
+	if err := db.Where(query).First(&record).Error; err != nil {
+		return UserEmailConfirmation{}, fmt.Errorf("failed to query user email confirmation: %w", err)
+	}
+
+	return record, nil
 }

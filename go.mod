@@ -26,6 +26,8 @@ require (
 	github.com/rs/cors v1.7.0
 	github.com/rs/zerolog v1.20.0
 	github.com/satori/go.uuid v1.2.0
+	github.com/sendgrid/rest v2.6.2+incompatible // indirect
+	github.com/sendgrid/sendgrid-go v3.7.0+incompatible
 	github.com/stretchr/testify v1.6.1
 	github.com/swaggo/http-swagger v0.0.0-20200308142732-58ac5e232fba
 	github.com/swaggo/swag v1.6.7

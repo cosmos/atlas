@@ -60,6 +60,21 @@ const APIClient = {
     return this.perform("get", `/modules/search${pageURI}&q=${query}`);
   },
 
+  confirmEmail(token) {
+    return this.perform("put", `/me/confirm/${token}`);
+  },
+
+  inviteModuleOwner(user, moduleID) {
+    return this.perform("put", "/me/invite", {
+      user: user,
+      module_id: moduleID
+    });
+  },
+
+  acceptModuleOwnerInvite(token) {
+    return this.perform("put", `/me/invite/accept/${token}`);
+  },
+
   async perform(method, resource, data) {
     return client({ method, url: resource, data, headers: {} }).then(req => {
       return req.data;
