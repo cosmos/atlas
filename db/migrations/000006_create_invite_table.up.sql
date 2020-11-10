@@ -7,7 +7,7 @@ CREATE TABLE module_owner_invites (
   created_at TIMESTAMPTZ NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL
 );
-CREATE UNIQUE INDEX IF NOT EXISTS idx_module_owner_invites ON module_owner_invites(module_id, invited_user_id, invited_by_user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_module_owner_invites ON module_owner_invites(module_id, invited_user_id);
 CREATE INDEX IF NOT EXISTS idx_module_owner_invites_invited_user_id ON module_owner_invites(invited_user_id);
 CREATE INDEX IF NOT EXISTS idx_module_owner_invites_invited_by_user_id ON module_owner_invites(invited_by_user_id);
 COMMIT;
