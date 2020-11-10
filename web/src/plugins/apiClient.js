@@ -64,6 +64,13 @@ const APIClient = {
     return this.perform("put", `/me/confirm/${token}`);
   },
 
+  inviteModuleOwner(user, moduleID) {
+    return this.perform("put", "/me/invite", {
+      user: user,
+      module_id: moduleID
+    });
+  },
+
   acceptModuleOwnerInvite(token) {
     return this.perform("put", `/me/invite/accept/${token}`);
   },
