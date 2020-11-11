@@ -8,6 +8,9 @@ import (
 )
 
 func TestGitHubClient_GetRepository(t *testing.T) {
+	// Note: An API access key is not necessarily required to execute this test,
+	// however, API limits are easily reached if executed multiple times in a short
+	// timeframe.
 	client := NewGitHubClient(os.Getenv("ATLAS_TEST_GITHUB_ACCESS_KEY"))
 
 	testCases := []struct {
