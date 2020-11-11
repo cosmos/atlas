@@ -1598,8 +1598,7 @@ var doc = `{
             "type": "object",
             "required": [
                 "name",
-                "repo",
-                "team"
+                "repo"
             ],
             "properties": {
                 "description": {
@@ -1621,9 +1620,6 @@ var doc = `{
                     "type": "string"
                 },
                 "repo": {
-                    "type": "string"
-                },
-                "team": {
                     "type": "string"
                 }
             }

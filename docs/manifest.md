@@ -5,7 +5,6 @@ The manifest schema is defined as follows
 
 - [[module]](#module)
   - [name](#name-required)
-  - [team](#team-required)
   - [description](#description)
   - [documentation](#documentation)
   - [homepage](#homepage)
@@ -36,17 +35,6 @@ be unique.
 [module]
 
 name = "x/poa"
-```
-
-### `team` (required)
-
-The team or organization that primarily owns and maintains
-the module. The team combined with the `name` must be globally unique.
-
-```toml
-[module]
-
-team = "Interchain"
 ```
 
 ### `description`
