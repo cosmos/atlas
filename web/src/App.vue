@@ -27,6 +27,10 @@ export default {
 </script>
 
 <style>
+.vue-notification-group {
+  z-index: 99999;
+}
+
 .error-notification {
   width: 500px;
   top: 30px !important;
