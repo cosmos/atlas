@@ -85,10 +85,10 @@
             </li>
             <li class="nav-item">
               <a
-                href="https://github.com/cosmos/ics"
+                href="https://github.com/cosmos/atlas"
                 class="nav-link"
                 target="_blank"
-                >Interchain Standards</a
+                >GitHub</a
               >
             </li>
           </ul>
