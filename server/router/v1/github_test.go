@@ -1,14 +1,14 @@
 package v1
 
 import (
-	"fmt"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
-func TestGitHubClient_GetRepository_Unauth(t *testing.T) {
-	client := NewGitHubClient("")
+func TestGitHubClient_GetRepository(t *testing.T) {
+	client := NewGitHubClient(os.Getenv("ATLAS_TEST_GITHUB_ACCESS_KEY"))
 
 	testCases := []struct {
 		name        string
@@ -62,7 +62,6 @@ func TestGitHubClient_GetRepository_Unauth(t *testing.T) {
 				require.Equal(t, tc.expectOwner, repo.Owner)
 				require.Equal(t, tc.expectRepo, repo.Repo)
 				require.Greater(t, len(repo.Contributors), 0)
-				fmt.Println(len(repo.Contributors))
 			}
 		})
 	}
