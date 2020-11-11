@@ -13,9 +13,9 @@ const GlobalMixins = {
           document.body.classList.add(bodyClass);
         }
 
-        if (this.$store != null && !this.$store.getters.isAuthenticated) {
-          this.$store.dispatch("getUser");
-        }
+        // if (this.$store != null && !this.$store.getters.isAuthenticated) {
+        //   this.$store.dispatch("getUser");
+        // }
 
         this.$Progress.finish();
       },
