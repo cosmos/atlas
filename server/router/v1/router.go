@@ -74,7 +74,6 @@ func NewRouter(
 	oauth2Cfg *oauth2.Config,
 	ghClientCreator func(string) GitHubClientI,
 ) (*Router, error) {
-
 	sqlDB, _ := db.DB()
 	healthChecker, err := httputil.CreateHealthChecker(sqlDB, true)
 	if err != nil {
