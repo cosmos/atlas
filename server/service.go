@@ -82,7 +82,16 @@ func NewService(logger zerolog.Logger, cfg config.Config) (*Service, error) {
 		},
 	}
 
-	v1Router, err := v1.NewRouter(service.logger, cfg, service.db, service.cookieCfg, service.sessionStore, service.oauth2Cfg)
+	v1Router, err := v1.NewRouter(
+		service.logger,
+		cfg, service.db,
+		service.cookieCfg,
+		service.sessionStore,
+		service.oauth2Cfg,
+		func(token string) v1.GitHubClientI {
+			return v1.NewGitHubClient(token)
+		},
+	)
 	if err != nil {
 		return nil, err
 	}

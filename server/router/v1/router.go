@@ -53,18 +53,28 @@ var (
 // Router implements a versioned HTTP router responsible for handling all v1 API
 // requests
 type Router struct {
-	logger        zerolog.Logger
-	cfg           config.Config
-	db            *gorm.DB
-	cookieCfg     gologin.CookieConfig
-	sessionStore  *sessions.CookieStore
-	oauth2Cfg     *oauth2.Config
-	healthChecker *health.Health
-	validate      *validator.Validate
-	sanitizer     Sanitizer
+	logger          zerolog.Logger
+	cfg             config.Config
+	db              *gorm.DB
+	cookieCfg       gologin.CookieConfig
+	sessionStore    *sessions.CookieStore
+	oauth2Cfg       *oauth2.Config
+	healthChecker   *health.Health
+	validate        *validator.Validate
+	sanitizer       Sanitizer
+	ghClientCreator func(string) GitHubClientI
 }
 
-func NewRouter(logger zerolog.Logger, cfg config.Config, db *gorm.DB, cookieCfg gologin.CookieConfig, sStore *sessions.CookieStore, oauth2Cfg *oauth2.Config) (*Router, error) {
+func NewRouter(
+	logger zerolog.Logger,
+	cfg config.Config,
+	db *gorm.DB,
+	cookieCfg gologin.CookieConfig,
+	sStore *sessions.CookieStore,
+	oauth2Cfg *oauth2.Config,
+	ghClientCreator func(string) GitHubClientI,
+) (*Router, error) {
+
 	sqlDB, _ := db.DB()
 	healthChecker, err := httputil.CreateHealthChecker(sqlDB, true)
 	if err != nil {
@@ -72,15 +82,16 @@ func NewRouter(logger zerolog.Logger, cfg config.Config, db *gorm.DB, cookieCfg 
 	}
 
 	return &Router{
-		logger:        logger,
-		cfg:           cfg,
-		db:            db,
-		cookieCfg:     cookieCfg,
-		sessionStore:  sStore,
-		oauth2Cfg:     oauth2Cfg,
-		healthChecker: healthChecker,
-		validate:      validator.New(),
-		sanitizer:     newSanitizer(),
+		logger:          logger,
+		cfg:             cfg,
+		db:              db,
+		cookieCfg:       cookieCfg,
+		sessionStore:    sStore,
+		oauth2Cfg:       oauth2Cfg,
+		healthChecker:   healthChecker,
+		validate:        validator.New(),
+		sanitizer:       newSanitizer(),
+		ghClientCreator: ghClientCreator,
 	}, nil
 }
 
@@ -241,8 +252,14 @@ func (r *Router) Register(rtr *mux.Router, prefix string) {
 	).Methods(httputil.MethodPOST)
 }
 
-// UpsertModule implements a request handler to create or update a Cosmos SDK
-// module.
+// UpsertModule implements a request handler to publish a Cosmos SDK module.
+// The authorized user is considered to be the publisher. The publisher must be
+// an owner of the module and a contributor to the GitHub repository. If the
+// module does not exist, the publisher is considered to be the first and only
+// owner and subsequent owners may be invited by the publisher. An error is
+// returned if the request body is invalid, the user is not authorized or if any
+// database transaction fails.
+//
 // @Summary Publish a Cosmos SDK module
 // @Tags modules
 // @Accept  json
@@ -274,11 +291,32 @@ func (r *Router) UpsertModule() http.HandlerFunc {
 		}
 
 		module := ModuleFromManifest(request, r.sanitizer)
+		ghClient := r.ghClientCreator(authUser.GithubAccessToken.String)
+
+		repo, err := ghClient.GetRepository(module.Repo)
+		if err != nil {
+			httputil.RespondWithError(w, http.StatusBadRequest, err)
+			return
+		}
+
+		// verify the publisher is a contributor to the repository
+		var isContributor bool
+		for i := 0; i < len(repo.Contributors) && !isContributor; i++ {
+			if authUser.Name == repo.Contributors[i] {
+				isContributor = true
+			}
+		}
+
+		if !isContributor {
+			httputil.RespondWithError(w, http.StatusBadRequest, fmt.Errorf("publisher '%s' is not a contributor of this module", authUser.Name))
+			return
+		}
+
+		// set the module's team as the GitHub repository owner
+		module.Team = repo.Owner
 
 		// The publisher must already be an existing owner or must have accepted an
 		// invitation by an existing owner.
-		//
-		// TODO: Handle invitations to allow other users to update existing modules.
 		record, err := models.QueryModule(r.db, map[string]interface{}{"name": module.Name, "team": module.Team})
 		if err == nil {
 			// the module already exists so we check if the publisher is an owner
@@ -296,6 +334,8 @@ func (r *Router) UpsertModule() http.HandlerFunc {
 
 			module.Owners = record.Owners
 		} else {
+			// Otherwise, the module is new and we automatically assign the publisher
+			// as the first and only owner.
 			module.Owners = []models.User{authUser}
 		}
 
@@ -623,6 +663,7 @@ func (r *Router) GetUserModules() http.HandlerFunc {
 
 // InviteOwner implements a request handler to invite a user to be an owner of a
 // module.
+//
 // @Summary Invite a user to be an owner of a module
 // @Tags users
 // @Produce  json
