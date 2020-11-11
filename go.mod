@@ -14,6 +14,7 @@ require (
 	github.com/go-playground/validator/v10 v10.4.0
 	github.com/golang-migrate/migrate/v4 v4.13.0
 	github.com/google/go-github v17.0.0+incompatible
+	github.com/google/go-github/v32 v32.1.0
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/sessions v1.2.1
 	github.com/joho/godotenv v1.3.0
