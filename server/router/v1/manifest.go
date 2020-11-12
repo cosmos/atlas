@@ -8,7 +8,6 @@ type (
 	// ModuleManifest defines the primary module fields in a module's manifest.
 	ModuleManifest struct {
 		Name          string   `json:"name" toml:"name" validate:"required"`
-		Team          string   `json:"team" toml:"team" validate:"required"`
 		Repo          string   `json:"repo" toml:"repo" validate:"required,url"`
 		Keywords      []string `json:"keywords" toml:"keywords" validate:"omitempty,gt=0,unique,dive,gt=0"`
 		Description   string   `json:"description" toml:"description"`
@@ -73,7 +72,6 @@ func ModuleFromManifest(manifest Manifest, sanitizer Sanitizer) models.Module {
 
 	return models.Module{
 		Name:          manifest.Module.Name,
-		Team:          manifest.Module.Team,
 		Repo:          sanitizer.Sanitize(manifest.Module.Repo),
 		Description:   sanitizer.Sanitize(manifest.Module.Description),
 		Documentation: sanitizer.Sanitize(manifest.Module.Documentation),

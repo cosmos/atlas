@@ -11,7 +11,6 @@ func TestModuleFromManifest(t *testing.T) {
 	manifest := Manifest{
 		Module: ModuleManifest{
 			Name:          "x/test",
-			Team:          "test_team",
 			Repo:          "https://github.com/test/test-repo",
 			Keywords:      []string{"tokens", "transfer"},
 			Description:   "A test description about a test module.",
@@ -34,7 +33,6 @@ func TestModuleFromManifest(t *testing.T) {
 
 	module := ModuleFromManifest(manifest, newSanitizer())
 	require.Equal(t, manifest.Module.Name, module.Name)
-	require.Equal(t, manifest.Module.Team, module.Team)
 	require.Equal(t, manifest.Module.Repo, module.Repo)
 	require.Equal(t, manifest.Module.Description, module.Description)
 	require.Equal(t, manifest.Module.Homepage, module.Homepage)
@@ -66,7 +64,6 @@ func TestValidateManifest(t *testing.T) {
 			Manifest{
 				Module: ModuleManifest{
 					Name:          "x/test",
-					Team:          "test_team",
 					Repo:          "https://github.com/test/test-repo",
 					Keywords:      []string{"tokens", "transfer"},
 					Description:   "A test description about a test module.",
@@ -93,7 +90,6 @@ func TestValidateManifest(t *testing.T) {
 			Manifest{
 				Module: ModuleManifest{
 					Name:          "x/test",
-					Team:          "test_team",
 					Repo:          "https://github.com/test/test-repo",
 					Keywords:      []string{"tokens", "transfer"},
 					Description:   "A test description about a test module.",
@@ -116,7 +112,6 @@ func TestValidateManifest(t *testing.T) {
 			Manifest{
 				Module: ModuleManifest{
 					Name:          "x/test",
-					Team:          "test_team",
 					Repo:          "https://github.com/test/test-repo",
 					Keywords:      []string{"tokens", "transfer"},
 					Description:   "A test description about a test module.",

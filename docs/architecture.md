@@ -47,6 +47,10 @@ token. Once logged in, the owner can publish a new or existing module which they
 have access to. Publishing modules requires a valid manifest. See [here](./manifest.md)
 for more information.
 
+Publishers can publish a Cosmos SDK module only if they are an owner of the
+respective module and a contributor to the GitHub repository where the module
+resides in.
+
 ## Router
 
 All Atlas API routes are versioned via with a path prefix of `/api/<version>`.

@@ -53,18 +53,27 @@ var (
 // Router implements a versioned HTTP router responsible for handling all v1 API
 // requests
 type Router struct {
-	logger        zerolog.Logger
-	cfg           config.Config
-	db            *gorm.DB
-	cookieCfg     gologin.CookieConfig
-	sessionStore  *sessions.CookieStore
-	oauth2Cfg     *oauth2.Config
-	healthChecker *health.Health
-	validate      *validator.Validate
-	sanitizer     Sanitizer
+	logger          zerolog.Logger
+	cfg             config.Config
+	db              *gorm.DB
+	cookieCfg       gologin.CookieConfig
+	sessionStore    *sessions.CookieStore
+	oauth2Cfg       *oauth2.Config
+	healthChecker   *health.Health
+	validate        *validator.Validate
+	sanitizer       Sanitizer
+	ghClientCreator func(string) GitHubClientI
 }
 
-func NewRouter(logger zerolog.Logger, cfg config.Config, db *gorm.DB, cookieCfg gologin.CookieConfig, sStore *sessions.CookieStore, oauth2Cfg *oauth2.Config) (*Router, error) {
+func NewRouter(
+	logger zerolog.Logger,
+	cfg config.Config,
+	db *gorm.DB,
+	cookieCfg gologin.CookieConfig,
+	sStore *sessions.CookieStore,
+	oauth2Cfg *oauth2.Config,
+	ghClientCreator func(string) GitHubClientI,
+) (*Router, error) {
 	sqlDB, _ := db.DB()
 	healthChecker, err := httputil.CreateHealthChecker(sqlDB, true)
 	if err != nil {
@@ -72,15 +81,16 @@ func NewRouter(logger zerolog.Logger, cfg config.Config, db *gorm.DB, cookieCfg 
 	}
 
 	return &Router{
-		logger:        logger,
-		cfg:           cfg,
-		db:            db,
-		cookieCfg:     cookieCfg,
-		sessionStore:  sStore,
-		oauth2Cfg:     oauth2Cfg,
-		healthChecker: healthChecker,
-		validate:      validator.New(),
-		sanitizer:     newSanitizer(),
+		logger:          logger,
+		cfg:             cfg,
+		db:              db,
+		cookieCfg:       cookieCfg,
+		sessionStore:    sStore,
+		oauth2Cfg:       oauth2Cfg,
+		healthChecker:   healthChecker,
+		validate:        validator.New(),
+		sanitizer:       newSanitizer(),
+		ghClientCreator: ghClientCreator,
 	}, nil
 }
 
@@ -241,8 +251,14 @@ func (r *Router) Register(rtr *mux.Router, prefix string) {
 	).Methods(httputil.MethodPOST)
 }
 
-// UpsertModule implements a request handler to create or update a Cosmos SDK
-// module.
+// UpsertModule implements a request handler to publish a Cosmos SDK module.
+// The authorized user is considered to be the publisher. The publisher must be
+// an owner of the module and a contributor to the GitHub repository. If the
+// module does not exist, the publisher is considered to be the first and only
+// owner and subsequent owners may be invited by the publisher. An error is
+// returned if the request body is invalid, the user is not authorized or if any
+// database transaction fails.
+//
 // @Summary Publish a Cosmos SDK module
 // @Tags modules
 // @Accept  json
@@ -274,11 +290,32 @@ func (r *Router) UpsertModule() http.HandlerFunc {
 		}
 
 		module := ModuleFromManifest(request, r.sanitizer)
+		ghClient := r.ghClientCreator(authUser.GithubAccessToken.String)
+
+		repo, err := ghClient.GetRepository(module.Repo)
+		if err != nil {
+			httputil.RespondWithError(w, http.StatusBadRequest, err)
+			return
+		}
+
+		// verify the publisher is a contributor to the repository
+		var isContributor bool
+		for i := 0; i < len(repo.Contributors) && !isContributor; i++ {
+			if authUser.Name == repo.Contributors[i] {
+				isContributor = true
+			}
+		}
+
+		if !isContributor {
+			httputil.RespondWithError(w, http.StatusBadRequest, fmt.Errorf("publisher '%s' is not a contributor of this module", authUser.Name))
+			return
+		}
+
+		// set the module's team as the GitHub repository owner
+		module.Team = repo.Owner
 
 		// The publisher must already be an existing owner or must have accepted an
 		// invitation by an existing owner.
-		//
-		// TODO: Handle invitations to allow other users to update existing modules.
 		record, err := models.QueryModule(r.db, map[string]interface{}{"name": module.Name, "team": module.Team})
 		if err == nil {
 			// the module already exists so we check if the publisher is an owner
@@ -296,6 +333,8 @@ func (r *Router) UpsertModule() http.HandlerFunc {
 
 			module.Owners = record.Owners
 		} else {
+			// Otherwise, the module is new and we automatically assign the publisher
+			// as the first and only owner.
 			module.Owners = []models.User{authUser}
 		}
 
@@ -310,6 +349,7 @@ func (r *Router) UpsertModule() http.HandlerFunc {
 }
 
 // GetModuleByID implements a request handler to retrieve a module by ID.
+//
 // @Summary Get a Cosmos SDK module by ID
 // @Tags modules
 // @Accept  json
@@ -348,6 +388,7 @@ func (r *Router) GetModuleByID() http.HandlerFunc {
 
 // SearchModules implements a request handler to retrieve a set of module objects
 // by search criteria.
+//
 // @Summary Search for Cosmos SDK modules by name, team, description and keywords
 // @Tags modules
 // @Accept  json
@@ -384,6 +425,7 @@ func (r *Router) SearchModules() http.HandlerFunc {
 
 // GetAllModules implements a request handler returning a paginated set of
 // modules.
+//
 // @Summary Return a paginated set of all Cosmos SDK modules
 // @Tags modules
 // @Accept  json
@@ -417,6 +459,7 @@ func (r *Router) GetAllModules() http.HandlerFunc {
 
 // GetModuleVersions implements a request handler to retrieve a module's set of
 // versions by ID.
+//
 // @Summary Get all versions for a Cosmos SDK module by ID
 // @Tags modules
 // @Accept  json
@@ -455,6 +498,7 @@ func (r *Router) GetModuleVersions() http.HandlerFunc {
 
 // GetModuleAuthors implements a request handler to retrieve a module's set of
 // authors by ID.
+//
 // @Summary Get all authors for a Cosmos SDK module by ID
 // @Tags modules
 // @Accept  json
@@ -493,6 +537,7 @@ func (r *Router) GetModuleAuthors() http.HandlerFunc {
 
 // GetModuleKeywords implements a request handler to retrieve a module's set of
 // keywords by ID.
+//
 // @Summary Get all keywords for a Cosmos SDK module by ID
 // @Tags modules
 // @Accept  json
@@ -530,6 +575,7 @@ func (r *Router) GetModuleKeywords() http.HandlerFunc {
 }
 
 // GetUserByID implements a request handler to retrieve a user by name.
+//
 // @Summary Get a user by name
 // @Tags users
 // @Accept  json
@@ -560,6 +606,7 @@ func (r *Router) GetUserByName() http.HandlerFunc {
 
 // GetAllUsers implements a request handler returning a paginated set of
 // users.
+//
 // @Summary Return a paginated set of all users
 // @Tags users
 // @Accept  json
@@ -593,6 +640,7 @@ func (r *Router) GetAllUsers() http.HandlerFunc {
 
 // GetUserModules implements a request handler to retrieve a set of modules
 // authored by a given user by name.
+//
 // @Summary Return a set of all Cosmos SDK modules published by a given user
 // @Tags users
 // @Accept  json
@@ -623,6 +671,7 @@ func (r *Router) GetUserModules() http.HandlerFunc {
 
 // InviteOwner implements a request handler to invite a user to be an owner of a
 // module.
+//
 // @Summary Invite a user to be an owner of a module
 // @Tags users
 // @Produce  json
@@ -710,6 +759,7 @@ func (r *Router) InviteOwner() http.HandlerFunc {
 
 // AcceptOwnerInvite implements a request handler for accepting a module owner
 // invitation.
+//
 // @Summary Accept a module owner invitation
 // @Tags users
 // @Produce  json
@@ -765,6 +815,7 @@ func (r *Router) AcceptOwnerInvite() http.HandlerFunc {
 
 // CreateUserToken implements a request handler that creates a new API token for
 // the authenticated user.
+//
 // @Summary Create a user API token
 // @Tags users
 // @Produce  json
@@ -812,6 +863,7 @@ func (r *Router) CreateUserToken() http.HandlerFunc {
 
 // GetUserTokens implements a request handler returning all of an authenticated
 // user's tokens.
+//
 // @Summary Get all API tokens by user ID
 // @Tags users
 // @Produce  json
@@ -840,6 +892,7 @@ func (r *Router) GetUserTokens() http.HandlerFunc {
 
 // RevokeUserToken implements a request handler revoking a specific token from
 // the authorized user.
+//
 // @Summary Revoke a user API token by ID
 // @Tags users
 // @Produce  json
@@ -890,6 +943,7 @@ func (r *Router) RevokeUserToken() http.HandlerFunc {
 
 // StarModule implements a request handler for adding a favorite by a user to a
 // given module.
+//
 // @Summary Add a favorite for a module
 // @Tags modules
 // @Produce  json
@@ -941,6 +995,7 @@ func (r *Router) StarModule() http.HandlerFunc {
 
 // UnStarModule implements a request handler for removing a favorite by a user
 // to a given module.
+//
 // @Summary Remove a favorite for a module
 // @Tags modules
 // @Produce  json
@@ -991,6 +1046,7 @@ func (r *Router) UnStarModule() http.HandlerFunc {
 }
 
 // GetUser returns the current authenticated user.
+//
 // @Summary Get the current authenticated user
 // @Tags users
 // @Produce  json
@@ -1011,6 +1067,7 @@ func (r *Router) GetUser() http.HandlerFunc {
 }
 
 // UpdateUser updates an existing user record.
+//
 // @Summary Update the current authenticated user
 // @Tags users
 // @Produce  json
@@ -1076,6 +1133,7 @@ func (r *Router) UpdateUser() http.HandlerFunc {
 }
 
 // ConfirmEmail implements a request handler for confirming a user email address.
+//
 // @Summary Confirm a user email confirmation
 // @Tags users
 // @Produce  json
@@ -1119,6 +1177,7 @@ func (r *Router) ConfirmEmail() http.HandlerFunc {
 
 // GetAllKeywords implements a request handler returning a paginated set of
 // keywords.
+//
 // @Summary Return a paginated set of all keywords
 // @Tags keywords
 // @Accept  json

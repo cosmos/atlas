@@ -307,12 +307,9 @@ definitions:
         type: string
       repo:
         type: string
-      team:
-        type: string
     required:
     - name
     - repo
-    - team
     type: object
   v1.ModuleStars:
     properties:

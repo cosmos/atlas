@@ -21,7 +21,6 @@ func TestPublishCommand_DryRun_Valid(t *testing.T) {
 	manifest := v1.Manifest{
 		Module: v1.ModuleManifest{
 			Name:          "x/test",
-			Team:          "test_team",
 			Repo:          "https://github.com/test/test-repo",
 			Keywords:      []string{"tokens", "transfer"},
 			Description:   "A test description about a test module.",
@@ -68,7 +67,6 @@ func TestPublishCommand_DryRun_Invalid(t *testing.T) {
 
 	manifest := v1.Manifest{
 		Module: v1.ModuleManifest{
-			Team:          "test_team",
 			Repo:          "https://github.com/test/test-repo",
 			Keywords:      []string{"tokens", "transfer"},
 			Description:   "A test description about a test module.",

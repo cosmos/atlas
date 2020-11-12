@@ -38,6 +38,20 @@ import (
 	"github.com/cosmos/atlas/server/models"
 )
 
+type testGitHubClient struct {
+	contributors []string
+}
+
+func (tgc testGitHubClient) GetRepository(repoURL string) (Repository, error) {
+	repo, err := parseGitHubRepo(repoURL)
+	if err != nil {
+		return Repository{}, err
+	}
+
+	repo.Contributors = tgc.contributors
+	return repo, nil
+}
+
 type RouterTestSuite struct {
 	suite.Suite
 
@@ -89,6 +103,9 @@ func (rts *RouterTestSuite) SetupSuite() {
 		gologin.DebugOnlyCookieConfig,
 		sessionStore,
 		&oauth2.Config{},
+		func(_ string) GitHubClientI {
+			return testGitHubClient{contributors: []string{"foo"}}
+		},
 	)
 	rts.Require().NoError(err)
 
@@ -880,7 +897,7 @@ func (rts *RouterTestSuite) TestUpsertModule() {
 	req, err := http.NewRequest("GET", "/", nil)
 	rts.Require().NoError(err)
 
-	req = rts.authorizeRequest(req, "test_token", "test_user", 12345)
+	req = rts.authorizeRequest(req, "test_token", "foo", 12345)
 
 	upsertURL, err := url.Parse("/api/v1/modules")
 	rts.Require().NoError(err)
@@ -1038,7 +1055,53 @@ func (rts *RouterTestSuite) TestUpsertModule() {
 	}
 }
 
-func (rts *RouterTestSuite) TestCreateModule_Unauthorized() {
+func (rts *RouterTestSuite) TestUpsertModule_NonContrib() {
+	rts.resetDB()
+
+	req, err := http.NewRequest("GET", "/", nil)
+	rts.Require().NoError(err)
+
+	req = rts.authorizeRequest(req, "test_token", "bar", 12345)
+
+	upsertURL, err := url.Parse("/api/v1/modules")
+	rts.Require().NoError(err)
+
+	body := map[string]interface{}{
+		"module": map[string]interface{}{
+			"name":     "x/bank",
+			"team":     "cosmonauts",
+			"repo":     "https://github.com/cosmos/cosmos-sdk",
+			"keywords": []string{"tokens"},
+		},
+		"authors": []map[string]interface{}{
+			{
+				"name": "foo", "email": "foo@email.com",
+			},
+		},
+		"version": map[string]interface{}{
+			"version": "v1.0.0",
+		},
+		"bug_tracker": map[string]interface{}{
+			"url":     "https://cosmonauts.com",
+			"contact": "contact@cosmonauts.com",
+		},
+	}
+
+	bz, err := json.Marshal(body)
+	rts.Require().NoError(err)
+
+	req.Method = httputil.MethodPUT
+	req.URL = upsertURL
+	req.Body = ioutil.NopCloser(bytes.NewBuffer(bz))
+	req.ContentLength = int64(len(bz))
+
+	rr := httptest.NewRecorder()
+	rts.mux.ServeHTTP(rr, req)
+
+	rts.Require().Equal(http.StatusBadRequest, rr.Code, rr.Body.String())
+}
+
+func (rts *RouterTestSuite) TestUpsertModule_Unauthorized() {
 	rts.resetDB()
 
 	body := map[string]interface{}{
@@ -1077,7 +1140,7 @@ func (rts *RouterTestSuite) TestCreateModule_InvalidOwner() {
 	req2, err := http.NewRequest("GET", "/", nil)
 	rts.Require().NoError(err)
 
-	req1 = rts.authorizeRequest(req1, "test_token1", "test_user1", 12345)
+	req1 = rts.authorizeRequest(req1, "test_token1", "foo", 12345)
 	req2 = rts.authorizeRequest(req2, "test_token2", "test_user2", 67899)
 
 	upsertURL, err := url.Parse("/api/v1/modules")
@@ -1198,7 +1261,7 @@ func (rts *RouterTestSuite) TestGetUserTokens() {
 	req, err := http.NewRequest(httputil.MethodGET, "/", nil)
 	rts.Require().NoError(err)
 
-	req = rts.authorizeRequest(req, "test_token1", "test_user1", 123456)
+	req = rts.authorizeRequest(req, "test_token1", "foo", 123456)
 	req.Method = httputil.MethodPUT
 	req.URL = unAuthReq.URL
 
@@ -1300,7 +1363,7 @@ func (rts *RouterTestSuite) TestGetUserByName() {
 	req1, err := http.NewRequest("GET", "/", nil)
 	rts.Require().NoError(err)
 
-	req1 = rts.authorizeRequest(req1, "test_token1", "test_user1", 12345)
+	req1 = rts.authorizeRequest(req1, "test_token1", "foo", 12345)
 
 	upsertURL, err := url.Parse("/api/v1/modules")
 	rts.Require().NoError(err)
@@ -1366,7 +1429,7 @@ func (rts *RouterTestSuite) TestGetUser() {
 	req1, err := http.NewRequest("GET", "/", nil)
 	rts.Require().NoError(err)
 
-	req1 = rts.authorizeRequest(req1, "test_token1", "test_user1", 12345)
+	req1 = rts.authorizeRequest(req1, "test_token1", "foo", 12345)
 
 	upsertURL, err := url.Parse("/api/v1/modules")
 	rts.Require().NoError(err)
@@ -1431,7 +1494,7 @@ func (rts *RouterTestSuite) TestUpdateUser() {
 	req1, err := http.NewRequest("GET", "/", nil)
 	rts.Require().NoError(err)
 
-	req1 = rts.authorizeRequest(req1, "test_token1", "test_user1", 12345)
+	req1 = rts.authorizeRequest(req1, "test_token1", "foo", 12345)
 
 	upsertURL, err := url.Parse("/api/v1/modules")
 	rts.Require().NoError(err)
@@ -1524,7 +1587,7 @@ func (rts *RouterTestSuite) TestConfirmEmail() {
 	req1, err := http.NewRequest("GET", "/", nil)
 	rts.Require().NoError(err)
 
-	req1 = rts.authorizeRequest(req1, "test_token1", "test_user1", 12345)
+	req1 = rts.authorizeRequest(req1, "test_token1", "foo", 12345)
 
 	upsertURL, err := url.Parse("/api/v1/modules")
 	rts.Require().NoError(err)
@@ -1641,7 +1704,7 @@ func (rts *RouterTestSuite) TestInviteModuleOwner() {
 	req1, err := http.NewRequest("GET", "/", nil)
 	rts.Require().NoError(err)
 
-	req1 = rts.authorizeRequest(req1, "test_token1", "test_user1", 12345)
+	req1 = rts.authorizeRequest(req1, "test_token1", "foo", 12345)
 
 	inviteURL, err := url.Parse("/api/v1/me/invite")
 	rts.Require().NoError(err)
@@ -1796,7 +1859,7 @@ func (rts *RouterTestSuite) TestStarModule() {
 	req1, err := http.NewRequest("GET", "/", nil)
 	rts.Require().NoError(err)
 
-	req1 = rts.authorizeRequest(req1, "test_token1", "test_user1", 12345)
+	req1 = rts.authorizeRequest(req1, "test_token1", "foo", 12345)
 
 	upsertURL, err := url.Parse("/api/v1/modules")
 	rts.Require().NoError(err)
