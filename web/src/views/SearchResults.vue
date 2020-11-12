@@ -115,7 +115,7 @@
         </div>
         <div class="row justify-content-center" v-if="noMatch">
           <img
-            class="card-img"
+            class="card-img floating-img"
             src="/img/cosmosnaut-floating.svg"
             style="width: 350px; height: 350px"
           />
@@ -293,5 +293,17 @@ div.main {
   padding-left: 5px;
   margin-bottom: 0%;
   font-size: 1.2rem;
+}
+
+@keyframes floating {
+  0% {
+    transform: translate(0, 0px);
+  }
+  50% {
+    transform: translate(0, 15px);
+  }
+  100% {
+    transform: translate(0, -0px);
+  }
 }
 </style>

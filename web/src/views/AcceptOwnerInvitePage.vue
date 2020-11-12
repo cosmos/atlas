@@ -15,7 +15,7 @@
                   </h1>
                   <div v-if="moduleInviteAccepted <= -1">
                     <img
-                      class="card-img"
+                      class="card-img floating-img"
                       src="/img/cosmosnaut-floating.svg"
                       style="width: 350px; height: 350px; padding-bottom: 30px;"
                     />
@@ -75,4 +75,16 @@ export default {
 };
 </script>
 
-<style></style>
+<style>
+@keyframes floating {
+  0% {
+    transform: translate(0, 0px);
+  }
+  50% {
+    transform: translate(0, 15px);
+  }
+  100% {
+    transform: translate(0, -0px);
+  }
+}
+</style>
