@@ -47,3 +47,6 @@ sendgrid.api.key = "..."
 
 # The domain name used for sending email confirmation requests.
 domain.name = "https://atlas.cosmos.network"
+
+# Papertrail destination address for log streaming.
+papertrail.addr = "logsN.papertrailapp.com:XXXX"
