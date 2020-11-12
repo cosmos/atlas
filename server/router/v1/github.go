@@ -22,7 +22,7 @@ type (
 	Repository struct {
 		Owner        string
 		Repo         string
-		Contributors []string
+		Contributors map[string]*github.Contributor
 	}
 )
 
@@ -63,17 +63,16 @@ func (gc *GitHubClient) GetRepository(repoURL string) (Repository, error) {
 		return Repository{}, fmt.Errorf("unexpected owner; got: %s, want: %s", ghRepo.Owner.GetLogin(), repo.Owner)
 	}
 
-	contributors := make([]string, 0)
-
 	opts := &github.ListContributorsOptions{Anon: "false", ListOptions: github.ListOptions{Page: 1, PerPage: 100}}
 	ghContributors, _, err := gc.Repositories.ListContributors(context.Background(), repo.Owner, repo.Repo, opts)
 	if err != nil {
 		return Repository{}, fmt.Errorf("failed to get repository contributors: %w", err)
 	}
 
+	contributors := make(map[string]*github.Contributor)
 	for len(ghContributors) > 0 {
 		for _, c := range ghContributors {
-			contributors = append(contributors, c.GetLogin())
+			contributors[c.GetLogin()] = c
 		}
 
 		opts = &github.ListContributorsOptions{Anon: "false", ListOptions: github.ListOptions{Page: opts.Page + 1, PerPage: 100}}

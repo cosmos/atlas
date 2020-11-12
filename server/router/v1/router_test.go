@@ -22,6 +22,7 @@ import (
 	migratepg "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	gogithub "github.com/google/go-github/github"
+	githubclient "github.com/google/go-github/v32/github"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"github.com/knadh/koanf"
@@ -48,7 +49,12 @@ func (tgc testGitHubClient) GetRepository(repoURL string) (Repository, error) {
 		return Repository{}, err
 	}
 
-	repo.Contributors = tgc.contributors
+	contributors := make(map[string]*githubclient.Contributor)
+	for _, c := range tgc.contributors {
+		contributors[c] = nil
+	}
+
+	repo.Contributors = contributors
 	return repo, nil
 }
 

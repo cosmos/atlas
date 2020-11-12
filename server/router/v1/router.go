@@ -300,9 +300,10 @@ func (r *Router) UpsertModule() http.HandlerFunc {
 
 		// verify the publisher is a contributor to the repository
 		var isContributor bool
-		for i := 0; i < len(repo.Contributors) && !isContributor; i++ {
-			if authUser.Name == repo.Contributors[i] {
+		for user := range repo.Contributors {
+			if authUser.Name == user {
 				isContributor = true
+				break
 			}
 		}
 
@@ -313,6 +314,15 @@ func (r *Router) UpsertModule() http.HandlerFunc {
 
 		// set the module's team as the GitHub repository owner
 		module.Team = repo.Owner
+
+		// set the avatar URL for each author
+		for i, author := range module.Authors {
+			contributor, ok := repo.Contributors[author.Name]
+			if ok {
+				author.AvatarURL = contributor.GetAvatarURL()
+				module.Authors[i] = author
+			}
+		}
 
 		// The publisher must already be an existing owner or must have accepted an
 		// invitation by an existing owner.
