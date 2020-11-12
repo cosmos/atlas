@@ -349,6 +349,7 @@ func (r *Router) UpsertModule() http.HandlerFunc {
 }
 
 // GetModuleByID implements a request handler to retrieve a module by ID.
+//
 // @Summary Get a Cosmos SDK module by ID
 // @Tags modules
 // @Accept  json
@@ -387,6 +388,7 @@ func (r *Router) GetModuleByID() http.HandlerFunc {
 
 // SearchModules implements a request handler to retrieve a set of module objects
 // by search criteria.
+//
 // @Summary Search for Cosmos SDK modules by name, team, description and keywords
 // @Tags modules
 // @Accept  json
@@ -423,6 +425,7 @@ func (r *Router) SearchModules() http.HandlerFunc {
 
 // GetAllModules implements a request handler returning a paginated set of
 // modules.
+//
 // @Summary Return a paginated set of all Cosmos SDK modules
 // @Tags modules
 // @Accept  json
@@ -456,6 +459,7 @@ func (r *Router) GetAllModules() http.HandlerFunc {
 
 // GetModuleVersions implements a request handler to retrieve a module's set of
 // versions by ID.
+//
 // @Summary Get all versions for a Cosmos SDK module by ID
 // @Tags modules
 // @Accept  json
@@ -494,6 +498,7 @@ func (r *Router) GetModuleVersions() http.HandlerFunc {
 
 // GetModuleAuthors implements a request handler to retrieve a module's set of
 // authors by ID.
+//
 // @Summary Get all authors for a Cosmos SDK module by ID
 // @Tags modules
 // @Accept  json
@@ -532,6 +537,7 @@ func (r *Router) GetModuleAuthors() http.HandlerFunc {
 
 // GetModuleKeywords implements a request handler to retrieve a module's set of
 // keywords by ID.
+//
 // @Summary Get all keywords for a Cosmos SDK module by ID
 // @Tags modules
 // @Accept  json
@@ -569,6 +575,7 @@ func (r *Router) GetModuleKeywords() http.HandlerFunc {
 }
 
 // GetUserByID implements a request handler to retrieve a user by name.
+//
 // @Summary Get a user by name
 // @Tags users
 // @Accept  json
@@ -599,6 +606,7 @@ func (r *Router) GetUserByName() http.HandlerFunc {
 
 // GetAllUsers implements a request handler returning a paginated set of
 // users.
+//
 // @Summary Return a paginated set of all users
 // @Tags users
 // @Accept  json
@@ -632,6 +640,7 @@ func (r *Router) GetAllUsers() http.HandlerFunc {
 
 // GetUserModules implements a request handler to retrieve a set of modules
 // authored by a given user by name.
+//
 // @Summary Return a set of all Cosmos SDK modules published by a given user
 // @Tags users
 // @Accept  json
@@ -750,6 +759,7 @@ func (r *Router) InviteOwner() http.HandlerFunc {
 
 // AcceptOwnerInvite implements a request handler for accepting a module owner
 // invitation.
+//
 // @Summary Accept a module owner invitation
 // @Tags users
 // @Produce  json
@@ -805,6 +815,7 @@ func (r *Router) AcceptOwnerInvite() http.HandlerFunc {
 
 // CreateUserToken implements a request handler that creates a new API token for
 // the authenticated user.
+//
 // @Summary Create a user API token
 // @Tags users
 // @Produce  json
@@ -852,6 +863,7 @@ func (r *Router) CreateUserToken() http.HandlerFunc {
 
 // GetUserTokens implements a request handler returning all of an authenticated
 // user's tokens.
+//
 // @Summary Get all API tokens by user ID
 // @Tags users
 // @Produce  json
@@ -880,6 +892,7 @@ func (r *Router) GetUserTokens() http.HandlerFunc {
 
 // RevokeUserToken implements a request handler revoking a specific token from
 // the authorized user.
+//
 // @Summary Revoke a user API token by ID
 // @Tags users
 // @Produce  json
@@ -930,6 +943,7 @@ func (r *Router) RevokeUserToken() http.HandlerFunc {
 
 // StarModule implements a request handler for adding a favorite by a user to a
 // given module.
+//
 // @Summary Add a favorite for a module
 // @Tags modules
 // @Produce  json
@@ -981,6 +995,7 @@ func (r *Router) StarModule() http.HandlerFunc {
 
 // UnStarModule implements a request handler for removing a favorite by a user
 // to a given module.
+//
 // @Summary Remove a favorite for a module
 // @Tags modules
 // @Produce  json
@@ -1031,6 +1046,7 @@ func (r *Router) UnStarModule() http.HandlerFunc {
 }
 
 // GetUser returns the current authenticated user.
+//
 // @Summary Get the current authenticated user
 // @Tags users
 // @Produce  json
@@ -1051,6 +1067,7 @@ func (r *Router) GetUser() http.HandlerFunc {
 }
 
 // UpdateUser updates an existing user record.
+//
 // @Summary Update the current authenticated user
 // @Tags users
 // @Produce  json
@@ -1116,6 +1133,7 @@ func (r *Router) UpdateUser() http.HandlerFunc {
 }
 
 // ConfirmEmail implements a request handler for confirming a user email address.
+//
 // @Summary Confirm a user email confirmation
 // @Tags users
 // @Produce  json
@@ -1159,6 +1177,7 @@ func (r *Router) ConfirmEmail() http.HandlerFunc {
 
 // GetAllKeywords implements a request handler returning a paginated set of
 // keywords.
+//
 // @Summary Return a paginated set of all keywords
 // @Tags keywords
 // @Accept  json
