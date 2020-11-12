@@ -19,6 +19,7 @@
     "nouislider": "^14.6.0",
     "npm-watch": "^0.7.0",
     "vue": "^2.6.11",
+    "vue-clamp": "^0.3.1",
     "vue-confetti": "^2.2.1",
     "vue-flatpickr-component": "^8.1.5",
     "vue-github-button": "^1.2.0",

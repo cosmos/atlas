@@ -71,7 +71,7 @@
             v-for="mod in responseData.results"
             v-bind:key="mod.name"
           >
-            <card class="card-blog">
+            <card class="card-blog" style="height: 290px;">
               <template slot="body">
                 <h6 class="card-category">
                   <i class="ni ni-badge"></i> {{ mod.team }}
@@ -84,7 +84,9 @@
                   </router-link>
                 </h5>
                 <p class="card-description">
-                  {{ mod.description }}
+                  <v-clamp autoresize :max-lines="3">{{
+                    mod.description
+                  }}</v-clamp>
                 </p>
               </template>
               <template slot="footer">
@@ -144,11 +146,13 @@
 import { Table, TableColumn } from "element-ui";
 import BaseDropdown from "@/components/BaseDropdown";
 import APIClient from "../plugins/apiClient";
+import VClamp from "vue-clamp";
 
 export default {
   bodyClass: "search-results-page",
   components: {
     BaseDropdown,
+    VClamp,
     [Table.name]: Table,
     [TableColumn.name]: TableColumn
   },
