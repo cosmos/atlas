@@ -16,8 +16,8 @@
                   <div v-if="moduleInviteAccepted <= -1">
                     <img
                       class="card-img"
-                      src="/img/astro.png"
-                      style="width: 300px; height: 300px; padding-bottom: 30px;"
+                      src="/img/cosmosnaut-floating.svg"
+                      style="width: 350px; height: 350px; padding-bottom: 30px;"
                     />
                     <h2 style="color: white;">
                       Invalid link. Please contact module owner.

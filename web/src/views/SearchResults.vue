@@ -116,8 +116,8 @@
         <div class="row justify-content-center" v-if="noMatch">
           <img
             class="card-img"
-            src="img/astro.png"
-            style="width: 300px; height: 300px"
+            src="/img/cosmosnaut-floating.svg"
+            style="width: 350px; height: 350px"
           />
           <h1 class="title text-white">
             Sorry, no modules match your search criteria :(
