@@ -83,7 +83,7 @@ func StartServerCommand() *cli.Command {
 			// When not in dev mode, in addition to writing logs to logWriter, also
 			// stream logs to Papertrail using a multi-writer.
 			papertrailAddr := konfig.String(config.PapertrailAddr)
-			if papertrailAddr != "" {
+			if !konfig.Bool(config.Dev) && papertrailAddr != "" {
 				ptWriter, err := syslog.Dial("udp", papertrailAddr, syslog.LOG_EMERG|syslog.LOG_KERN, "atlas")
 				if err != nil {
 					return err
