@@ -84,7 +84,7 @@ func StartServerCommand() *cli.Command {
 			// stream logs to Papertrail using a multi-writer.
 			papertrailAddr := konfig.String(config.PapertrailAddr)
 			if !konfig.Bool(config.Dev) && papertrailAddr != "" {
-				ptWriter, err := syslog.Dial("udp", papertrailAddr, syslog.LOG_EMERG|syslog.LOG_KERN, "atlas")
+				ptWriter, err := syslog.Dial("tcp", papertrailAddr, syslog.LOG_EMERG|syslog.LOG_KERN, "atlas")
 				if err != nil {
 					return err
 				}
