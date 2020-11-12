@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"log/syslog"
 	"os"
 	"strings"
 	"time"
@@ -77,6 +78,17 @@ func StartServerCommand() *cli.Command {
 				logWriter = zerolog.ConsoleWriter{Out: os.Stderr}
 			} else {
 				logWriter = os.Stderr
+			}
+
+			// When not in dev mode, in addition to writing logs to logWriter, also
+			// stream logs to Papertrail using a multi-writer.
+			if !konfig.Bool(config.Dev) {
+				ptWriter, err := syslog.Dial("udp", "logs2.papertrailapp.com:16034", syslog.LOG_EMERG|syslog.LOG_KERN, "atlas")
+				if err != nil {
+					return err
+				}
+
+				logWriter = zerolog.MultiLevelWriter(logWriter, ptWriter)
 			}
 
 			logger := zerolog.New(logWriter).Level(logLvl).With().Timestamp().Logger()
