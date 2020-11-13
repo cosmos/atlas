@@ -38,8 +38,8 @@ Types of changes (Stanzas):
 
 ### Improvements
 
-- [server] Stream logs to Papertrail in addition to the standard writer when not
-  in `dev` mode.
+- [server] Stream logs to a syslog sink in addition to the standard writer when
+  not in `dev` mode.
 - [webapp] Change HTML and CSS for the astronaut used for error pages.
 
 ## [0.0.1] - 2020-11-11
