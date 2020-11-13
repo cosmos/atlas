@@ -7,6 +7,7 @@
 [![codecov](https://codecov.io/gh/cosmos/atlas/branch/main/graph/badge.svg)](https://codecov.io/gh/cosmos/atlas)
 [![GoDoc](https://godoc.org/github.com/cosmos/atlas?status.png)](https://pkg.go.dev/github.com/cosmos/atlas)
 [![license](https://img.shields.io/github/license/cosmos/atlas.svg)](https://github.com/cosmos/atlas/blob/main/LICENSE)
+[![Netlify Status](https://api.netlify.com/api/v1/badges/76c69961-2403-433d-a115-061ce17148af/deploy-status)](https://app.netlify.com/sites/cosmos-atlas/deploys)
 
 > Source code for the default [Cosmos SDK](https://github.com/cosmos/cosmos-sdk) module
 registry, viewable online at [atlas.cosmos.network](https://atlas.cosmos.network).
