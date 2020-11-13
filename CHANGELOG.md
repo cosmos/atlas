@@ -31,6 +31,8 @@ Types of changes (Stanzas):
 
 ### Fixed
 
+- [webapp] Fix profile page where the logged in user information was being displayed
+  instead of the respective profile user.
 - [router] [#44](https://github.com/cosmos/atlas/pull/44) Changes to Cosmos SDK publishing:
   - `Team` is no longer explicitly provided in the manifest. The `team` is now
   automatically inferred by the GitHub repository `owner`.

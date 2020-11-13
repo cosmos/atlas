@@ -32,7 +32,7 @@
                   <base-button
                     tag="a"
                     target="_blank"
-                    :href="`https://github.com/${user.name}`"
+                    :href="`https://github.com/${profileUser.name}`"
                     type="primary"
                     size="sm"
                     class="mr-4"
@@ -40,8 +40,8 @@
                   >
                   <base-button
                     tag="a"
-                    v-show="user.email != null"
-                    :href="`mailto:${user.email}`"
+                    v-show="profileUser.email != null"
+                    :href="`mailto:${profileUser.email}`"
                     type="default"
                     size="sm"
                     class="float-right"
@@ -63,9 +63,9 @@
               </div>
             </div>
             <div class="text-center mt-5">
-              <h3>{{ user.full_name }}</h3>
+              <h3>{{ profileUser.full_name }}</h3>
               <div class="h6 font-weight-300">
-                <i class="ni location_pin mr-2"></i>{{ user.name }}
+                <i class="ni location_pin mr-2"></i>{{ profileUser.name }}
               </div>
             </div>
             <div class="mt-5 py-5 border-top text-center">
