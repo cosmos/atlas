@@ -55,10 +55,10 @@
                     <span class="heading">{{ userModules.length }}</span>
                     <span class="description">Published Modules</span>
                   </div>
-                  <div>
+                  <!-- <div>
                     <span class="heading">0</span>
                     <span class="description">Followers</span>
-                  </div>
+                  </div> -->
                 </div>
               </div>
             </div>
