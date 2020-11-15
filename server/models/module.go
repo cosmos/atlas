@@ -78,16 +78,16 @@ type (
 	ModuleJSON struct {
 		GormModelJSON
 
-		Name        string          `json:"name"`
-		Team        string          `json:"team"`
-		Description string          `json:"description"`
-		Homepage    string          `json:"homepage"`
-		Stars       int64           `json:"stars"`
-		BugTracker  BugTracker      `json:"bug_tracker"`
-		Keywords    []Keyword       `json:"keywords"`
-		Authors     []User          `json:"authors"`
-		Owners      []User          `json:"owners"`
-		Versions    []ModuleVersion `json:"versions"`
+		Name        string              `json:"name"`
+		Team        string              `json:"team"`
+		Description string              `json:"description"`
+		Homepage    string              `json:"homepage"`
+		Stars       int64               `json:"stars"`
+		BugTracker  BugTrackerJSON      `json:"bug_tracker"`
+		Keywords    []KeywordJSON       `json:"keywords"`
+		Authors     []UserJSON          `json:"authors"`
+		Owners      []UserJSON          `json:"owners"`
+		Versions    []ModuleVersionJSON `json:"versions"`
 	}
 
 	// UserModuleFavorite defines the behavior of a user staring a module record.
@@ -116,17 +116,11 @@ type (
 		Homepage    string
 		Description string
 		Stars       int64
-
-		// one-to-one relationships
-		BugTracker BugTracker `gorm:"foreignKey:module_id"`
-
-		// many-to-many relationships
-		Keywords []Keyword `gorm:"many2many:module_keywords"`
-		Authors  []User    `gorm:"many2many:module_authors"`
-		Owners   []User    `gorm:"many2many:module_owners"`
-
-		// one-to-many relationships
-		Versions []ModuleVersion `gorm:"foreignKey:module_id"`
+		BugTracker  BugTracker      `gorm:"foreignKey:module_id"`
+		Keywords    []Keyword       `gorm:"many2many:module_keywords"`
+		Authors     []User          `gorm:"many2many:module_authors"`
+		Owners      []User          `gorm:"many2many:module_owners"`
+		Versions    []ModuleVersion `gorm:"foreignKey:module_id"`
 
 		Version ModuleVersion `gorm:"-"` // current version in manifest
 	}
@@ -134,9 +128,13 @@ type (
 
 // MarshalJSON implements custom JSON marshaling for the ModuleVersion model.
 func (mv ModuleVersion) MarshalJSON() ([]byte, error) {
+	return json.Marshal(mv.NewModuleVersionJSON())
+}
+
+func (mv ModuleVersion) NewModuleVersionJSON() ModuleVersionJSON {
 	sdkCompat, _ := mv.SDKCompat.Value()
 
-	return json.Marshal(ModuleVersionJSON{
+	return ModuleVersionJSON{
 		GormModelJSON: GormModelJSON{
 			ID:        mv.ID,
 			CreatedAt: mv.CreatedAt,
@@ -148,15 +146,19 @@ func (mv ModuleVersion) MarshalJSON() ([]byte, error) {
 		SDKCompat:     sdkCompat,
 		ModuleID:      mv.ModuleID,
 		PublishedBy:   mv.PublishedBy,
-	})
+	}
 }
 
 // MarshalJSON implements custom JSON marshaling for the BugTracker model.
 func (bt BugTracker) MarshalJSON() ([]byte, error) {
+	return json.Marshal(bt.NewBugTrackerJSON())
+}
+
+func (bt BugTracker) NewBugTrackerJSON() BugTrackerJSON {
 	btURL, _ := bt.URL.Value()
 	btContact, _ := bt.Contact.Value()
 
-	return json.Marshal(BugTrackerJSON{
+	return BugTrackerJSON{
 		GormModelJSON: GormModelJSON{
 			ID:        bt.ID,
 			CreatedAt: bt.CreatedAt,
@@ -165,11 +167,31 @@ func (bt BugTracker) MarshalJSON() ([]byte, error) {
 		URL:      btURL,
 		Contact:  btContact,
 		ModuleID: bt.ModuleID,
-	})
+	}
 }
 
 // MarshalJSON implements custom JSON marshaling for the Module model.
 func (m Module) MarshalJSON() ([]byte, error) {
+	versionsJSON := make([]ModuleVersionJSON, len(m.Versions))
+	for i, v := range m.Versions {
+		versionsJSON[i] = v.NewModuleVersionJSON()
+	}
+
+	ownersJSON := make([]UserJSON, len(m.Owners))
+	for i, o := range m.Owners {
+		ownersJSON[i] = o.NewUserJSON()
+	}
+
+	authorsJSON := make([]UserJSON, len(m.Authors))
+	for i, a := range m.Authors {
+		authorsJSON[i] = a.NewUserJSON()
+	}
+
+	keywordsJSON := make([]KeywordJSON, len(m.Keywords))
+	for i, k := range m.Keywords {
+		keywordsJSON[i] = k.NewKeywordJSON()
+	}
+
 	return json.Marshal(ModuleJSON{
 		GormModelJSON: GormModelJSON{
 			ID:        m.ID,
@@ -180,11 +202,11 @@ func (m Module) MarshalJSON() ([]byte, error) {
 		Team:        m.Team,
 		Description: m.Description,
 		Homepage:    m.Homepage,
-		BugTracker:  m.BugTracker,
-		Keywords:    m.Keywords,
-		Authors:     m.Authors,
-		Owners:      m.Owners,
-		Versions:    m.Versions,
+		BugTracker:  m.BugTracker.NewBugTrackerJSON(),
+		Keywords:    keywordsJSON,
+		Owners:      ownersJSON,
+		Authors:     authorsJSON,
+		Versions:    versionsJSON,
 		Stars:       m.Stars,
 	})
 }

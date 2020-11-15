@@ -23,19 +23,20 @@ definitions:
       total:
         type: integer
     type: object
-  models.BugTracker:
+  models.BugTrackerJSON:
     properties:
       contact:
+        type: object
+      created_at:
         type: string
+      id:
+        type: integer
       module_id:
         type: integer
+      updated_at:
+        type: string
       url:
-        type: string
-    type: object
-  models.Keyword:
-    properties:
-      name:
-        type: string
+        type: object
     type: object
   models.KeywordJSON:
     properties:
@@ -48,58 +49,18 @@ definitions:
       updated_at:
         type: string
     type: object
-  models.Module:
-    properties:
-      authors:
-        items:
-          $ref: '#/definitions/models.User'
-        type: array
-      bug_tracker:
-        $ref: '#/definitions/models.BugTracker'
-        description: one-to-one relationships
-        type: object
-      description:
-        type: string
-      documentation:
-        type: string
-      homepage:
-        type: string
-      keywords:
-        description: many-to-many relationships
-        items:
-          $ref: '#/definitions/models.Keyword'
-        type: array
-      name:
-        type: string
-      owners:
-        items:
-          $ref: '#/definitions/models.User'
-        type: array
-      repo:
-        type: string
-      stars:
-        type: integer
-      team:
-        type: string
-      versions:
-        items:
-          $ref: '#/definitions/models.ModuleVersion'
-        type: array
-    type: object
   models.ModuleJSON:
     properties:
       authors:
         items:
-          $ref: '#/definitions/models.User'
+          $ref: '#/definitions/models.UserJSON'
         type: array
       bug_tracker:
-        $ref: '#/definitions/models.BugTracker'
+        $ref: '#/definitions/models.BugTrackerJSON'
         type: object
       created_at:
         type: string
       description:
-        type: string
-      documentation:
         type: string
       homepage:
         type: string
@@ -107,16 +68,14 @@ definitions:
         type: integer
       keywords:
         items:
-          $ref: '#/definitions/models.Keyword'
+          $ref: '#/definitions/models.KeywordJSON'
         type: array
       name:
         type: string
       owners:
         items:
-          $ref: '#/definitions/models.User'
+          $ref: '#/definitions/models.UserJSON'
         type: array
-      repo:
-        type: string
       stars:
         type: integer
       team:
@@ -125,66 +84,28 @@ definitions:
         type: string
       versions:
         items:
-          $ref: '#/definitions/models.ModuleVersion'
+          $ref: '#/definitions/models.ModuleVersionJSON'
         type: array
-    type: object
-  models.ModuleVersion:
-    properties:
-      module_id:
-        type: integer
-      sdk_compat:
-        type: string
-      version:
-        type: string
     type: object
   models.ModuleVersionJSON:
     properties:
       created_at:
         type: string
+      documentation:
+        type: string
       id:
         type: integer
       module_id:
         type: integer
+      published_by:
+        type: integer
+      repo:
+        type: string
       sdk_compat:
         type: object
       updated_at:
         type: string
       version:
-        type: string
-    type: object
-  models.User:
-    properties:
-      avatarURL:
-        type: string
-      email:
-        type: string
-      emailConfirmed:
-        type: boolean
-      fullName:
-        type: string
-      githubAccessToken:
-        type: string
-      githubUserID:
-        type: string
-      gravatarID:
-        type: string
-      modules:
-        description: many-to-many relationships
-        items:
-          $ref: '#/definitions/models.Module'
-        type: array
-      name:
-        type: string
-      stars:
-        items:
-          type: integer
-        type: array
-      tokens:
-        description: one-to-many relationships
-        items:
-          $ref: '#/definitions/models.UserToken'
-        type: array
-      url:
         type: string
     type: object
   models.UserJSON:
@@ -213,19 +134,6 @@ definitions:
         type: string
       url:
         type: string
-    type: object
-  models.UserToken:
-    properties:
-      count:
-        type: integer
-      name:
-        type: string
-      revoked:
-        type: boolean
-      token:
-        type: string
-      userID:
-        type: integer
     type: object
   models.UserTokenJSON:
     properties:
@@ -295,8 +203,6 @@ definitions:
     properties:
       description:
         type: string
-      documentation:
-        type: string
       homepage:
         type: string
       keywords:
@@ -305,11 +211,8 @@ definitions:
         type: array
       name:
         type: string
-      repo:
-        type: string
     required:
     - name
-    - repo
     type: object
   v1.ModuleStars:
     properties:
@@ -332,11 +235,16 @@ definitions:
     type: object
   v1.VersionManifest:
     properties:
+      documentation:
+        type: string
+      repo:
+        type: string
       sdk_compat:
         type: string
       version:
         type: string
     required:
+    - repo
     - version
     type: object
 info:

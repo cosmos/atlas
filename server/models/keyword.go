@@ -27,14 +27,18 @@ type (
 
 // MarshalJSON implements custom JSON marshaling for the Keyword model.
 func (k Keyword) MarshalJSON() ([]byte, error) {
-	return json.Marshal(KeywordJSON{
+	return json.Marshal(k.NewKeywordJSON())
+}
+
+func (k Keyword) NewKeywordJSON() KeywordJSON {
+	return KeywordJSON{
 		GormModelJSON: GormModelJSON{
 			ID:        k.ID,
 			CreatedAt: k.CreatedAt,
 			UpdatedAt: k.UpdatedAt,
 		},
 		Name: k.Name,
-	})
+	}
 }
 
 // Query performs a query for a Keyword record where the search criteria is

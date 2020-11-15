@@ -103,9 +103,13 @@ func (ut UserToken) MarshalJSON() ([]byte, error) {
 
 // MarshalJSON implements custom JSON marshaling for the User model.
 func (u User) MarshalJSON() ([]byte, error) {
+	return json.Marshal(u.NewUserJSON())
+}
+
+func (u User) NewUserJSON() UserJSON {
 	email, _ := u.Email.Value()
 
-	return json.Marshal(UserJSON{
+	return UserJSON{
 		GormModelJSON: GormModelJSON{
 			ID:        u.ID,
 			CreatedAt: u.CreatedAt,
@@ -119,7 +123,7 @@ func (u User) MarshalJSON() ([]byte, error) {
 		AvatarURL:      u.AvatarURL,
 		GravatarID:     u.GravatarID,
 		Stars:          u.Stars,
-	})
+	}
 }
 
 // Upsert creates or updates a User record. Note, this should only be called
