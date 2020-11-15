@@ -29,6 +29,12 @@ Types of changes (Stanzas):
 
 ## [Unreleased]
 
+### Features
+
+- [models] [#42](https://github.com/cosmos/atlas/issues/42) Move `Documentation`
+  and `Repo` from the `modules` table to the `module_versions` table as to allow
+  docs and version locations to be specific to the respective module version.
+
 ### Fixed
 
 - [webapp] Fix profile page where the logged in user information was being displayed
