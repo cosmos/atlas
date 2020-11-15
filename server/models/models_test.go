@@ -1483,6 +1483,31 @@ func (mts *ModelsTestSuite) TestNewKeywordJSON() {
 	mts.Require().Equal(keyword.UpdatedAt, keywordJSON.UpdatedAt)
 }
 
+func (mts *ModelsTestSuite) TestNewUserJSON() {
+	user := models.User{
+		Model: gorm.Model{
+			ID:        1,
+			CreatedAt: time.Now().UTC(),
+			UpdatedAt: time.Now().UTC(),
+		},
+		Name:           "user",
+		FullName:       "full name",
+		URL:            "url",
+		GravatarID:     "gravatar ID",
+		AvatarURL:      "avatar ID",
+		EmailConfirmed: true,
+	}
+	userJSON := user.NewUserJSON()
+	mts.Require().Equal(user.Name, userJSON.Name)
+	mts.Require().Equal(user.CreatedAt, userJSON.CreatedAt)
+	mts.Require().Equal(user.UpdatedAt, userJSON.UpdatedAt)
+	mts.Require().Equal(user.FullName, userJSON.FullName)
+	mts.Require().Equal(user.URL, userJSON.URL)
+	mts.Require().Equal(user.GravatarID, userJSON.GravatarID)
+	mts.Require().Equal(user.AvatarURL, userJSON.AvatarURL)
+	mts.Require().Equal(user.EmailConfirmed, userJSON.EmailConfirmed)
+}
+
 func (mts *ModelsTestSuite) resetDB() {
 	mts.T().Helper()
 
