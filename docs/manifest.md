@@ -6,9 +6,7 @@ The manifest schema is defined as follows
 - [[module]](#module)
   - [name](#name-required)
   - [description](#description)
-  - [documentation](#documentation)
   - [homepage](#homepage)
-  - [repo](#repo-required)
   - [keywords](#keywords)
 - [[bug_tacker]](#bug_tracker)
   - [url](#url)
@@ -17,6 +15,8 @@ The manifest schema is defined as follows
   - [name](#name-required)
   - [email](#email)
 - [[version]](#version)
+  - [documentation](#documentation)
+  - [repo](#repo-required)
   - [version](#version-required)
   - [sdk_compat](#sdk_compat)
 
@@ -48,17 +48,6 @@ this with the module. This should be plain text (not Markdown).
 description = "A short description of my module."
 ```
 
-### `documentation`
-
-The documentation field specifies a URL to a website hosting the module's documentation.
-Typically, this is a Markdown file hosted in the module's root directory in GitHub.
-
-```toml
-[module]
-
-documentation = "https://github.com/cosmos/cosmos-sdk/blob/master/x/slashing/readme.md"
-```
-
 ### `homepage`
 
 The homepage field should be a URL to a site that is the home page for your module,
@@ -68,16 +57,6 @@ organization or team.
 [module]
 
 homepage = "https://interchain.io/"
-```
-
-### `repo` (required)
-
-The repository field should be a URL to the source repository for your module.
-
-```toml
-[module]
-
-repo = "https://github.com/cosmos/cosmos-sdk"
 ```
 
 ### `keywords`
@@ -150,6 +129,31 @@ email = "fedekunze@email.com"
 ```
 
 ## [version]
+
+### `repo` (required)
+
+The repository field should be a URL to the source repository for your module.
+Typically, this will point to the specific GitHub repository release/tag for the
+module, although this is not enforced or required.
+
+```toml
+[version]
+
+repo = "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1"
+```
+
+### `documentation`
+
+The documentation field specifies a URL to a website hosting the module's documentation.
+Typically, this is a Markdown file hosted in the module's root directory in GitHub.
+In addition, publishers are encouraged to have documentation link to a specific
+GitHub release or tag.
+
+```toml
+[version]
+
+documentation = "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/spec/README.md"
+```
 
 ### `version` (required)
 
