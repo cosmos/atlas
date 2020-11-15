@@ -1468,6 +1468,21 @@ func (mts *ModelsTestSuite) TestModule_AddOwner() {
 	mts.Require().Empty(moi)
 }
 
+func (mts *ModelsTestSuite) TestNewKeywordJSON() {
+	keyword := models.Keyword{
+		Model: gorm.Model{
+			ID:        1,
+			CreatedAt: time.Now().UTC(),
+			UpdatedAt: time.Now().UTC(),
+		},
+		Name: "keyword",
+	}
+	keywordJSON := keyword.NewKeywordJSON()
+	mts.Require().Equal(keyword.Name, keywordJSON.Name)
+	mts.Require().Equal(keyword.CreatedAt, keywordJSON.CreatedAt)
+	mts.Require().Equal(keyword.UpdatedAt, keywordJSON.UpdatedAt)
+}
+
 func (mts *ModelsTestSuite) resetDB() {
 	mts.T().Helper()
 
