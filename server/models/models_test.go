@@ -1468,6 +1468,48 @@ func (mts *ModelsTestSuite) TestModule_AddOwner() {
 	mts.Require().Empty(moi)
 }
 
+func (mts *ModelsTestSuite) TestNewBugTrackerJSON() {
+	bugTracker := models.BugTracker{
+		Model: gorm.Model{
+			ID:        1,
+			CreatedAt: time.Now().UTC(),
+			UpdatedAt: time.Now().UTC(),
+		},
+		URL:     models.NewNullString("url"),
+		Contact: models.NewNullString("contact"),
+	}
+	bugTrackerJSON := bugTracker.NewBugTrackerJSON()
+	mts.Require().Equal(bugTracker.URL.String, bugTrackerJSON.URL)
+	mts.Require().Equal(bugTracker.Contact.String, bugTrackerJSON.Contact)
+	mts.Require().Equal(bugTracker.CreatedAt, bugTrackerJSON.CreatedAt)
+	mts.Require().Equal(bugTracker.UpdatedAt, bugTrackerJSON.UpdatedAt)
+}
+
+func (mts *ModelsTestSuite) TestNewModuleVersionJSON() {
+	version := models.ModuleVersion{
+		Model: gorm.Model{
+			ID:        1,
+			CreatedAt: time.Now().UTC(),
+			UpdatedAt: time.Now().UTC(),
+		},
+		Documentation: "documentation",
+		Repo:          "repo",
+		Version:       "version",
+		SDKCompat:     models.NewNullString("sdk compat"),
+		ModuleID:      1,
+		PublishedBy:   1,
+	}
+	versionJSON := version.NewModuleVersionJSON()
+	mts.Require().Equal(version.Documentation, versionJSON.Documentation)
+	mts.Require().Equal(version.Repo, versionJSON.Repo)
+	mts.Require().Equal(version.Version, versionJSON.Version)
+	mts.Require().Equal(version.SDKCompat.String, versionJSON.SDKCompat)
+	mts.Require().Equal(version.ModuleID, versionJSON.ModuleID)
+	mts.Require().Equal(version.PublishedBy, versionJSON.PublishedBy)
+	mts.Require().Equal(version.CreatedAt, versionJSON.CreatedAt)
+	mts.Require().Equal(version.UpdatedAt, versionJSON.UpdatedAt)
+}
+
 func (mts *ModelsTestSuite) TestNewKeywordJSON() {
 	keyword := models.Keyword{
 		Model: gorm.Model{
