@@ -197,12 +197,15 @@ func (rts *RouterTestSuite) TestSearchModules() {
 		mod := models.Module{
 			Name: fmt.Sprintf("x/mod-%d", i),
 			Team: randTeam,
-			Repo: "https://github.com/cosmos/cosmos-sdk",
 			Authors: []models.User{
 				godUser,
 				randUser,
 			},
-			Version: models.ModuleVersion{Version: fmt.Sprintf("v1.0.%d", i)},
+			Version: models.ModuleVersion{
+				Version:       fmt.Sprintf("v1.0.%d", i),
+				Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+				Documentation: fmt.Sprintf("https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/mod-%d/README.md", i),
+			},
 			Keywords: []models.Keyword{
 				{Name: "module"},
 				{Name: fmt.Sprintf("mod-keyword-%d", i+1)},
@@ -319,11 +322,14 @@ func (rts *RouterTestSuite) TestGetAllModules() {
 		mod := models.Module{
 			Name: fmt.Sprintf("x/bank-%d", i),
 			Team: "cosmonauts",
-			Repo: "https://github.com/cosmos/cosmos-sdk",
 			Authors: []models.User{
 				{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 			},
-			Version: models.ModuleVersion{Version: "v1.0.0"},
+			Version: models.ModuleVersion{
+				Version:       "v1.0.0",
+				Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+				Documentation: fmt.Sprintf("https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/mod-%d/README.md", i),
+			},
 			Keywords: []models.Keyword{
 				{Name: "tokens"},
 			},
@@ -400,11 +406,14 @@ func (rts *RouterTestSuite) TestGetModuleByID() {
 	mod := models.Module{
 		Name: "x/bank",
 		Team: "cosmonauts",
-		Repo: "https://github.com/cosmos/cosmos-sdk",
 		Authors: []models.User{
 			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 		},
-		Version: models.ModuleVersion{Version: "v1.0.0"},
+		Version: models.ModuleVersion{
+			Version:       "v1.0.0",
+			Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+			Documentation: "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+		},
 		Keywords: []models.Keyword{
 			{Name: "tokens"},
 		},
@@ -444,7 +453,6 @@ func (rts *RouterTestSuite) TestGetModuleByID() {
 		rts.Require().Equal(mod.Team, body["team"])
 		rts.Require().Equal(mod.Description, body["description"])
 		rts.Require().Equal(mod.Homepage, body["homepage"])
-		rts.Require().Equal(mod.Documentation, body["documentation"])
 	})
 }
 func (rts *RouterTestSuite) TestGetModuleVersions() {
@@ -453,11 +461,14 @@ func (rts *RouterTestSuite) TestGetModuleVersions() {
 	mod := models.Module{
 		Name: "x/bank",
 		Team: "cosmonauts",
-		Repo: "https://github.com/cosmos/cosmos-sdk",
 		Authors: []models.User{
 			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 		},
-		Version: models.ModuleVersion{Version: "v1.0.0"},
+		Version: models.ModuleVersion{
+			Version:       "v1.0.0",
+			Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+			Documentation: "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+		},
 		Keywords: []models.Keyword{
 			{Name: "tokens"},
 		},
@@ -504,11 +515,14 @@ func (rts *RouterTestSuite) GetModuleAuthors() {
 	mod := models.Module{
 		Name: "x/bank",
 		Team: "cosmonauts",
-		Repo: "https://github.com/cosmos/cosmos-sdk",
 		Authors: []models.User{
 			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 		},
-		Version: models.ModuleVersion{Version: "v1.0.0"},
+		Version: models.ModuleVersion{
+			Version:       "v1.0.0",
+			Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+			Documentation: "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+		},
 		Keywords: []models.Keyword{
 			{Name: "tokens"},
 		},
@@ -555,11 +569,14 @@ func (rts *RouterTestSuite) GetModuleKeywords() {
 	mod := models.Module{
 		Name: "x/bank",
 		Team: "cosmonauts",
-		Repo: "https://github.com/cosmos/cosmos-sdk",
 		Authors: []models.User{
 			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 		},
-		Version: models.ModuleVersion{Version: "v1.0.0"},
+		Version: models.ModuleVersion{
+			Version:       "v1.0.0",
+			Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+			Documentation: "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+		},
 		Keywords: []models.Keyword{
 			{Name: "tokens"},
 		},
@@ -606,11 +623,14 @@ func (rts *RouterTestSuite) GetUserByID() {
 	mod := models.Module{
 		Name: "x/bank",
 		Team: "cosmonauts",
-		Repo: "https://github.com/cosmos/cosmos-sdk",
 		Authors: []models.User{
 			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 		},
-		Version: models.ModuleVersion{Version: "v1.0.0"},
+		Version: models.ModuleVersion{
+			Version:       "v1.0.0",
+			Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+			Documentation: "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+		},
 		Keywords: []models.Keyword{
 			{Name: "tokens"}, {Name: "transfer"},
 		},
@@ -657,14 +677,17 @@ func (rts *RouterTestSuite) TestGetUserModules() {
 	mod := models.Module{
 		Name: "x/bank",
 		Team: "cosmonauts",
-		Repo: "https://github.com/cosmos/cosmos-sdk",
 		Owners: []models.User{
 			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 		},
 		Authors: []models.User{
 			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 		},
-		Version: models.ModuleVersion{Version: "v1.0.0"},
+		Version: models.ModuleVersion{
+			Version:       "v1.0.0",
+			Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+			Documentation: "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+		},
 		Keywords: []models.Keyword{
 			{Name: "tokens"}, {Name: "transfer"},
 		},
@@ -726,11 +749,14 @@ func (rts *RouterTestSuite) TestGetAllUsers() {
 		mod := models.Module{
 			Name: fmt.Sprintf("x/bank-%d", i),
 			Team: "cosmonauts",
-			Repo: "https://github.com/cosmos/cosmos-sdk",
 			Authors: []models.User{
 				{Name: fmt.Sprintf("foo-%d", i), Email: models.NewNullString(fmt.Sprintf("foo%d@cosmonauts.com", i))},
 			},
-			Version: models.ModuleVersion{Version: "v1.0.0"},
+			Version: models.ModuleVersion{
+				Version:       "v1.0.0",
+				Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+				Documentation: fmt.Sprintf("https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/mod-%d/README.md", i),
+			},
 			Keywords: []models.Keyword{
 				{Name: "tokens"},
 			},
@@ -822,11 +848,14 @@ func (rts *RouterTestSuite) TestGetAllKeywords() {
 		mod := models.Module{
 			Name: fmt.Sprintf("x/bank-%d", i),
 			Team: "cosmonauts",
-			Repo: "https://github.com/cosmos/cosmos-sdk",
 			Authors: []models.User{
 				{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 			},
-			Version: models.ModuleVersion{Version: "v1.0.0"},
+			Version: models.ModuleVersion{
+				Version:       "v1.0.0",
+				Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+				Documentation: fmt.Sprintf("https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/mod-%d/README.md", i),
+			},
 			Keywords: []models.Keyword{
 				{Name: fmt.Sprintf("tokens-%d", i)},
 			},
@@ -943,7 +972,6 @@ func (rts *RouterTestSuite) TestUpsertModule() {
 				"module": map[string]interface{}{
 					"name": "x/bank",
 					"team": "cosmonauts",
-					"repo": "https://github.com/cosmos/cosmos-sdk",
 				},
 			},
 			code: http.StatusBadRequest,
@@ -954,7 +982,6 @@ func (rts *RouterTestSuite) TestUpsertModule() {
 				"module": map[string]interface{}{
 					"name": "x/bank",
 					"team": "cosmonauts",
-					"repo": "https://github.com/cosmos/cosmos-sdk",
 				},
 				"authors": []map[string]interface{}{
 					{
@@ -982,7 +1009,9 @@ func (rts *RouterTestSuite) TestUpsertModule() {
 					},
 				},
 				"version": map[string]interface{}{
-					"version": "v1.0.0",
+					"repo":          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+					"documentation": "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+					"version":       "v1.0.0",
 				},
 				"bug_tracker": map[string]interface{}{
 					"url":     "https://cosmonauts.com",
@@ -1006,7 +1035,9 @@ func (rts *RouterTestSuite) TestUpsertModule() {
 					},
 				},
 				"version": map[string]interface{}{
-					"version": "v1.0.0",
+					"repo":          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+					"documentation": "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+					"version":       "v1.0.0",
 				},
 				"bug_tracker": map[string]interface{}{
 					"url":     "https://cosmonauts.com",
@@ -1030,7 +1061,9 @@ func (rts *RouterTestSuite) TestUpsertModule() {
 					},
 				},
 				"version": map[string]interface{}{
-					"version": "v1.0.0",
+					"repo":          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+					"documentation": "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+					"version":       "v1.0.0",
 				},
 				"bug_tracker": map[string]interface{}{
 					"url":     "https://cosmonauts.com",
@@ -1076,7 +1109,6 @@ func (rts *RouterTestSuite) TestUpsertModule_NonContrib() {
 		"module": map[string]interface{}{
 			"name":     "x/bank",
 			"team":     "cosmonauts",
-			"repo":     "https://github.com/cosmos/cosmos-sdk",
 			"keywords": []string{"tokens"},
 		},
 		"authors": []map[string]interface{}{
@@ -1085,7 +1117,9 @@ func (rts *RouterTestSuite) TestUpsertModule_NonContrib() {
 			},
 		},
 		"version": map[string]interface{}{
-			"version": "v1.0.0",
+			"repo":          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+			"documentation": "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+			"version":       "v1.0.0",
 		},
 		"bug_tracker": map[string]interface{}{
 			"url":     "https://cosmonauts.com",
@@ -1113,13 +1147,16 @@ func (rts *RouterTestSuite) TestUpsertModule_Unauthorized() {
 	body := map[string]interface{}{
 		"name": "x/bank",
 		"team": "cosmonauts",
-		"repo": "https://github.com/cosmos/cosmos-sdk",
 		"authors": []map[string]interface{}{
 			{
 				"name": "foo", "email": "foo@email.com",
 			},
 		},
-		"version":  "v1.0.0",
+		"version": map[string]interface{}{
+			"repo":          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+			"documentation": "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+			"version":       "v1.0.0",
+		},
 		"keywords": []string{"tokens"},
 		"bug_tracker": map[string]interface{}{
 			"url":     "https://cosmonauts.com",
@@ -1156,7 +1193,6 @@ func (rts *RouterTestSuite) TestCreateModule_InvalidOwner() {
 		"module": map[string]interface{}{
 			"name":     "x/bank",
 			"team":     "cosmonauts",
-			"repo":     "https://github.com/cosmos/cosmos-sdk",
 			"keywords": []string{"tokens"},
 		},
 		"authors": []map[string]interface{}{
@@ -1165,7 +1201,9 @@ func (rts *RouterTestSuite) TestCreateModule_InvalidOwner() {
 			},
 		},
 		"version": map[string]interface{}{
-			"version": "v1.0.0",
+			"repo":          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+			"documentation": "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+			"version":       "v1.0.0",
 		},
 		"bug_tracker": map[string]interface{}{
 			"url":     "https://cosmonauts.com",
@@ -1378,7 +1416,6 @@ func (rts *RouterTestSuite) TestGetUserByName() {
 		"module": map[string]interface{}{
 			"name":     "x/bank",
 			"team":     "cosmonauts",
-			"repo":     "https://github.com/cosmos/cosmos-sdk",
 			"keywords": []string{"tokens"},
 		},
 		"authors": []map[string]interface{}{
@@ -1387,7 +1424,9 @@ func (rts *RouterTestSuite) TestGetUserByName() {
 			},
 		},
 		"version": map[string]interface{}{
-			"version": "v1.0.0",
+			"repo":          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+			"documentation": "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+			"version":       "v1.0.0",
 		},
 		"bug_tracker": map[string]interface{}{
 			"url":     "https://cosmonauts.com",
@@ -1444,7 +1483,6 @@ func (rts *RouterTestSuite) TestGetUser() {
 		"module": map[string]interface{}{
 			"name":     "x/bank",
 			"team":     "cosmonauts",
-			"repo":     "https://github.com/cosmos/cosmos-sdk",
 			"keywords": []string{"tokens"},
 		},
 		"authors": []map[string]interface{}{
@@ -1453,7 +1491,9 @@ func (rts *RouterTestSuite) TestGetUser() {
 			},
 		},
 		"version": map[string]interface{}{
-			"version": "v1.0.0",
+			"repo":          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+			"documentation": "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+			"version":       "v1.0.0",
 		},
 		"bug_tracker": map[string]interface{}{
 			"url":     "https://cosmonauts.com",
@@ -1509,7 +1549,6 @@ func (rts *RouterTestSuite) TestUpdateUser() {
 		"module": map[string]interface{}{
 			"name":     "x/bank",
 			"team":     "cosmonauts",
-			"repo":     "https://github.com/cosmos/cosmos-sdk",
 			"keywords": []string{"tokens"},
 		},
 		"authors": []map[string]interface{}{
@@ -1518,7 +1557,9 @@ func (rts *RouterTestSuite) TestUpdateUser() {
 			},
 		},
 		"version": map[string]interface{}{
-			"version": "v1.0.0",
+			"repo":          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+			"documentation": "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+			"version":       "v1.0.0",
 		},
 		"bug_tracker": map[string]interface{}{
 			"url":     "https://cosmonauts.com",
@@ -1602,7 +1643,6 @@ func (rts *RouterTestSuite) TestConfirmEmail() {
 		"module": map[string]interface{}{
 			"name":     "x/bank",
 			"team":     "cosmonauts",
-			"repo":     "https://github.com/cosmos/cosmos-sdk",
 			"keywords": []string{"tokens"},
 		},
 		"authors": []map[string]interface{}{
@@ -1611,7 +1651,9 @@ func (rts *RouterTestSuite) TestConfirmEmail() {
 			},
 		},
 		"version": map[string]interface{}{
-			"version": "v1.0.0",
+			"repo":          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+			"documentation": "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+			"version":       "v1.0.0",
 		},
 		"bug_tracker": map[string]interface{}{
 			"url":     "https://cosmonauts.com",
@@ -1687,14 +1729,17 @@ func (rts *RouterTestSuite) TestInviteModuleOwner() {
 	mod := models.Module{
 		Name: "x/bank",
 		Team: "cosmonauts",
-		Repo: "https://github.com/cosmos/cosmos-sdk",
 		Owners: []models.User{
 			{Name: "foo", Email: models.NewNullString("foo@email.com")},
 		},
 		Authors: []models.User{
 			{Name: "bar", Email: models.NewNullString("bar@email.com")},
 		},
-		Version: models.ModuleVersion{Version: "v1.0.0"},
+		Version: models.ModuleVersion{
+			Version:       "v1.0.0",
+			Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+			Documentation: "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+		},
 		Keywords: []models.Keyword{
 			{Name: "tokens"}, {Name: "transfer"},
 		},
@@ -1772,14 +1817,17 @@ func (rts *RouterTestSuite) TestAcceptOwnerInvite() {
 	mod := models.Module{
 		Name: "x/bank",
 		Team: "cosmonauts",
-		Repo: "https://github.com/cosmos/cosmos-sdk",
 		Owners: []models.User{
 			{Name: "foo", Email: models.NewNullString("foo@email.com")},
 		},
 		Authors: []models.User{
 			{Name: "bar", Email: models.NewNullString("bar@email.com")},
 		},
-		Version: models.ModuleVersion{Version: "v1.0.0"},
+		Version: models.ModuleVersion{
+			Version:       "v1.0.0",
+			Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+			Documentation: "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+		},
 		Keywords: []models.Keyword{
 			{Name: "tokens"}, {Name: "transfer"},
 		},
@@ -1874,7 +1922,6 @@ func (rts *RouterTestSuite) TestStarModule() {
 		"module": map[string]interface{}{
 			"name":     "x/bank",
 			"team":     "cosmonauts",
-			"repo":     "https://github.com/cosmos/cosmos-sdk",
 			"keywords": []string{"tokens"},
 		},
 		"authors": []map[string]interface{}{
@@ -1883,7 +1930,9 @@ func (rts *RouterTestSuite) TestStarModule() {
 			},
 		},
 		"version": map[string]interface{}{
-			"version": "v1.0.0",
+			"repo":          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+			"documentation": "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+			"version":       "v1.0.0",
 		},
 		"bug_tracker": map[string]interface{}{
 			"url":     "https://cosmonauts.com",
@@ -1935,9 +1984,9 @@ func (rts *RouterTestSuite) resetDB() {
 	rts.T().Helper()
 
 	if err := rts.m.Down(); err != nil {
-		require.Equal(rts.T(), migrate.ErrNoChange, err)
+		require.Equal(rts.T(), migrate.ErrNoChange, fmt.Sprintf("down migration error: %s", err.Error()))
 	}
 	if err := rts.m.Up(); err != nil {
-		require.Equal(rts.T(), migrate.ErrNoChange, err)
+		require.Equal(rts.T(), migrate.ErrNoChange, fmt.Sprintf("up migration error: %s", err.Error()))
 	}
 }
