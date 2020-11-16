@@ -29,6 +29,8 @@ Types of changes (Stanzas):
 
 ## [Unreleased]
 
+## [0.0.2] - 2020-11-16
+
 ### Features
 
 - [models] [#42](https://github.com/cosmos/atlas/issues/42) Move `Documentation`
@@ -54,5 +56,6 @@ Types of changes (Stanzas):
 
 - Initial release!
 
-[Unreleased]: https://github.com/cosmos/atlas/compare/v0.0.1...HEAD
+[Unreleased]: https://github.com/cosmos/atlas/compare/v0.0.2...HEAD
+[0.0.2]: https://github.com/cosmos/atlas/releases/tag/v0.0.2
 [0.0.1]: https://github.com/cosmos/atlas/releases/tag/v0.0.1
