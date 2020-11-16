@@ -55,8 +55,8 @@
                   <base-button
                     tag="a"
                     target="_blank"
-                    v-if="module.repo"
-                    :href="module.repo"
+                    v-if="version.repo"
+                    :href="version.repo"
                     type="primary"
                     size="sm"
                     >Repo</base-button
@@ -181,9 +181,13 @@
                       scope="row"
                     >
                       <template v-slot="{ row }">
-                        <div>
-                          {{ row.version }}
-                        </div>
+                        <router-link
+                          :to="{
+                            name: 'modulesVersioned',
+                            params: { id: module.id, version: row.version }
+                          }"
+                          >{{ row.version }}</router-link
+                        >
                       </template>
                     </el-table-column>
                     <el-table-column
@@ -225,11 +229,14 @@ export default {
     [Table.name]: Table,
     [TableColumn.name]: TableColumn
   },
+
   created() {
     this.getModule();
   },
+
   data() {
     return {
+      version: {},
       module: {},
       moduleStars: 0,
       documentation: "",
@@ -241,12 +248,7 @@ export default {
       showInviteModal: false
     };
   },
-  beforeRouteUpdate(to, from, next) {
-    next();
-    this.$Progress.start();
-    this.getModule();
-    this.$Progress.finish();
-  },
+
   computed: {
     isOwner() {
       if (!this.objectEmpty(this.user) && !this.objectEmpty(this.module)) {
@@ -287,6 +289,15 @@ export default {
       return versions;
     }
   },
+
+  watch: {
+    $route() {
+      this.$Progress.start();
+      this.getModule();
+      this.$Progress.finish();
+    }
+  },
+
   methods: {
     inviteUser() {
       this.$Progress.start();
@@ -346,9 +357,9 @@ export default {
       }
     },
 
-    getDocumentation() {
+    getDocumentation(version) {
       axios
-        .get(this.module.documentation)
+        .get(version.documentation)
         .then(resp => {
           this.documentation = xss(resp.data);
         })
@@ -367,12 +378,27 @@ export default {
     getModule() {
       APIClient.getModule(this.$route.params.id)
         .then(resp => {
+          if (!this.$route.params.version) {
+            this.version = this.latestVersion(resp.versions);
+          } else {
+            this.version = resp.versions.find(v => {
+              return v.version === this.$route.params.version;
+            });
+          }
+
+          if (!this.version) {
+            this.$router.push({ name: "error" });
+            return;
+          }
+
           this.module = resp;
           this.moduleStars = resp.stars;
-          this.getDocumentation();
+          this.getDocumentation(this.version);
         })
         .catch(err => {
           console.log(err);
+          this.$router.push({ name: "error" });
+          return;
         });
     }
   }
