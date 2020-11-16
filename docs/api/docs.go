@@ -1190,25 +1190,26 @@ var doc = `{
                 }
             }
         },
-        "models.BugTracker": {
+        "models.BugTrackerJSON": {
             "type": "object",
             "properties": {
                 "contact": {
+                    "type": "object"
+                },
+                "created_at": {
                     "type": "string"
+                },
+                "id": {
+                    "type": "integer"
                 },
                 "module_id": {
                     "type": "integer"
                 },
+                "updated_at": {
+                    "type": "string"
+                },
                 "url": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.Keyword": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string"
+                    "type": "object"
                 }
             }
         },
@@ -1229,82 +1230,23 @@ var doc = `{
                 }
             }
         },
-        "models.Module": {
-            "type": "object",
-            "properties": {
-                "authors": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.User"
-                    }
-                },
-                "bug_tracker": {
-                    "description": "one-to-one relationships",
-                    "type": "object",
-                    "$ref": "#/definitions/models.BugTracker"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "documentation": {
-                    "type": "string"
-                },
-                "homepage": {
-                    "type": "string"
-                },
-                "keywords": {
-                    "description": "many-to-many relationships",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.Keyword"
-                    }
-                },
-                "name": {
-                    "type": "string"
-                },
-                "owners": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.User"
-                    }
-                },
-                "repo": {
-                    "type": "string"
-                },
-                "stars": {
-                    "type": "integer"
-                },
-                "team": {
-                    "type": "string"
-                },
-                "versions": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.ModuleVersion"
-                    }
-                }
-            }
-        },
         "models.ModuleJSON": {
             "type": "object",
             "properties": {
                 "authors": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.User"
+                        "$ref": "#/definitions/models.UserJSON"
                     }
                 },
                 "bug_tracker": {
                     "type": "object",
-                    "$ref": "#/definitions/models.BugTracker"
+                    "$ref": "#/definitions/models.BugTrackerJSON"
                 },
                 "created_at": {
                     "type": "string"
                 },
                 "description": {
-                    "type": "string"
-                },
-                "documentation": {
                     "type": "string"
                 },
                 "homepage": {
@@ -1316,7 +1258,7 @@ var doc = `{
                 "keywords": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.Keyword"
+                        "$ref": "#/definitions/models.KeywordJSON"
                     }
                 },
                 "name": {
@@ -1325,11 +1267,8 @@ var doc = `{
                 "owners": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.User"
+                        "$ref": "#/definitions/models.UserJSON"
                     }
-                },
-                "repo": {
-                    "type": "string"
                 },
                 "stars": {
                     "type": "integer"
@@ -1343,22 +1282,8 @@ var doc = `{
                 "versions": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.ModuleVersion"
+                        "$ref": "#/definitions/models.ModuleVersionJSON"
                     }
-                }
-            }
-        },
-        "models.ModuleVersion": {
-            "type": "object",
-            "properties": {
-                "module_id": {
-                    "type": "integer"
-                },
-                "sdk_compat": {
-                    "type": "string"
-                },
-                "version": {
-                    "type": "string"
                 }
             }
         },
@@ -1368,11 +1293,20 @@ var doc = `{
                 "created_at": {
                     "type": "string"
                 },
+                "documentation": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "integer"
                 },
                 "module_id": {
                     "type": "integer"
+                },
+                "published_by": {
+                    "type": "integer"
+                },
+                "repo": {
+                    "type": "string"
                 },
                 "sdk_compat": {
                     "type": "object"
@@ -1381,58 +1315,6 @@ var doc = `{
                     "type": "string"
                 },
                 "version": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.User": {
-            "type": "object",
-            "properties": {
-                "avatarURL": {
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string"
-                },
-                "emailConfirmed": {
-                    "type": "boolean"
-                },
-                "fullName": {
-                    "type": "string"
-                },
-                "githubAccessToken": {
-                    "type": "string"
-                },
-                "githubUserID": {
-                    "type": "string"
-                },
-                "gravatarID": {
-                    "type": "string"
-                },
-                "modules": {
-                    "description": "many-to-many relationships",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.Module"
-                    }
-                },
-                "name": {
-                    "type": "string"
-                },
-                "stars": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                },
-                "tokens": {
-                    "description": "one-to-many relationships",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.UserToken"
-                    }
-                },
-                "url": {
                     "type": "string"
                 }
             }
@@ -1475,26 +1357,6 @@ var doc = `{
                 },
                 "url": {
                     "type": "string"
-                }
-            }
-        },
-        "models.UserToken": {
-            "type": "object",
-            "properties": {
-                "count": {
-                    "type": "integer"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "revoked": {
-                    "type": "boolean"
-                },
-                "token": {
-                    "type": "string"
-                },
-                "userID": {
-                    "type": "integer"
                 }
             }
         },
@@ -1597,14 +1459,10 @@ var doc = `{
         "v1.ModuleManifest": {
             "type": "object",
             "required": [
-                "name",
-                "repo"
+                "name"
             ],
             "properties": {
                 "description": {
-                    "type": "string"
-                },
-                "documentation": {
                     "type": "string"
                 },
                 "homepage": {
@@ -1617,9 +1475,6 @@ var doc = `{
                     }
                 },
                 "name": {
-                    "type": "string"
-                },
-                "repo": {
                     "type": "string"
                 }
             }
@@ -1657,9 +1512,16 @@ var doc = `{
         "v1.VersionManifest": {
             "type": "object",
             "required": [
+                "repo",
                 "version"
             ],
             "properties": {
+                "documentation": {
+                    "type": "string"
+                },
+                "repo": {
+                    "type": "string"
+                },
                 "sdk_compat": {
                     "type": "string"
                 },

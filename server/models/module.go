@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -20,18 +21,24 @@ type (
 	ModuleVersionJSON struct {
 		GormModelJSON
 
-		Version   string      `json:"version"`
-		SDKCompat interface{} `json:"sdk_compat"`
-		ModuleID  uint        `json:"module_id"`
+		Version       string      `json:"version"`
+		Documentation string      `json:"documentation"`
+		Repo          string      `json:"repo"`
+		SDKCompat     interface{} `json:"sdk_compat"`
+		ModuleID      uint        `json:"module_id"`
+		PublishedBy   uint        `json:"published_by"`
 	}
 
 	// ModuleVersion defines a version associated with a unique module.
 	ModuleVersion struct {
 		gorm.Model
 
-		Version   string         `json:"version"`
-		SDKCompat sql.NullString `json:"sdk_compat"`
-		ModuleID  uint           `json:"module_id"`
+		Documentation string
+		Repo          string `gorm:"not null;default:null"`
+		Version       string
+		SDKCompat     sql.NullString
+		ModuleID      uint
+		PublishedBy   uint
 	}
 
 	// ModuleKeywords defines the type relationship between a module and all the
@@ -71,18 +78,16 @@ type (
 	ModuleJSON struct {
 		GormModelJSON
 
-		Name          string          `json:"name"`
-		Team          string          `json:"team"`
-		Description   string          `json:"description"`
-		Documentation string          `json:"documentation"`
-		Homepage      string          `json:"homepage"`
-		Repo          string          `json:"repo"`
-		Stars         int64           `json:"stars"`
-		BugTracker    BugTracker      `json:"bug_tracker"`
-		Keywords      []Keyword       `json:"keywords"`
-		Authors       []User          `json:"authors"`
-		Owners        []User          `json:"owners"`
-		Versions      []ModuleVersion `json:"versions"`
+		Name        string              `json:"name"`
+		Team        string              `json:"team"`
+		Description string              `json:"description"`
+		Homepage    string              `json:"homepage"`
+		Stars       int64               `json:"stars"`
+		BugTracker  BugTrackerJSON      `json:"bug_tracker"`
+		Keywords    []KeywordJSON       `json:"keywords"`
+		Authors     []UserJSON          `json:"authors"`
+		Owners      []UserJSON          `json:"owners"`
+		Versions    []ModuleVersionJSON `json:"versions"`
 	}
 
 	// UserModuleFavorite defines the behavior of a user staring a module record.
@@ -106,51 +111,54 @@ type (
 	Module struct {
 		gorm.Model
 
-		Name string `gorm:"not null;default:null" json:"name"`
-		Team string `gorm:"not null;default:null" json:"team"`
+		Name        string `gorm:"not null;default:null"`
+		Team        string `gorm:"not null;default:null"`
+		Homepage    string
+		Description string
+		Stars       int64
+		BugTracker  BugTracker      `gorm:"foreignKey:module_id"`
+		Keywords    []Keyword       `gorm:"many2many:module_keywords"`
+		Authors     []User          `gorm:"many2many:module_authors"`
+		Owners      []User          `gorm:"many2many:module_owners"`
+		Versions    []ModuleVersion `gorm:"foreignKey:module_id"`
 
-		Description   string `json:"description"`
-		Documentation string `json:"documentation"`
-		Homepage      string `json:"homepage"`
-		Repo          string `gorm:"not null;default:null" json:"repo"`
-		Stars         int64  `json:"stars"`
-
-		// one-to-one relationships
-		BugTracker BugTracker `json:"bug_tracker" gorm:"foreignKey:module_id"`
-
-		// many-to-many relationships
-		Keywords []Keyword `gorm:"many2many:module_keywords" json:"keywords"`
-		Authors  []User    `gorm:"many2many:module_authors" json:"authors"`
-		Owners   []User    `gorm:"many2many:module_owners" json:"owners"`
-
-		// one-to-many relationships
-		Version  ModuleVersion   `gorm:"-" json:"-"` // current version in manifest
-		Versions []ModuleVersion `gorm:"foreignKey:module_id" json:"versions"`
+		Version ModuleVersion `gorm:"-"` // current version in manifest
 	}
 )
 
 // MarshalJSON implements custom JSON marshaling for the ModuleVersion model.
 func (mv ModuleVersion) MarshalJSON() ([]byte, error) {
+	return json.Marshal(mv.NewModuleVersionJSON())
+}
+
+func (mv ModuleVersion) NewModuleVersionJSON() ModuleVersionJSON {
 	sdkCompat, _ := mv.SDKCompat.Value()
 
-	return json.Marshal(ModuleVersionJSON{
+	return ModuleVersionJSON{
 		GormModelJSON: GormModelJSON{
 			ID:        mv.ID,
 			CreatedAt: mv.CreatedAt,
 			UpdatedAt: mv.UpdatedAt,
 		},
-		Version:   mv.Version,
-		SDKCompat: sdkCompat,
-		ModuleID:  mv.ModuleID,
-	})
+		Documentation: mv.Documentation,
+		Repo:          mv.Repo,
+		Version:       mv.Version,
+		SDKCompat:     sdkCompat,
+		ModuleID:      mv.ModuleID,
+		PublishedBy:   mv.PublishedBy,
+	}
 }
 
 // MarshalJSON implements custom JSON marshaling for the BugTracker model.
 func (bt BugTracker) MarshalJSON() ([]byte, error) {
+	return json.Marshal(bt.NewBugTrackerJSON())
+}
+
+func (bt BugTracker) NewBugTrackerJSON() BugTrackerJSON {
 	btURL, _ := bt.URL.Value()
 	btContact, _ := bt.Contact.Value()
 
-	return json.Marshal(BugTrackerJSON{
+	return BugTrackerJSON{
 		GormModelJSON: GormModelJSON{
 			ID:        bt.ID,
 			CreatedAt: bt.CreatedAt,
@@ -159,30 +167,63 @@ func (bt BugTracker) MarshalJSON() ([]byte, error) {
 		URL:      btURL,
 		Contact:  btContact,
 		ModuleID: bt.ModuleID,
-	})
+	}
 }
 
 // MarshalJSON implements custom JSON marshaling for the Module model.
 func (m Module) MarshalJSON() ([]byte, error) {
+	versionsJSON := make([]ModuleVersionJSON, len(m.Versions))
+	for i, v := range m.Versions {
+		versionsJSON[i] = v.NewModuleVersionJSON()
+	}
+
+	ownersJSON := make([]UserJSON, len(m.Owners))
+	for i, o := range m.Owners {
+		ownersJSON[i] = o.NewUserJSON()
+	}
+
+	authorsJSON := make([]UserJSON, len(m.Authors))
+	for i, a := range m.Authors {
+		authorsJSON[i] = a.NewUserJSON()
+	}
+
+	keywordsJSON := make([]KeywordJSON, len(m.Keywords))
+	for i, k := range m.Keywords {
+		keywordsJSON[i] = k.NewKeywordJSON()
+	}
+
 	return json.Marshal(ModuleJSON{
 		GormModelJSON: GormModelJSON{
 			ID:        m.ID,
 			CreatedAt: m.CreatedAt,
 			UpdatedAt: m.UpdatedAt,
 		},
-		Name:          m.Name,
-		Team:          m.Team,
-		Description:   m.Description,
-		Documentation: m.Documentation,
-		Homepage:      m.Homepage,
-		Repo:          m.Repo,
-		BugTracker:    m.BugTracker,
-		Keywords:      m.Keywords,
-		Authors:       m.Authors,
-		Owners:        m.Owners,
-		Versions:      m.Versions,
-		Stars:         m.Stars,
+		Name:        m.Name,
+		Team:        m.Team,
+		Description: m.Description,
+		Homepage:    m.Homepage,
+		BugTracker:  m.BugTracker.NewBugTrackerJSON(),
+		Keywords:    keywordsJSON,
+		Owners:      ownersJSON,
+		Authors:     authorsJSON,
+		Versions:    versionsJSON,
+		Stars:       m.Stars,
 	})
+}
+
+// BeforeSave implements a GORM hook for updating a Module record before it is
+// created or updated.
+func (m *Module) BeforeSave(tx *gorm.DB) error {
+	var numStars int64
+
+	if err := tx.Model(&UserModuleFavorite{}).Where("module_id = ?", m.ID).Count(&numStars).Error; err != nil {
+		return fmt.Errorf("failed to query for module favorites count: %w", err)
+	}
+
+	m.Stars = numStars
+	m.Name = strings.ToLower(m.Name)
+	m.Team = strings.ToLower(m.Team)
+	return nil
 }
 
 // Upsert will attempt to either create a new Module record or update an
@@ -273,10 +314,16 @@ func (m Module) Upsert(db *gorm.DB) (Module, error) {
 			return err
 		}
 
-		// append version if new
+		// append the module version if it is new
 		versionQuery := &ModuleVersion{Version: m.Version.Version, ModuleID: record.ID}
 		if err := tx.Where(versionQuery).First(&ModuleVersion{}).Error; err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
-			modVer := ModuleVersion{Version: m.Version.Version, SDKCompat: m.Version.SDKCompat}
+			modVer := ModuleVersion{
+				Documentation: m.Version.Documentation,
+				Repo:          m.Version.Repo,
+				Version:       m.Version.Version,
+				SDKCompat:     m.Version.SDKCompat,
+				PublishedBy:   m.Version.PublishedBy,
+			}
 			if err := tx.Model(&record).Association("Versions").Append(&modVer); err != nil {
 				return fmt.Errorf("failed to update module version: %w", err)
 			}
@@ -284,12 +331,10 @@ func (m Module) Upsert(db *gorm.DB) (Module, error) {
 
 		// update primary fields
 		if err := tx.First(&record, record.ID).Updates(Module{
-			Team:          m.Team,
-			Description:   m.Description,
-			Documentation: m.Documentation,
-			Homepage:      m.Homepage,
-			Repo:          m.Repo,
-			BugTracker:    bugTracker,
+			Team:        m.Team,
+			Description: m.Description,
+			Homepage:    m.Homepage,
+			BugTracker:  bugTracker,
 		}).Error; err != nil {
 			return fmt.Errorf("failed to update module: %w", err)
 		}
@@ -307,19 +352,6 @@ func (m Module) Upsert(db *gorm.DB) (Module, error) {
 	}
 
 	return record, nil
-}
-
-// BeforeSave implements a GORM hook for updating a Module record before it is
-// created or updated.
-func (m *Module) BeforeSave(tx *gorm.DB) error {
-	var count int64
-
-	if err := tx.Model(&UserModuleFavorite{}).Where("module_id = ?", m.ID).Count(&count).Error; err != nil {
-		return fmt.Errorf("failed to query for module favorites count: %w", err)
-	}
-
-	m.Stars = count
-	return nil
 }
 
 // Starred returns a boolean defining if a given user by ID has starred a module.

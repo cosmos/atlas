@@ -20,12 +20,10 @@ func TestPublishCommand_DryRun_Valid(t *testing.T) {
 
 	manifest := v1.Manifest{
 		Module: v1.ModuleManifest{
-			Name:          "x/test",
-			Repo:          "https://github.com/test/test-repo",
-			Keywords:      []string{"tokens", "transfer"},
-			Description:   "A test description about a test module.",
-			Homepage:      "https://testmodule.com",
-			Documentation: "https://github.com/test/test-repo/blob/master/x/test/readme.md",
+			Name:        "x/test",
+			Keywords:    []string{"tokens", "transfer"},
+			Description: "A test description about a test module.",
+			Homepage:    "https://testmodule.com",
 		},
 		BugTracker: v1.BugTackerManifest{
 			URL:     "https://testmodule.com/bugs",
@@ -36,8 +34,10 @@ func TestPublishCommand_DryRun_Valid(t *testing.T) {
 			{Name: "test_author2", Email: "testauthor2@testmodule.com"},
 		},
 		Version: v1.VersionManifest{
-			Version:   "v1.0.0",
-			SDKCompat: "v0.40.x",
+			Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+			Documentation: "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+			Version:       "v1.0.0",
+			SDKCompat:     "v0.39.x",
 		},
 	}
 
@@ -67,11 +67,9 @@ func TestPublishCommand_DryRun_Invalid(t *testing.T) {
 
 	manifest := v1.Manifest{
 		Module: v1.ModuleManifest{
-			Repo:          "https://github.com/test/test-repo",
-			Keywords:      []string{"tokens", "transfer"},
-			Description:   "A test description about a test module.",
-			Homepage:      "https://testmodule.com",
-			Documentation: "https://github.com/test/test-repo/blob/master/x/test/readme.md",
+			Keywords:    []string{"tokens", "transfer"},
+			Description: "A test description about a test module.",
+			Homepage:    "https://testmodule.com",
 		},
 		BugTracker: v1.BugTackerManifest{
 			URL:     "bad_url",
@@ -82,8 +80,10 @@ func TestPublishCommand_DryRun_Invalid(t *testing.T) {
 			{Name: "test_author2", Email: "testauthor2@testmodule.com"},
 		},
 		Version: v1.VersionManifest{
-			Version:   "v1.0.0",
-			SDKCompat: "v0.40.x",
+			Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+			Documentation: "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+			Version:       "v1.0.0",
+			SDKCompat:     "v0.39.x",
 		},
 	}
 

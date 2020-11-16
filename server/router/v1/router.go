@@ -292,11 +292,17 @@ func (r *Router) UpsertModule() http.HandlerFunc {
 		module := ModuleFromManifest(request, r.sanitizer)
 		ghClient := r.ghClientCreator(authUser.GithubAccessToken.String)
 
-		repo, err := ghClient.GetRepository(module.Repo)
+		repo, err := ghClient.GetRepository(module.Version.Repo)
 		if err != nil {
 			httputil.RespondWithError(w, http.StatusBadRequest, err)
 			return
 		}
+
+		// set the module's team as the GitHub repository owner
+		module.Team = repo.Owner
+
+		// set the module's version publisher
+		module.Version.PublishedBy = authUser.ID
 
 		// verify the publisher is a contributor to the repository
 		var isContributor bool
@@ -311,9 +317,6 @@ func (r *Router) UpsertModule() http.HandlerFunc {
 			httputil.RespondWithError(w, http.StatusBadRequest, fmt.Errorf("publisher '%s' is not a contributor of this module", authUser.Name))
 			return
 		}
-
-		// set the module's team as the GitHub repository owner
-		module.Team = repo.Owner
 
 		// set the avatar URL for each author
 		for i, author := range module.Authors {

@@ -113,7 +113,7 @@
                     </el-table-column>
                     <el-table-column prop="name" sortable scope="row">
                       <template v-slot="{ row }">
-                        <div>{{ latestVersion(row.versions) }}</div>
+                        <div>{{ latestVersion(row.versions).version }}</div>
                       </template>
                     </el-table-column>
                   </el-table>

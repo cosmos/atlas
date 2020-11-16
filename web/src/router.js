@@ -68,6 +68,12 @@ export default new Router({
       props: { header: { showSearch: true } }
     },
     {
+      path: "/modules/:id/:version",
+      name: "modulesVersioned",
+      components: { header: AppHeader, default: ModulePage, footer: AppFooter },
+      props: { header: { showSearch: true } }
+    },
+    {
       path: "/modules",
       name: "browse",
       components: {

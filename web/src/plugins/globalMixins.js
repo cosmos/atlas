@@ -83,11 +83,11 @@ const GlobalMixins = {
 
         latestVersion(versions) {
           return versions.reduce((a, b) => {
-            let aUpdated = new Date(a.updated_at);
-            let bUpdated = new Date(b.updated_at);
+            let aCreated = new Date(a.created_at);
+            let bCreated = new Date(b.created_at);
 
-            return aUpdated > bUpdated ? a : b;
-          }).version;
+            return aCreated > bCreated ? a : b;
+          });
         }
       }
     });

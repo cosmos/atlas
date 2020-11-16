@@ -102,7 +102,7 @@ func parseGitHubRepo(repoURL string) (Repository, error) {
 	path = strings.Split(path, ".git")[0]
 
 	tokens := strings.Split(path, "/")
-	if len(tokens) != 3 || len(tokens[1]) == 0 || len(tokens[2]) == 0 {
+	if len(tokens) < 3 || len(tokens[1]) == 0 || len(tokens[2]) == 0 {
 		return Repository{}, fmt.Errorf("invalid repository: %s", repoURL)
 	}
 

@@ -105,7 +105,6 @@ func (mts *ModelsTestSuite) TestModuleCreate() {
 			module: models.Module{
 				Name: "x/bank",
 				Team: "cosmonauts",
-				Repo: "https://github.com/cosmos/cosmos-sdk",
 			},
 			expectErr: true,
 		},
@@ -114,7 +113,6 @@ func (mts *ModelsTestSuite) TestModuleCreate() {
 			module: models.Module{
 				Name: "x/bank",
 				Team: "cosmonauts",
-				Repo: "https://github.com/cosmos/cosmos-sdk",
 				Authors: []models.User{
 					{Name: "foo", Email: models.NewNullString("foo@email.com")},
 				},
@@ -126,11 +124,14 @@ func (mts *ModelsTestSuite) TestModuleCreate() {
 			module: models.Module{
 				Name: "x/bank",
 				Team: "cosmonauts",
-				Repo: "https://github.com/cosmos/cosmos-sdk",
 				Authors: []models.User{
 					{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 				},
-				Version: models.ModuleVersion{Version: "v1.0.0"},
+				Version: models.ModuleVersion{
+					Version:       "v1.0.0",
+					Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+					Documentation: "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+				},
 				Keywords: []models.Keyword{
 					{Name: "tokens"},
 				},
@@ -147,19 +148,69 @@ func (mts *ModelsTestSuite) TestModuleCreate() {
 		tc := tc
 
 		mts.Run(tc.name, func() {
-			result, err := tc.module.Upsert(mts.gormDB)
+			record, err := tc.module.Upsert(mts.gormDB)
 			if tc.expectErr {
 				mts.Require().Error(err)
 			} else {
 				mts.Require().NoError(err)
-				mts.Require().Equal(tc.module.Name, result.Name)
-				mts.Require().Equal(tc.module.Team, result.Team)
-				mts.Require().Equal(tc.module.Description, result.Description)
-				mts.Require().Equal(tc.module.Homepage, result.Homepage)
-				mts.Require().Equal(tc.module.Documentation, result.Documentation)
+				mts.Require().Equal(tc.module.Name, record.Name)
+				mts.Require().Equal(tc.module.Team, record.Team)
+				mts.Require().Equal(tc.module.Description, record.Description)
+				mts.Require().Equal(tc.module.Homepage, record.Homepage)
+				mts.Require().Equal("https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md", record.Versions[0].Documentation)
+				mts.Require().Equal("https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1", record.Versions[0].Repo)
 			}
 		})
 	}
+}
+
+func (mts *ModelsTestSuite) TestModuleUpdateBasic() {
+	mts.resetDB()
+
+	mod := models.Module{
+		Name:        "x/bank",
+		Team:        "cosmonauts",
+		Description: "test description",
+		Homepage:    "https://old.cosmos.network",
+		Authors: []models.User{
+			{Name: "admin"},
+		},
+		Version: models.ModuleVersion{
+			Version:       "v1.0.0",
+			Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+			Documentation: "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+		},
+		Keywords: []models.Keyword{
+			{Name: "tokens"},
+		},
+		BugTracker: models.BugTracker{},
+	}
+
+	record, err := mod.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
+
+	mod = models.Module{
+		Name:        record.Name,
+		Team:        record.Team,
+		Description: "new test description",
+		Homepage:    "https://new.cosmos.network",
+		Keywords: []models.Keyword{
+			{Name: "tokens"},
+			{Name: "module"},
+		},
+	}
+
+	record, err = mod.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
+	mts.Require().Equal(record.Team, mod.Team)
+	mts.Require().Equal(record.Name, mod.Name)
+	mts.Require().Equal(record.Description, mod.Description)
+	mts.Require().Equal(record.Homepage, mod.Homepage)
+	mts.Require().Len(record.Keywords, 2)
+	mts.Require().Equal("tokens", record.Keywords[0].Name)
+	mts.Require().Equal("module", record.Keywords[1].Name)
+	mts.Require().Equal("https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md", record.Versions[0].Documentation)
+	mts.Require().Equal("https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1", record.Versions[0].Repo)
 }
 
 func (mts *ModelsTestSuite) TestGetModuleByID() {
@@ -168,11 +219,14 @@ func (mts *ModelsTestSuite) TestGetModuleByID() {
 	mod := models.Module{
 		Name: "x/bank",
 		Team: "cosmonauts",
-		Repo: "https://github.com/cosmos/cosmos-sdk",
 		Authors: []models.User{
 			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 		},
-		Version: models.ModuleVersion{Version: "v1.0.0"},
+		Version: models.ModuleVersion{
+			Version:       "v1.0.0",
+			Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+			Documentation: "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+		},
 		Keywords: []models.Keyword{
 			{Name: "tokens"},
 		},
@@ -198,7 +252,8 @@ func (mts *ModelsTestSuite) TestGetModuleByID() {
 		mts.Require().Equal(mod.Team, result.Team)
 		mts.Require().Equal(mod.Description, result.Description)
 		mts.Require().Equal(mod.Homepage, result.Homepage)
-		mts.Require().Equal(mod.Documentation, result.Documentation)
+		mts.Require().Equal(mod.Versions[0].Documentation, result.Versions[0].Documentation)
+		mts.Require().Equal(mod.Versions[0].Repo, result.Versions[0].Repo)
 	})
 }
 
@@ -215,11 +270,14 @@ func (mts *ModelsTestSuite) TestGetAllModules() {
 		mod := models.Module{
 			Name: fmt.Sprintf("x/bank-%d", i),
 			Team: "cosmonauts",
-			Repo: "https://github.com/cosmos/cosmos-sdk",
 			Authors: []models.User{
 				{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 			},
-			Version: models.ModuleVersion{Version: "v1.0.0"},
+			Version: models.ModuleVersion{
+				Version:       "v1.0.0",
+				Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+				Documentation: fmt.Sprintf("https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank-%d/README.md", i),
+			},
 			Keywords: []models.Keyword{
 				{Name: "tokens"},
 			},
@@ -264,54 +322,20 @@ func (mts *ModelsTestSuite) TestGetAllModules() {
 	mts.Require().Zero(paginator.NextPage)
 }
 
-func (mts *ModelsTestSuite) TestModuleUpdateBasic() {
-	mts.resetDB()
-
-	mod := models.Module{
-		Name:          "x/bank",
-		Team:          "cosmonauts",
-		Description:   "test description",
-		Documentation: "https://github.com/cosmos/cosmos-sdk/x/bank/old_readme.md",
-		Homepage:      "https://old.cosmos.network",
-		Repo:          "https://github.com/cosmos/cosmos-sdk/old",
-		Authors: []models.User{
-			{Name: "admin"},
-		},
-		Version:    models.ModuleVersion{Version: "v1.0.0"},
-		BugTracker: models.BugTracker{},
-	}
-
-	record, err := mod.Upsert(mts.gormDB)
-	mts.Require().NoError(err)
-
-	mod = models.Module{
-		Name:          record.Name,
-		Team:          record.Team,
-		Description:   "new test description",
-		Documentation: "https://github.com/cosmos/cosmos-sdk/x/bank/new_readme.md",
-		Homepage:      "https://new.cosmos.network",
-		Repo:          "https://github.com/cosmos/cosmos-sdk/new",
-	}
-
-	record, err = mod.Upsert(mts.gormDB)
-	mts.Require().NoError(err)
-	mts.Require().Equal(mod.Description, record.Description)
-	mts.Require().Equal(mod.Documentation, record.Documentation)
-	mts.Require().Equal(mod.Homepage, record.Homepage)
-	mts.Require().Equal(mod.Repo, record.Repo)
-}
-
 func (mts *ModelsTestSuite) TestModuleUpdateBugTracker() {
 	mts.resetDB()
 
 	mod := models.Module{
 		Name: "x/bank",
 		Team: "cosmonauts",
-		Repo: "https://github.com/cosmos/cosmos-sdk",
 		Authors: []models.User{
 			{Name: "admin"},
 		},
-		Version:    models.ModuleVersion{Version: "v1.0.0"},
+		Version: models.ModuleVersion{
+			Version:       "v1.0.0",
+			Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+			Documentation: "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+		},
 		BugTracker: models.BugTracker{},
 	}
 
@@ -342,11 +366,14 @@ func (mts *ModelsTestSuite) TestModuleUpdateKeywords() {
 	mod := models.Module{
 		Name: "x/bank",
 		Team: "cosmonauts",
-		Repo: "https://github.com/cosmos/cosmos-sdk",
 		Authors: []models.User{
 			{Name: "admin"},
 		},
-		Version:    models.ModuleVersion{Version: "v1.0.0"},
+		Version: models.ModuleVersion{
+			Version:       "v1.0.0",
+			Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+			Documentation: "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+		},
 		BugTracker: models.BugTracker{},
 	}
 
@@ -382,14 +409,17 @@ func (mts *ModelsTestSuite) TestModuleUpdateAuthors() {
 	mod := models.Module{
 		Name: "x/bank",
 		Team: "cosmonauts",
-		Repo: "https://github.com/cosmos/cosmos-sdk",
 		Authors: []models.User{
 			{Name: "admin"},
 		},
 		Owners: []models.User{
 			{Name: "admin"},
 		},
-		Version:    models.ModuleVersion{Version: "v1.0.0"},
+		Version: models.ModuleVersion{
+			Version:       "v1.0.0",
+			Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+			Documentation: "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+		},
 		BugTracker: models.BugTracker{},
 	}
 
@@ -442,14 +472,17 @@ func (mts *ModelsTestSuite) TestModuleUpdateOwners() {
 	mod := models.Module{
 		Name: "x/bank",
 		Team: "cosmonauts",
-		Repo: "https://github.com/cosmos/cosmos-sdk",
 		Authors: []models.User{
 			{Name: "admin"},
 		},
 		Owners: []models.User{
 			{Name: "admin"},
 		},
-		Version:    models.ModuleVersion{Version: "v1.0.0"},
+		Version: models.ModuleVersion{
+			Version:       "v1.0.0",
+			Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+			Documentation: "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+		},
 		BugTracker: models.BugTracker{},
 	}
 
@@ -504,14 +537,17 @@ func (mts *ModelsTestSuite) TestModuleUpdateVersion() {
 	mod := models.Module{
 		Name: "x/bank",
 		Team: "cosmonauts",
-		Repo: "https://github.com/cosmos/cosmos-sdk",
 		Authors: []models.User{
 			{Name: "admin"},
 		},
 		Owners: []models.User{
 			{Name: "admin"},
 		},
-		Version:    models.ModuleVersion{Version: "v1.0.0"},
+		Version: models.ModuleVersion{
+			Version:       "v1.0.0",
+			Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+			Documentation: "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+		},
 		BugTracker: models.BugTracker{},
 	}
 
@@ -519,7 +555,11 @@ func (mts *ModelsTestSuite) TestModuleUpdateVersion() {
 	mts.Require().NoError(err)
 
 	// update version
-	mod.Version = models.ModuleVersion{Version: "v1.0.1"}
+	mod.Version = models.ModuleVersion{
+		Version:       "v1.0.1",
+		Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.2",
+		Documentation: "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.2/x/bank/README.md",
+	}
 
 	record, err = mod.Upsert(mts.gormDB)
 	mts.Require().NoError(err)
@@ -531,7 +571,11 @@ func (mts *ModelsTestSuite) TestModuleUpdateVersion() {
 	mts.Require().Equal(mod.Version.SDKCompat, latest.SDKCompat)
 
 	// no version update
-	mod.Version = models.ModuleVersion{Version: "v1.0.1"}
+	mod.Version = models.ModuleVersion{
+		Version:       "v1.0.1",
+		Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.2",
+		Documentation: "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.2/x/bank/README.md",
+	}
 
 	record, err = mod.Upsert(mts.gormDB)
 	mts.Require().NoError(err)
@@ -543,7 +587,11 @@ func (mts *ModelsTestSuite) TestModuleUpdateVersion() {
 	mts.Require().Equal(mod.Version.SDKCompat, latest.SDKCompat)
 
 	// update version again
-	mod.Version = models.ModuleVersion{Version: "v2.0.0"}
+	mod.Version = models.ModuleVersion{
+		Version:       "v2.0.0",
+		Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.40.0",
+		Documentation: "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.40.0/x/bank/README.md",
+	}
 
 	record, err = mod.Upsert(mts.gormDB)
 	mts.Require().NoError(err)
@@ -591,12 +639,15 @@ func (mts *ModelsTestSuite) TestModuleSearch() {
 		mod := models.Module{
 			Name: fmt.Sprintf("x/mod-%d", i),
 			Team: randTeam,
-			Repo: "https://github.com/cosmos/cosmos-sdk",
 			Authors: []models.User{
 				godUser,
 				randUser,
 			},
-			Version: models.ModuleVersion{Version: fmt.Sprintf("v1.0.%d", i)},
+			Version: models.ModuleVersion{
+				Version:       fmt.Sprintf("v1.0.%d", i),
+				Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+				Documentation: fmt.Sprintf("https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/mod-%d/README.md", i),
+			},
 			Keywords: []models.Keyword{
 				{Name: "module"},
 				{Name: fmt.Sprintf("mod-keyword-%d", i+1)},
@@ -841,14 +892,17 @@ func (mts *ModelsTestSuite) TestGetUserModules() {
 	mod := models.Module{
 		Name: "x/bank",
 		Team: "cosmonauts",
-		Repo: "https://github.com/cosmos/cosmos-sdk",
 		Owners: []models.User{
 			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 		},
 		Authors: []models.User{
 			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 		},
-		Version: models.ModuleVersion{Version: "v1.0.0"},
+		Version: models.ModuleVersion{
+			Version:       "v1.0.0",
+			Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+			Documentation: "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+		},
 		Keywords: []models.Keyword{
 			{Name: "tokens"}, {Name: "transfer"},
 		},
@@ -873,11 +927,14 @@ func (mts *ModelsTestSuite) TestGetUserByID() {
 	mod := models.Module{
 		Name: "x/bank",
 		Team: "cosmonauts",
-		Repo: "https://github.com/cosmos/cosmos-sdk",
 		Authors: []models.User{
 			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 		},
-		Version: models.ModuleVersion{Version: "v1.0.0"},
+		Version: models.ModuleVersion{
+			Version:       "v1.0.0",
+			Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+			Documentation: "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+		},
 		Keywords: []models.Keyword{
 			{Name: "tokens"}, {Name: "transfer"},
 		},
@@ -917,11 +974,14 @@ func (mts *ModelsTestSuite) TestGetAllUsers() {
 		mod := models.Module{
 			Name: fmt.Sprintf("x/bank-%d", i),
 			Team: "cosmonauts",
-			Repo: "https://github.com/cosmos/cosmos-sdk",
 			Authors: []models.User{
 				{Name: fmt.Sprintf("foo-%d", i), Email: models.NewNullString(fmt.Sprintf("foo%d@cosmonauts.com", i))},
 			},
-			Version: models.ModuleVersion{Version: "v1.0.0"},
+			Version: models.ModuleVersion{
+				Version:       "v1.0.0",
+				Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+				Documentation: fmt.Sprintf("https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank-%d/README.md", i),
+			},
 			Keywords: []models.Keyword{
 				{Name: "tokens"},
 			},
@@ -979,11 +1039,14 @@ func (mts *ModelsTestSuite) TestGetAllKeywords() {
 		mod := models.Module{
 			Name: fmt.Sprintf("x/bank-%d", i),
 			Team: "cosmonauts",
-			Repo: "https://github.com/cosmos/cosmos-sdk",
 			Authors: []models.User{
 				{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 			},
-			Version: models.ModuleVersion{Version: "v1.0.0"},
+			Version: models.ModuleVersion{
+				Version:       "v1.0.0",
+				Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+				Documentation: fmt.Sprintf("https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank-%d/README.md", i),
+			},
 			Keywords: []models.Keyword{
 				{Name: fmt.Sprintf("tokens-%d", i)},
 			},
@@ -1034,14 +1097,17 @@ func (mts *ModelsTestSuite) TestModuleStar() {
 	mod := models.Module{
 		Name: "x/bank",
 		Team: "cosmonauts",
-		Repo: "https://github.com/cosmos/cosmos-sdk",
 		Owners: []models.User{
 			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 		},
 		Authors: []models.User{
 			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 		},
-		Version: models.ModuleVersion{Version: "v1.0.0"},
+		Version: models.ModuleVersion{
+			Version:       "v1.0.0",
+			Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+			Documentation: "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+		},
 		Keywords: []models.Keyword{
 			{Name: "tokens"}, {Name: "transfer"},
 		},
@@ -1087,14 +1153,17 @@ func (mts *ModelsTestSuite) TestUserEmailConfirmation_Upsert() {
 	mod := models.Module{
 		Name: "x/bank",
 		Team: "cosmonauts",
-		Repo: "https://github.com/cosmos/cosmos-sdk",
 		Owners: []models.User{
 			{Name: "foo"},
 		},
 		Authors: []models.User{
 			{Name: "foo"},
 		},
-		Version: models.ModuleVersion{Version: "v1.0.0"},
+		Version: models.ModuleVersion{
+			Version:       "v1.0.0",
+			Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+			Documentation: "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+		},
 		Keywords: []models.Keyword{
 			{Name: "tokens"}, {Name: "transfer"},
 		},
@@ -1136,14 +1205,17 @@ func (mts *ModelsTestSuite) TestQueryUserEmailConfirmation() {
 	mod := models.Module{
 		Name: "x/bank",
 		Team: "cosmonauts",
-		Repo: "https://github.com/cosmos/cosmos-sdk",
 		Owners: []models.User{
 			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 		},
 		Authors: []models.User{
 			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 		},
-		Version: models.ModuleVersion{Version: "v1.0.0"},
+		Version: models.ModuleVersion{
+			Version:       "v1.0.0",
+			Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+			Documentation: "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+		},
 		Keywords: []models.Keyword{
 			{Name: "tokens"}, {Name: "transfer"},
 		},
@@ -1186,14 +1258,17 @@ func (mts *ModelsTestSuite) TestUser_ConfirmEmail() {
 	mod := models.Module{
 		Name: "x/bank",
 		Team: "cosmonauts",
-		Repo: "https://github.com/cosmos/cosmos-sdk",
 		Owners: []models.User{
 			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 		},
 		Authors: []models.User{
 			{Name: "foo", Email: models.NewNullString("foo@cosmonauts.com")},
 		},
-		Version: models.ModuleVersion{Version: "v1.0.0"},
+		Version: models.ModuleVersion{
+			Version:       "v1.0.0",
+			Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+			Documentation: "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+		},
 		Keywords: []models.Keyword{
 			{Name: "tokens"}, {Name: "transfer"},
 		},
@@ -1235,14 +1310,17 @@ func (mts *ModelsTestSuite) TestModuleOwnerInvite_Upsert() {
 	mod := models.Module{
 		Name: "x/bank",
 		Team: "cosmonauts",
-		Repo: "https://github.com/cosmos/cosmos-sdk",
 		Owners: []models.User{
 			{Name: "foo"},
 		},
 		Authors: []models.User{
 			{Name: "bar"},
 		},
-		Version: models.ModuleVersion{Version: "v1.0.0"},
+		Version: models.ModuleVersion{
+			Version:       "v1.0.0",
+			Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+			Documentation: "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+		},
 		Keywords: []models.Keyword{
 			{Name: "tokens"}, {Name: "transfer"},
 		},
@@ -1284,14 +1362,17 @@ func (mts *ModelsTestSuite) TestQueryModuleOwnerInvite() {
 	mod := models.Module{
 		Name: "x/bank",
 		Team: "cosmonauts",
-		Repo: "https://github.com/cosmos/cosmos-sdk",
 		Owners: []models.User{
 			{Name: "foo"},
 		},
 		Authors: []models.User{
 			{Name: "bar"},
 		},
-		Version: models.ModuleVersion{Version: "v1.0.0"},
+		Version: models.ModuleVersion{
+			Version:       "v1.0.0",
+			Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+			Documentation: "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+		},
 		Keywords: []models.Keyword{
 			{Name: "tokens"}, {Name: "transfer"},
 		},
@@ -1336,14 +1417,17 @@ func (mts *ModelsTestSuite) TestModule_AddOwner() {
 	mod := models.Module{
 		Name: "x/bank",
 		Team: "cosmonauts",
-		Repo: "https://github.com/cosmos/cosmos-sdk",
 		Owners: []models.User{
 			{Name: "foo"},
 		},
 		Authors: []models.User{
 			{Name: "bar"},
 		},
-		Version: models.ModuleVersion{Version: "v1.0.0"},
+		Version: models.ModuleVersion{
+			Version:       "v1.0.0",
+			Repo:          "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.1",
+			Documentation: "https://raw.githubusercontent.com/cosmos/cosmos-sdk/v0.39.1/x/bank/README.md",
+		},
 		Keywords: []models.Keyword{
 			{Name: "tokens"}, {Name: "transfer"},
 		},
@@ -1384,13 +1468,95 @@ func (mts *ModelsTestSuite) TestModule_AddOwner() {
 	mts.Require().Empty(moi)
 }
 
+func (mts *ModelsTestSuite) TestNewBugTrackerJSON() {
+	bugTracker := models.BugTracker{
+		Model: gorm.Model{
+			ID:        1,
+			CreatedAt: time.Now().UTC(),
+			UpdatedAt: time.Now().UTC(),
+		},
+		URL:     models.NewNullString("url"),
+		Contact: models.NewNullString("contact"),
+	}
+	bugTrackerJSON := bugTracker.NewBugTrackerJSON()
+	mts.Require().Equal(bugTracker.URL.String, bugTrackerJSON.URL)
+	mts.Require().Equal(bugTracker.Contact.String, bugTrackerJSON.Contact)
+	mts.Require().Equal(bugTracker.CreatedAt, bugTrackerJSON.CreatedAt)
+	mts.Require().Equal(bugTracker.UpdatedAt, bugTrackerJSON.UpdatedAt)
+}
+
+func (mts *ModelsTestSuite) TestNewModuleVersionJSON() {
+	version := models.ModuleVersion{
+		Model: gorm.Model{
+			ID:        1,
+			CreatedAt: time.Now().UTC(),
+			UpdatedAt: time.Now().UTC(),
+		},
+		Documentation: "documentation",
+		Repo:          "repo",
+		Version:       "version",
+		SDKCompat:     models.NewNullString("sdk compat"),
+		ModuleID:      1,
+		PublishedBy:   1,
+	}
+	versionJSON := version.NewModuleVersionJSON()
+	mts.Require().Equal(version.Documentation, versionJSON.Documentation)
+	mts.Require().Equal(version.Repo, versionJSON.Repo)
+	mts.Require().Equal(version.Version, versionJSON.Version)
+	mts.Require().Equal(version.SDKCompat.String, versionJSON.SDKCompat)
+	mts.Require().Equal(version.ModuleID, versionJSON.ModuleID)
+	mts.Require().Equal(version.PublishedBy, versionJSON.PublishedBy)
+	mts.Require().Equal(version.CreatedAt, versionJSON.CreatedAt)
+	mts.Require().Equal(version.UpdatedAt, versionJSON.UpdatedAt)
+}
+
+func (mts *ModelsTestSuite) TestNewKeywordJSON() {
+	keyword := models.Keyword{
+		Model: gorm.Model{
+			ID:        1,
+			CreatedAt: time.Now().UTC(),
+			UpdatedAt: time.Now().UTC(),
+		},
+		Name: "keyword",
+	}
+	keywordJSON := keyword.NewKeywordJSON()
+	mts.Require().Equal(keyword.Name, keywordJSON.Name)
+	mts.Require().Equal(keyword.CreatedAt, keywordJSON.CreatedAt)
+	mts.Require().Equal(keyword.UpdatedAt, keywordJSON.UpdatedAt)
+}
+
+func (mts *ModelsTestSuite) TestNewUserJSON() {
+	user := models.User{
+		Model: gorm.Model{
+			ID:        1,
+			CreatedAt: time.Now().UTC(),
+			UpdatedAt: time.Now().UTC(),
+		},
+		Name:           "user",
+		FullName:       "full name",
+		URL:            "url",
+		GravatarID:     "gravatar ID",
+		AvatarURL:      "avatar ID",
+		EmailConfirmed: true,
+	}
+	userJSON := user.NewUserJSON()
+	mts.Require().Equal(user.Name, userJSON.Name)
+	mts.Require().Equal(user.CreatedAt, userJSON.CreatedAt)
+	mts.Require().Equal(user.UpdatedAt, userJSON.UpdatedAt)
+	mts.Require().Equal(user.FullName, userJSON.FullName)
+	mts.Require().Equal(user.URL, userJSON.URL)
+	mts.Require().Equal(user.GravatarID, userJSON.GravatarID)
+	mts.Require().Equal(user.AvatarURL, userJSON.AvatarURL)
+	mts.Require().Equal(user.EmailConfirmed, userJSON.EmailConfirmed)
+}
+
 func (mts *ModelsTestSuite) resetDB() {
 	mts.T().Helper()
 
 	if err := mts.m.Down(); err != nil {
-		require.Equal(mts.T(), migrate.ErrNoChange, err)
+		require.Equal(mts.T(), migrate.ErrNoChange, err, fmt.Sprintf("down migration error: %s", err.Error()))
 	}
 	if err := mts.m.Up(); err != nil {
-		require.Equal(mts.T(), migrate.ErrNoChange, err)
+		require.Equal(mts.T(), migrate.ErrNoChange, err, fmt.Sprintf("up migration error: %s", err.Error()))
 	}
 }
