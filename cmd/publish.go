@@ -51,7 +51,7 @@ func PublishCommand() *cli.Command {
 				Name:    "registry",
 				Aliases: []string{"r"},
 				Value:   "https://api.atlas.cosmos.network",
-				Usage:   "The Atlas registry address",
+				Usage:   "The Atlas registry API address",
 			},
 			&cli.BoolFlag{
 				Name:  "dry-run",
