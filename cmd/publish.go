@@ -50,7 +50,7 @@ func PublishCommand() *cli.Command {
 			&cli.StringFlag{
 				Name:    "registry",
 				Aliases: []string{"r"},
-				Value:   "https://atlas.cosmos.network",
+				Value:   "https://api.atlas.cosmos.network",
 				Usage:   "The Atlas registry address",
 			},
 			&cli.BoolFlag{
