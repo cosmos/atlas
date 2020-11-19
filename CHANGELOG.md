@@ -39,6 +39,7 @@ Types of changes (Stanzas):
 
 ### Fixed
 
+- [CLI] [#47](https://github.com/cosmos/atlas/issues/47) Fix the default value for the `--registry | -r` flag.
 - [webapp] Fix profile page where the logged in user information was being displayed
   instead of the respective profile user.
 - [router] [#44](https://github.com/cosmos/atlas/pull/44) Changes to Cosmos SDK publishing:
