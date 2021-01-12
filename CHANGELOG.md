@@ -29,6 +29,10 @@ Types of changes (Stanzas):
 
 ## [Unreleased]
 
+### Fixed
+
+- [webapp] [#52](https://github.com/cosmos/atlas/pull/52) Fix broken module links on profile page.
+
 ## [0.0.2] - 2020-11-16
 
 ### Features

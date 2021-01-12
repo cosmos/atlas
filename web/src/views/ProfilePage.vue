@@ -95,14 +95,18 @@
                     <el-table-column prop="name" sortable scope="row">
                       <template v-slot="{ row }">
                         <div>
-                          <a :href="row.documentation">Documentation</a>
+                          <a :href="latestVersion(row.versions).documentation"
+                            >Documentation</a
+                          >
                         </div>
                       </template>
                     </el-table-column>
                     <el-table-column prop="name" sortable scope="row">
                       <template v-slot="{ row }">
                         <div>
-                          <a :href="row.repo">Repository</a>
+                          <a :href="latestVersion(row.versions).repo"
+                            >Repository</a
+                          >
                         </div>
                       </template>
                     </el-table-column>
