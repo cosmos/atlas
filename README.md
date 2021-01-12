@@ -21,6 +21,7 @@ registry, viewable online at [atlas.cosmos.network](https://atlas.cosmos.network
     - [Server](#server)
     - [API Documentation](#api-documentation)
     - [Web App](#web-app)
+    - [Publishing](#publishing)
   - [Migrations](#migrations)
   - [Local Development](#local-development)
   - [Tests](#tests)
@@ -107,6 +108,10 @@ To build for production:
 ```shell
 $ cd web && yarn build
 ```
+
+### Publishing
+
+To publish a Cosmos SDK module, please see the publishing [doc](https://github.com/cosmos/atlas/blob/main/docs/publishing.md).
 
 ## Migrations
 
