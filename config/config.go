@@ -6,24 +6,29 @@ import (
 
 // Configuration values that may be provided in a configuration file, as
 // environment variables or via CLI flags. Note, not all configurations may be
-// passed as CLI flags. All keys are dot delimitated except for environment
+// passed as CLI flags. All keys are dot-delimitated except for environment
 // variables which are snake-cased and must be prefixed with ATLAS_*.
 const (
-	ConfigPath       = "config"
-	LogLevel         = "log.level"
-	LogFormat        = "log.format"
-	ListenAddr       = "listen.addr"
-	Dev              = "dev"
-	DatabaseURL      = "database.url"
-	HTTPReadTimeout  = "http.read.timeout"
-	HTTPWriteTimeout = "http.write.timeout"
-	GHClientID       = "gh.client.id"
-	GHClientSecret   = "gh.client.secret"
-	SessionKey       = "session.key"
-	AllowedOrigins   = "allowed.origins"
-	SendGridAPIKey   = "sendgrid.api.key"
-	DomainName       = "domain.name"
-	SyslogAddr       = "syslog.addr"
+	ConfigPath          = "config"
+	LogLevel            = "log.level"
+	LogFormat           = "log.format"
+	ListenAddr          = "listen.addr"
+	Dev                 = "dev"
+	DatabaseURL         = "database.url"
+	HTTPReadTimeout     = "http.read.timeout"
+	HTTPWriteTimeout    = "http.write.timeout"
+	GHClientID          = "gh.client.id"
+	GHClientSecret      = "gh.client.secret"
+	SessionKey          = "session.key"
+	AllowedOrigins      = "allowed.origins"
+	SendGridAPIKey      = "sendgrid.api.key"
+	DomainName          = "domain.name"
+	SyslogAddr          = "syslog.addr"
+	IPStackKey          = "ipstack.key"
+	NodeCrawlInterval   = "node.crawl.interval"
+	NodeRecheckInterval = "node.recheck.interval"
+	NodeReseedSize      = "node.reseed.size"
+	NodeSeeds           = "node.seeds"
 )
 
 // Config defines a configuration abstraction so we don't rely on any specific
