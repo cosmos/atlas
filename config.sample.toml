@@ -66,4 +66,4 @@ node.recheck.interval = "1h"
 node.reseed.size = 100
 
 # The initial list of seed nodes to crawl.
-node.seeds = []
+node.seeds = "http://1.255.51.125:26657,..."
