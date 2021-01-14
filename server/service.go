@@ -132,6 +132,14 @@ func (s *Service) Cleanup() {
 	}
 }
 
+// GetDB returns the underlying database.
+//
+// FIXME: We should consider creating the database outside of the server package
+// as an injected dependency.
+func (s *Service) GetDB() *gorm.DB {
+	return s.db
+}
+
 func (s *Service) registerSwagger(cfg config.Config) {
 	api.SwaggerInfo.Title = "Atlas API"
 	api.SwaggerInfo.Description = "Atlas Cosmos SDK module registry API documentation."
