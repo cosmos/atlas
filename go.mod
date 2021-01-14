@@ -17,6 +17,8 @@ require (
 	github.com/google/go-github/v32 v32.1.0
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/sessions v1.2.1
+	github.com/harwoeck/ipstack v0.1.0
+	github.com/hashicorp/golang-lru v0.5.4
 	github.com/joho/godotenv v1.3.0
 	github.com/justinas/alice v1.2.0
 	github.com/knadh/koanf v0.13.0
@@ -32,13 +34,11 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/swaggo/http-swagger v0.0.0-20200308142732-58ac5e232fba
 	github.com/swaggo/swag v1.6.7
+	github.com/tendermint/tendermint v0.32.8
 	github.com/urfave/cli/v2 v2.2.0
-	golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0 // indirect
 	golang.org/x/net v0.0.0-20201029055024-942e2f445f3c // indirect
 	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
 	golang.org/x/tools v0.0.0-20201007032633-0806396f153e // indirect
-	google.golang.org/grpc v1.31.1 // indirect
-	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gorm.io/driver/postgres v1.0.2
 	gorm.io/gorm v1.20.2
 )
