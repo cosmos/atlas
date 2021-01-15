@@ -153,6 +153,8 @@ func (c *Crawler) CrawlNode(nodeRPCAddr string) {
 		Str("rpc_address", nodeRPCAddr).
 		Msg("pinging node...")
 
+	// Attempt to ping the node where upon failure, we remove the node from the
+	// database.
 	if ok := pingAddress(nodeP2PAddr, 5*time.Second); !ok {
 		c.logger.Info().
 			Str("p2p_address", nodeP2PAddr).
@@ -170,6 +172,8 @@ func (c *Crawler) CrawlNode(nodeRPCAddr string) {
 		return
 	}
 
+	// Grab the node's geolocation information. Failure indicates we
+	// continue to crawl the node.
 	loc, err := c.GetGeolocation(node.Address)
 	if err != nil {
 		c.logger.Info().
@@ -183,6 +187,9 @@ func (c *Crawler) CrawlNode(nodeRPCAddr string) {
 	node.Location = loc
 	client := newRPCClient(nodeRPCAddr)
 
+	// Attempt to get the node's status which provides us with rich information
+	// about the node. Upon failure, we still crawl and persist the node but we
+	// lack most useful information about the node.
 	status, err := client.Status()
 	if err != nil {
 		c.logger.Info().
