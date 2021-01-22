@@ -25,7 +25,7 @@ func (p Peer) String() string {
 // NodePool implements an abstraction over a pool of nodes for which to crawl.
 // It also contains a collection of nodes for which to reseed the pool when it's
 // empty. Once the reseed list has reached capacity, a random node is removed
-// when another is added. Note, it is not thread-safe.
+// when another is added.
 type NodePool struct {
 	rw sync.RWMutex
 
@@ -50,7 +50,7 @@ func (np *NodePool) Size() int {
 }
 
 // Seed seeds the node pool with a given set of nodes. For every seed, we split
-// it on a `;` delimiter to get the RPC address and the network (if provided).
+// it on a ';' delimiter to get the RPC address and the network (if provided).
 func (np *NodePool) Seed(seeds []string) {
 	for _, s := range seeds {
 		tokens := strings.Split(s, ";")
