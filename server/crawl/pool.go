@@ -77,8 +77,10 @@ func (np *NodePool) RandomNode() (Peer, bool) {
 	return Peer{}, false
 }
 
-// AddNode adds a node to the node pool by adding it to the internal reseed list.
-// If the reseed list is full, it replaces a random node in the reseed list.
+// AddNode adds a node to the node pool by adding it to the internal node list.
+// In addition, we attempt to add it to the internal reseed node list. If the
+// reseed list is full, it replaces a random node in the reseed list, otherwise
+// it is directly added to it.
 func (np *NodePool) AddNode(p Peer) {
 	np.rw.Lock()
 	defer np.rw.Unlock()
