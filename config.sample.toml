@@ -65,5 +65,6 @@ node.recheck.interval = "1h"
 # been exhausted. It is populated by the crawling process.
 node.reseed.size = 100
 
-# The initial list of comma-delimited seed nodes to crawl.
+# The initial list of comma-delimited seed nodes to crawl, where each seed takes
+# the form of [host]:[port];[chain-id], where ;[chain-id] is optional.
 node.seeds = "http://1.255.51.125:26657,..."

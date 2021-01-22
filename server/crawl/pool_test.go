@@ -15,7 +15,7 @@ func TestNodePool_Seed(t *testing.T) {
 
 	seeds := make([]string, 10)
 	for i := range seeds {
-		seeds[i] = fmt.Sprintf("127.0.0.%d:26657", i+1)
+		seeds[i] = fmt.Sprintf("127.0.0.%d:26657;testnet-1", i+1)
 	}
 
 	np.Seed(seeds)
@@ -29,9 +29,9 @@ func TestNodePool_RandomNode(t *testing.T) {
 	np := crawl.NewNodePool(10)
 
 	seeds := map[string]struct{}{
-		"127.0.0.1:26657": {},
-		"127.0.0.2:26657": {},
-		"127.0.0.3:26657": {},
+		"127.0.0.1:26657;testnet-1": {},
+		"127.0.0.2:26657;testnet-1": {},
+		"127.0.0.3:26657":           {},
 	}
 
 	rs, ok := np.RandomNode()
@@ -40,21 +40,28 @@ func TestNodePool_RandomNode(t *testing.T) {
 	require.NotContains(t, seeds, rs)
 
 	for s := range seeds {
-		np.AddNode(s)
+		np.Seed([]string{s})
 	}
 
 	rs, ok = np.RandomNode()
 	require.True(t, ok)
-	require.Contains(t, seeds, rs)
+	require.Contains(t, seeds, rs.String())
 }
 
 func TestNodePool_AddNode(t *testing.T) {
 	np := crawl.NewNodePool(10)
 
 	for i := 0; i <= 10; i++ {
-		addr := fmt.Sprintf("127.0.0.%d:26657", i+1)
-		np.AddNode(addr)
-		require.True(t, np.HasNode(addr))
+		peer := crawl.Peer{
+			RPCAddr: fmt.Sprintf("127.0.0.%d:26657", i+1),
+		}
+
+		if i%2 == 0 {
+			peer.Network = "testnet-1"
+		}
+
+		np.AddNode(peer)
+		require.True(t, np.HasNode(peer))
 	}
 }
 
@@ -62,11 +69,19 @@ func TestNodePool_DeleteNode(t *testing.T) {
 	np := crawl.NewNodePool(10)
 
 	for i := 0; i <= 10; i++ {
-		addr := fmt.Sprintf("127.0.0.%d:26657", i+1)
-		np.AddNode(addr)
-		require.True(t, np.HasNode(addr))
-		np.DeleteNode(addr)
-		require.False(t, np.HasNode(addr))
+		peer := crawl.Peer{
+			RPCAddr: fmt.Sprintf("127.0.0.%d:26657", i+1),
+		}
+
+		if i%2 == 0 {
+			peer.Network = "testnet-1"
+		}
+
+		np.AddNode(peer)
+		require.True(t, np.HasNode(peer))
+
+		np.DeleteNode(peer)
+		require.False(t, np.HasNode(peer))
 	}
 }
 
@@ -83,7 +98,7 @@ func TestNodePool_Reseed(t *testing.T) {
 	np.Seed(seeds)
 
 	for _, s := range seeds {
-		np.DeleteNode(s)
+		np.DeleteNode(crawl.Peer{RPCAddr: s})
 	}
 
 	np.Reseed()

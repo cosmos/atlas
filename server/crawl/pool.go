@@ -2,9 +2,25 @@ package crawl
 
 import (
 	"math/rand"
+	"strings"
 	"sync"
 	"time"
 )
+
+// Peer defines a node structure that exists in the NodePool. Every Peer should
+// have an RPC address defined, but a network is not strictly required.
+type Peer struct {
+	RPCAddr string
+	Network string
+}
+
+func (p Peer) String() string {
+	if p.RPCAddr != "" && p.Network != "" {
+		return p.RPCAddr + ";" + p.Network
+	}
+
+	return p.RPCAddr
+}
 
 // NodePool implements an abstraction over a pool of nodes for which to crawl.
 // It also contains a collection of nodes for which to reseed the pool when it's
@@ -13,86 +29,94 @@ import (
 type NodePool struct {
 	rw sync.RWMutex
 
-	nodes       map[string]struct{}
-	reseedNodes []string
+	nodes       map[Peer]struct{}
+	reseedNodes []Peer
 	rng         *rand.Rand
 }
 
 func NewNodePool(reseedCap uint) *NodePool {
 	return &NodePool{
-		nodes:       make(map[string]struct{}),
-		reseedNodes: make([]string, 0, reseedCap),
+		nodes:       make(map[Peer]struct{}),
+		reseedNodes: make([]Peer, 0, reseedCap),
 		rng:         rand.New(rand.NewSource(time.Now().Unix())),
 	}
 }
 
 // Size returns the size of the pool.
-func (p *NodePool) Size() int {
-	p.rw.RLock()
-	defer p.rw.RUnlock()
-	return len(p.nodes)
+func (np *NodePool) Size() int {
+	np.rw.RLock()
+	defer np.rw.RUnlock()
+	return len(np.nodes)
 }
 
-// Seed seeds the node pool with a given set of node IPs.
-func (p *NodePool) Seed(seeds []string) {
+// Seed seeds the node pool with a given set of nodes. For every seed, we split
+// it on a `;` delimiter to get the RPC address and the network (if provided).
+func (np *NodePool) Seed(seeds []string) {
 	for _, s := range seeds {
-		p.AddNode(s)
+		tokens := strings.Split(s, ";")
+		switch len(tokens) {
+		case 1:
+			np.AddNode(Peer{RPCAddr: tokens[0]})
+
+		case 2:
+			np.AddNode(Peer{RPCAddr: tokens[0], Network: tokens[1]})
+		}
 	}
 }
 
-// RandomNode returns a random node, based on Golang's map semantics, from the pool.
-func (p *NodePool) RandomNode() (string, bool) {
-	p.rw.RLock()
-	defer p.rw.RUnlock()
+// RandomNode returns a random node, based on Golang's map semantics, from the
+// pool.
+func (np *NodePool) RandomNode() (Peer, bool) {
+	np.rw.RLock()
+	defer np.rw.RUnlock()
 
-	for nodeRPCAddr := range p.nodes {
+	for nodeRPCAddr := range np.nodes {
 		return nodeRPCAddr, true
 	}
 
-	return "", false
+	return Peer{}, false
 }
 
-// AddNode adds a node RPC address to the node pool. In addition, it adds the
-// node to the reseed list. If the reseed list is full, it replaces a random node
-// in the reseed list.
-func (p *NodePool) AddNode(nodeRPCAddr string) {
-	p.rw.Lock()
-	defer p.rw.Unlock()
+// AddNode adds a node to the node pool by adding it to the internal reseed list.
+// If the reseed list is full, it replaces a random node in the reseed list.
+func (np *NodePool) AddNode(p Peer) {
+	np.rw.Lock()
+	defer np.rw.Unlock()
 
-	p.nodes[nodeRPCAddr] = struct{}{}
+	np.nodes[p] = struct{}{}
 
-	if len(p.reseedNodes) < cap(p.reseedNodes) {
-		p.reseedNodes = append(p.reseedNodes, nodeRPCAddr)
+	if len(np.reseedNodes) < cap(np.reseedNodes) {
+		np.reseedNodes = append(np.reseedNodes, p)
 	} else {
 		// replace random node with the new node
-		i := p.rng.Intn(len(p.reseedNodes))
-		p.reseedNodes[i] = nodeRPCAddr
+		i := np.rng.Intn(len(np.reseedNodes))
+		np.reseedNodes[i] = p
 	}
 }
 
-// HasNode returns a boolean based on if a node RPC address exists in the node pool.
-func (p *NodePool) HasNode(nodeRPCAddr string) bool {
-	p.rw.RLock()
-	defer p.rw.RUnlock()
+// HasNode returns true if a node exists in the node pool and false otherwise.
+func (np *NodePool) HasNode(p Peer) bool {
+	np.rw.RLock()
+	defer np.rw.RUnlock()
 
-	_, ok := p.nodes[nodeRPCAddr]
+	_, ok := np.nodes[p]
 	return ok
 }
 
 // DeleteNode removes a node from the node pool if it exists.
-func (p *NodePool) DeleteNode(nodeRPCAddr string) {
-	p.rw.Lock()
-	defer p.rw.Unlock()
-	delete(p.nodes, nodeRPCAddr)
+func (np *NodePool) DeleteNode(p Peer) {
+	np.rw.Lock()
+	defer np.rw.Unlock()
+	delete(np.nodes, p)
 }
 
 // Reseed seeds the node pool with all the nodes found in the internal reseed
 // list.
-func (p *NodePool) Reseed() {
-	p.rw.Lock()
-	defer p.rw.Unlock()
+func (np *NodePool) Reseed() {
+	np.rw.Lock()
+	defer np.rw.Unlock()
 
-	for _, addr := range p.reseedNodes {
-		p.nodes[addr] = struct{}{}
+	for _, p := range np.reseedNodes {
+		np.nodes[p] = struct{}{}
 	}
 }

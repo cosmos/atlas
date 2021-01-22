@@ -80,16 +80,17 @@ func (c *Crawler) Start() {
 		case <-ticker.C:
 			// Keep picking a pseudo-random node from the pool to crawl until the pool
 			// is exhausted.
-			nodeRPCAddr, ok := c.pool.RandomNode()
+			peer, ok := c.pool.RandomNode()
 			for ok {
-				c.CrawlNode(nodeRPCAddr)
-				c.pool.DeleteNode(nodeRPCAddr)
+				c.CrawlNode(peer)
+				c.pool.DeleteNode(peer)
 
 				// pick the next pseudo-random node
-				nodeRPCAddr, ok = c.pool.RandomNode()
+				peer, ok = c.pool.RandomNode()
 			}
 
 			c.pool.Reseed()
+
 		case <-c.doneCh:
 			return
 		}
@@ -123,8 +124,9 @@ func (c *Crawler) RecheckNodes() {
 					Str("p2p_address", nodeP2PAddr).
 					Str("rpc_address", nodeRPCAddr).
 					Msg("adding node to node pool")
-				c.pool.AddNode(nodeRPCAddr)
+				c.pool.AddNode(Peer{RPCAddr: nodeRPCAddr, Network: node.Network})
 			}
+
 		case <-c.doneCh:
 			return
 		}
@@ -138,19 +140,20 @@ func (c *Crawler) RecheckNodes() {
 // we attempt to get additional metadata aboout the node via it's RPC address
 // and its set of peers. For every peer that doesn't exist in the node pool, it
 // is added.
-func (c *Crawler) CrawlNode(nodeRPCAddr string) {
-	host := parseHostname(nodeRPCAddr)
+func (c *Crawler) CrawlNode(p Peer) {
+	host := parseHostname(p.RPCAddr)
 	nodeP2PAddr := fmt.Sprintf("%s:%s", host, defaultP2PPort)
 
 	node := models.Node{
 		Address: host,
-		RPCPort: parsePort(nodeRPCAddr),
+		RPCPort: parsePort(p.RPCAddr),
 		P2PPort: defaultP2PPort,
+		Network: p.Network,
 	}
 
 	c.logger.Debug().
 		Str("p2p_address", nodeP2PAddr).
-		Str("rpc_address", nodeRPCAddr).
+		Str("rpc_address", p.RPCAddr).
 		Msg("pinging node...")
 
 	// Attempt to ping the node where upon failure, we remove the node from the
@@ -158,14 +161,14 @@ func (c *Crawler) CrawlNode(nodeRPCAddr string) {
 	if ok := pingAddress(nodeP2PAddr, 5*time.Second); !ok {
 		c.logger.Info().
 			Str("p2p_address", nodeP2PAddr).
-			Str("rpc_address", nodeRPCAddr).
+			Str("rpc_address", p.RPCAddr).
 			Msg("failed to ping node; deleting...")
 
 		if err := node.Delete(c.db); err != nil {
-			c.logger.Info().
+			c.logger.Error().
 				Err(err).
 				Str("p2p_address", nodeP2PAddr).
-				Str("rpc_address", nodeRPCAddr).
+				Str("rpc_address", p.RPCAddr).
 				Msg("failed to delete node")
 		}
 
@@ -176,26 +179,31 @@ func (c *Crawler) CrawlNode(nodeRPCAddr string) {
 	// continue to crawl the node.
 	loc, err := c.GetGeolocation(node.Address)
 	if err != nil {
-		c.logger.Info().
+		c.logger.Error().
 			Err(err).
 			Str("p2p_address", nodeP2PAddr).
-			Str("rpc_address", nodeRPCAddr).
+			Str("rpc_address", p.RPCAddr).
 			Msg("failed to get node geolocation")
 		return
 	}
 
 	node.Location = loc
-	client := newRPCClient(nodeRPCAddr, clientTimeout)
+	client := newRPCClient(p.RPCAddr, clientTimeout)
 
 	// Attempt to get the node's status which provides us with rich information
-	// about the node. Upon failure, we still crawl and persist the node but we
-	// lack most useful information about the node.
+	// about the node. Upon failure, we return and prevent further crawling if the
+	// network is unknown due to the lack of any useful information about the node.
 	status, err := client.Status()
 	if err != nil {
-		c.logger.Info().
-			Err(err).Str("p2p_address", nodeP2PAddr).
-			Str("rpc_address", nodeRPCAddr).
+		c.logger.Error().
+			Err(err).
+			Str("p2p_address", nodeP2PAddr).
+			Str("rpc_address", p.RPCAddr).
 			Msg("failed to get node status")
+
+		if node.Network == "" {
+			return
+		}
 	} else {
 		node.Moniker = status.NodeInfo.Moniker
 		node.NodeID = string(status.NodeInfo.ID())
@@ -205,10 +213,10 @@ func (c *Crawler) CrawlNode(nodeRPCAddr string) {
 
 		netInfo, err := client.NetInfo()
 		if err != nil {
-			c.logger.Info().
+			c.logger.Error().
 				Err(err).
 				Str("p2p_address", nodeP2PAddr).
-				Str("rpc_address", nodeRPCAddr).
+				Str("rpc_address", p.RPCAddr).
 				Msg("failed to get node net info")
 			return
 		}
@@ -217,35 +225,31 @@ func (c *Crawler) CrawlNode(nodeRPCAddr string) {
 		for _, p := range netInfo.Peers {
 			peerRPCPort := parsePort(p.NodeInfo.Other.RPCAddress)
 			peerRPCAddress := fmt.Sprintf("http://%s:%s", p.RemoteIP, peerRPCPort)
-			peer := models.Node{
-				Address: p.RemoteIP,
-				Network: node.Network,
-			}
 
 			// only add the peer to the pool if we haven't (re)discovered it
 			_, err := models.QueryNode(
 				c.db,
-				map[string]interface{}{"address": peer.Address, "network": peer.Network},
+				map[string]interface{}{"address": p.RemoteIP, "network": node.Network},
 			)
 			if err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
 				c.logger.Debug().
 					Str("peer_rpc_address", peerRPCAddress).
 					Msg("adding peer to node pool")
-				c.pool.AddNode(peerRPCAddress)
+				c.pool.AddNode(Peer{RPCAddr: peerRPCAddress, Network: node.Network})
 			}
 		}
 	}
 
 	if _, err := node.Upsert(c.db); err != nil {
-		c.logger.Info().
+		c.logger.Error().
 			Err(err).
 			Str("p2p_address", nodeP2PAddr).
-			Str("rpc_address", nodeRPCAddr).
+			Str("rpc_address", p.RPCAddr).
 			Msg("failed to save node")
 	} else {
 		c.logger.Info().
 			Str("p2p_address", nodeP2PAddr).
-			Str("rpc_address", nodeRPCAddr).
+			Str("rpc_address", p.RPCAddr).
 			Msg("successfully crawled and saved node")
 	}
 }
