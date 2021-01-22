@@ -185,7 +185,7 @@ func (c *Crawler) CrawlNode(nodeRPCAddr string) {
 	}
 
 	node.Location = loc
-	client := newRPCClient(nodeRPCAddr)
+	client := newRPCClient(nodeRPCAddr, clientTimeout)
 
 	// Attempt to get the node's status which provides us with rich information
 	// about the node. Upon failure, we still crawl and persist the node but we

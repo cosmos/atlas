@@ -15,9 +15,9 @@ import (
 
 var clientTimeout = 15 * time.Second
 
-func newRPCClient(remote string) *rpcclient.HTTP {
+func newRPCClient(remote string, timeout time.Duration) *rpcclient.HTTP {
 	httpClient := libclient.DefaultHTTPClient(remote)
-	httpClient.Timeout = clientTimeout
+	httpClient.Timeout = timeout
 	return rpcclient.NewHTTPWithClient(remote, "/websocket", httpClient)
 }
 
