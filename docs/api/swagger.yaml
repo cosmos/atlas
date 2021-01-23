@@ -57,7 +57,6 @@ definitions:
         type: array
       bug_tracker:
         $ref: '#/definitions/models.BugTrackerJSON'
-        type: object
       created_at:
         type: string
       description:
@@ -178,13 +177,10 @@ definitions:
         type: array
       bug_tracker:
         $ref: '#/definitions/v1.BugTackerManifest'
-        type: object
       module:
         $ref: '#/definitions/v1.ModuleManifest'
-        type: object
       version:
         $ref: '#/definitions/v1.VersionManifest'
-        type: object
     required:
     - authors
     - version
@@ -249,7 +245,6 @@ definitions:
     type: object
 info:
   contact: {}
-  license: {}
 paths:
   /keywords:
     get:
@@ -878,6 +873,56 @@ paths:
       summary: Search for Cosmos SDK modules by name, team, description and keywords
       tags:
       - modules
+  /nodes/search:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - default: 1
+        description: pagination page
+        in: query
+        name: page
+        required: true
+        type: integer
+      - default: 100
+        description: pagination limit
+        in: query
+        name: limit
+        required: true
+        type: integer
+      - default: "false"
+        description: pagination reverse
+        in: query
+        name: reverse
+        type: string
+      - default: id
+        description: pagination order by
+        in: query
+        name: order
+        type: string
+      - description: search criteria
+        in: query
+        name: q
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/httputil.PaginationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httputil.ErrResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/httputil.ErrResponse'
+      summary: Search for Tendermint crawled nodes by network, moniker, version or
+        location.
+      tags:
+      - nodes
   /users:
     get:
       consumes:
