@@ -8,6 +8,8 @@ import (
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+
+	"github.com/cosmos/atlas/server/httputil"
 )
 
 // LocationJSON defines the JSON-encodeable type for a Location.
@@ -231,6 +233,95 @@ func (n Node) Delete(db *gorm.DB) error {
 	}
 
 	return nil
+}
+
+// GetAllNodes returns a slice of Node records paginated by an offset, order
+// and limit. An error is returned upon database query failure.
+func GetAllNodes(db *gorm.DB, pq httputil.PaginationQuery) ([]Node, Paginator, error) {
+	var (
+		nodes []Node
+		total int64
+	)
+
+	tx := db.Preload(clause.Associations)
+
+	if err := tx.Scopes(paginateScope(pq, &nodes)).Error; err != nil {
+		return nil, Paginator{}, fmt.Errorf("failed to query for nodes: %w", err)
+	}
+
+	if err := db.Model(&Node{}).Count(&total).Error; err != nil {
+		return nil, Paginator{}, fmt.Errorf("failed to query for node count: %w", err)
+	}
+
+	return nodes, buildPaginator(pq, total), nil
+}
+
+// SearchNodes performs a paginated query for a set of Node records by moniker,
+// network, version or location. If any empty query is provided, we return a
+// paginated list of all Node records. Otherwise, if no matching Node records
+// exist, an empty slice is returned.
+func SearchNodes(db *gorm.DB, query string, pq httputil.PaginationQuery) ([]Node, Paginator, error) {
+	if query == "" {
+		return GetAllNodes(db, pq)
+	}
+
+	type queryRow struct {
+		NodeID uint
+	}
+
+	rows, err := db.Raw(`SELECT DISTINCT
+  ON (node_id) results.node_id AS node_id
+FROM
+  (
+    SELECT
+      n.id AS node_id,
+      n.moniker,
+      n.network,
+      n.version,
+      l.country,
+      l.region,
+      l.city
+    FROM
+      nodes n
+      LEFT JOIN
+        locations l
+        ON (n.location_id = l.id)
+    WHERE
+      to_tsvector('english', COALESCE(n.moniker, '') || ' ' || COALESCE(n.network, '') || ' ' || COALESCE(n.version, '') || ' ' || COALESCE(l.country, '') || ' ' || COALESCE(l.region, '') || ' ' || COALESCE(l.city, '')) @@ websearch_to_tsquery('english', ?)
+  )
+  AS results;
+`, query).Rows()
+	if err != nil {
+		return nil, Paginator{}, fmt.Errorf("failed to search for nodes: %w", err)
+	}
+
+	defer rows.Close()
+
+	nodeIDs := []uint{}
+	for rows.Next() {
+		var qr queryRow
+		if err := db.ScanRows(rows, &qr); err != nil {
+			return nil, Paginator{}, fmt.Errorf("failed to search for nodes: %w", err)
+		}
+
+		nodeIDs = append(nodeIDs, qr.NodeID)
+	}
+
+	if len(nodeIDs) == 0 {
+		return []Node{}, Paginator{}, nil
+	}
+
+	var nodes []Node
+
+	if err := db.Preload(clause.Associations).
+		Offset(int(offsetFromPage(pq))).
+		Limit(int(pq.Limit)).
+		Order(buildOrderBy(pq)).
+		Find(&nodes, nodeIDs).Error; err != nil {
+		return nil, Paginator{}, fmt.Errorf("failed to search for nodes: %w", err)
+	}
+
+	return nodes, buildPaginator(pq, int64(len(nodeIDs))), nil
 }
 
 // QueryNode performs a query for a Node record. The resulting record, if it

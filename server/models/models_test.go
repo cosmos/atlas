@@ -1754,6 +1754,170 @@ func (mts *ModelsTestSuite) TestNodeUpsert() {
 	}
 }
 
+func (mts *ModelsTestSuite) TestNodeSearch() {
+	mts.resetDB()
+
+	loc1 := models.Location{
+		Country:   "United States",
+		Region:    "Colorado",
+		City:      "Broomfield",
+		Latitude:  "39.892609",
+		Longitude: "-105.149200",
+	}
+	loc2 := models.Location{
+		Country:   "Japan",
+		Region:    "Tokyo",
+		City:      "Tokyo",
+		Latitude:  "35.696281",
+		Longitude: "139.738556",
+	}
+
+	for i := 0; i < 10; i++ {
+		var (
+			loc     models.Location
+			network string
+			version string
+		)
+
+		if i%2 == 0 {
+			loc = loc1
+			network = "network1"
+			version = "0.33.8"
+		} else {
+			loc = loc2
+			network = "network2"
+			version = "0.33.9"
+		}
+
+		if i == 0 {
+			network = "network3"
+		}
+
+		n := models.Node{
+			Location: loc,
+			Address:  fmt.Sprintf("127.0.0.%d", i),
+			RPCPort:  "26657",
+			P2PPort:  "26656",
+			Moniker:  fmt.Sprintf("node-%d", i),
+			NodeID:   fmt.Sprintf("00FF%d", i),
+			Network:  network,
+			Version:  version,
+			TxIndex:  "off",
+		}
+
+		_, err := n.Upsert(mts.gormDB)
+		mts.Require().NoError(err)
+	}
+
+	mods, paginator, err := models.SearchNodes(mts.gormDB, "foo", httputil.PaginationQuery{Page: 1, Limit: 10, Order: "id"})
+	mts.Require().NoError(err)
+	mts.Require().Empty(mods)
+	mts.Require().Zero(paginator.PrevPage)
+	mts.Require().Zero(paginator.NextPage)
+
+	testCases := []struct {
+		name              string
+		query             string
+		pageQuery         httputil.PaginationQuery
+		expectedRecords   map[string]struct{}
+		expectedPaginator models.Paginator
+	}{
+		{
+			"empty query (page 1)",
+			"",
+			httputil.PaginationQuery{Page: 1, Limit: 5, Order: "id"},
+			map[string]struct{}{
+				"127.0.0.0": {},
+				"127.0.0.1": {},
+				"127.0.0.2": {},
+				"127.0.0.3": {},
+				"127.0.0.4": {},
+			},
+			models.Paginator{PrevPage: 0, NextPage: 2, Total: 10},
+		},
+		{
+			"empty query (page 2)",
+			"",
+			httputil.PaginationQuery{Page: 2, Limit: 5, Order: "id"},
+			map[string]struct{}{
+				"127.0.0.5": {},
+				"127.0.0.6": {},
+				"127.0.0.7": {},
+				"127.0.0.8": {},
+				"127.0.0.9": {},
+			},
+			models.Paginator{PrevPage: 1, NextPage: 0, Total: 10},
+		},
+		{
+			"no matching query",
+			"foo",
+			httputil.PaginationQuery{Page: 1, Limit: 5, Order: "id"},
+			map[string]struct{}{},
+			models.Paginator{PrevPage: 0, NextPage: 0, Total: 0},
+		},
+		{
+			"matches one record (network)",
+			"network3",
+			httputil.PaginationQuery{Page: 1, Limit: 5, Order: "id"},
+			map[string]struct{}{"127.0.0.0": {}},
+			models.Paginator{PrevPage: 0, NextPage: 0, Total: 1},
+		},
+		{
+			"matches all records (location)",
+			"Japan",
+			httputil.PaginationQuery{Page: 1, Limit: 10, Order: "id"},
+			map[string]struct{}{
+				"127.0.0.1": {},
+				"127.0.0.3": {},
+				"127.0.0.5": {},
+				"127.0.0.7": {},
+				"127.0.0.9": {},
+			},
+			models.Paginator{PrevPage: 0, NextPage: 0, Total: 5},
+		},
+		{
+			"matches all records (network)",
+			"network1",
+			httputil.PaginationQuery{Page: 1, Limit: 10, Order: "id"},
+			map[string]struct{}{
+				"127.0.0.2": {},
+				"127.0.0.4": {},
+				"127.0.0.6": {},
+				"127.0.0.8": {},
+			},
+			models.Paginator{PrevPage: 0, NextPage: 0, Total: 4},
+		},
+		{
+			"matches all records (version)",
+			"0.33.9",
+			httputil.PaginationQuery{Page: 1, Limit: 10, Order: "id"},
+			map[string]struct{}{
+				"127.0.0.1": {},
+				"127.0.0.3": {},
+				"127.0.0.5": {},
+				"127.0.0.7": {},
+				"127.0.0.9": {},
+			},
+			models.Paginator{PrevPage: 0, NextPage: 0, Total: 5},
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+
+		mts.Run(tc.name, func() {
+			nodes, paginator, err := models.SearchNodes(mts.gormDB, tc.query, tc.pageQuery)
+			mts.Require().NoError(err)
+			mts.Require().Len(nodes, len(tc.expectedRecords))
+			mts.Require().Equal(tc.expectedPaginator, paginator)
+
+			for _, n := range nodes {
+				mts.Require().Contains(tc.expectedRecords, n.Address)
+			}
+		})
+	}
+}
+
 func (mts *ModelsTestSuite) TestNewNodeJSON() {
 	node := models.Node{
 		ID:        1,
