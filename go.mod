@@ -32,7 +32,7 @@ require (
 	github.com/sendgrid/sendgrid-go v3.7.0+incompatible
 	github.com/stretchr/testify v1.6.1
 	github.com/swaggo/http-swagger v0.0.0-20200308142732-58ac5e232fba
-	github.com/swaggo/swag v1.7.0
+	github.com/swaggo/swag v1.6.7
 	github.com/tendermint/tendermint v0.32.8
 	github.com/urfave/cli/v2 v2.3.0
 	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
