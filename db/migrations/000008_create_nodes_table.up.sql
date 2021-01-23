@@ -35,4 +35,10 @@ CREATE TABLE IF NOT EXISTS nodes (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_nodes_addr_network ON nodes(address, network);
 CREATE INDEX IF NOT EXISTS idx_nodes_moniker ON nodes(moniker);
+CREATE INDEX IF NOT EXISTS idx_nodes_tsvector ON nodes USING GIN(
+  to_tsvector(
+    'english',
+    moniker || ' ' || network || ' ' || version
+  )
+);
 COMMIT;
