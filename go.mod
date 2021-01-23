@@ -9,8 +9,7 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/dghubble/gologin/v2 v2.2.0
 	github.com/fatih/color v1.9.0
-	github.com/go-openapi/spec v0.19.9 // indirect
-	github.com/go-openapi/swag v0.19.9 // indirect
+	github.com/go-openapi/spec v0.20.2 // indirect
 	github.com/go-playground/validator/v10 v10.4.0
 	github.com/golang-migrate/migrate/v4 v4.13.0
 	github.com/google/go-github v17.0.0+incompatible
@@ -23,22 +22,22 @@ require (
 	github.com/justinas/alice v1.2.0
 	github.com/knadh/koanf v0.13.0
 	github.com/lib/pq v1.8.0
-	github.com/mailru/easyjson v0.7.6 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.4
 	github.com/onsi/ginkgo v1.14.0 // indirect
 	github.com/rs/cors v1.7.0
 	github.com/rs/zerolog v1.20.0
+	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/satori/go.uuid v1.2.0
 	github.com/sendgrid/rest v2.6.2+incompatible // indirect
 	github.com/sendgrid/sendgrid-go v3.7.0+incompatible
 	github.com/stretchr/testify v1.6.1
 	github.com/swaggo/http-swagger v0.0.0-20200308142732-58ac5e232fba
-	github.com/swaggo/swag v1.6.7
+	github.com/swaggo/swag v1.7.0
 	github.com/tendermint/tendermint v0.32.8
-	github.com/urfave/cli/v2 v2.2.0
-	golang.org/x/net v0.0.0-20201029055024-942e2f445f3c // indirect
+	github.com/urfave/cli/v2 v2.3.0
 	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
-	golang.org/x/tools v0.0.0-20201007032633-0806396f153e // indirect
+	golang.org/x/sys v0.0.0-20210123111255-9b0068b26619 // indirect
+	golang.org/x/tools v0.1.0 // indirect
 	gorm.io/driver/postgres v1.0.2
 	gorm.io/gorm v1.20.2
 )
