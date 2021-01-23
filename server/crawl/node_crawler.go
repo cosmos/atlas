@@ -65,8 +65,6 @@ func (c *Crawler) Stop() {
 // When the pool is empty and after crawlInterval seconds since the last complete
 // crawl, a random set of nodes from the DB are added to reseed the pool.
 func (c *Crawler) Start() {
-	c.logger.Info().Msg("starting node crawler...")
-
 	// seed the pool with the initial set of seeds before crawling
 	c.pool.Seed(c.seeds)
 
@@ -78,6 +76,8 @@ func (c *Crawler) Start() {
 	for {
 		select {
 		case <-ticker.C:
+			c.logger.Info().Msg("starting to crawl nodes")
+
 			// Keep picking a pseudo-random node from the pool to crawl until the pool
 			// is exhausted.
 			peer, ok := c.pool.RandomNode()
@@ -89,6 +89,7 @@ func (c *Crawler) Start() {
 				peer, ok = c.pool.RandomNode()
 			}
 
+			c.logger.Info().Msg("node crawl complete; reseeding node pool")
 			c.pool.Reseed()
 
 		case <-c.doneCh:

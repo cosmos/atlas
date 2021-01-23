@@ -18,6 +18,8 @@ func TestNodePool_Seed(t *testing.T) {
 		seeds[i] = fmt.Sprintf("127.0.0.%d:26657;testnet-1", i+1)
 	}
 
+	seeds = append(seeds, "1.1.1.1:26657")
+
 	np.Seed(seeds)
 	require.Equal(t, len(seeds), np.Size())
 
