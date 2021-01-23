@@ -1,7 +1,8 @@
 {
     "swagger": "2.0",
     "info": {
-        "contact": {}
+        "contact": {},
+        "license": {}
     },
     "paths": {
         "/keywords": {
@@ -1291,6 +1292,7 @@
                     }
                 },
                 "bug_tracker": {
+                    "type": "object",
                     "$ref": "#/definitions/models.BugTrackerJSON"
                 },
                 "created_at": {
@@ -1478,12 +1480,15 @@
                     }
                 },
                 "bug_tracker": {
+                    "type": "object",
                     "$ref": "#/definitions/v1.BugTackerManifest"
                 },
                 "module": {
+                    "type": "object",
                     "$ref": "#/definitions/v1.ModuleManifest"
                 },
                 "version": {
+                    "type": "object",
                     "$ref": "#/definitions/v1.VersionManifest"
                 }
             }

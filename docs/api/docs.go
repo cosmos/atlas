@@ -19,6 +19,7 @@ var doc = `{
         "description": "{{.Description}}",
         "title": "{{.Title}}",
         "contact": {},
+        "license": {},
         "version": "{{.Version}}"
     },
     "host": "{{.Host}}",
@@ -1311,6 +1312,7 @@ var doc = `{
                     }
                 },
                 "bug_tracker": {
+                    "type": "object",
                     "$ref": "#/definitions/models.BugTrackerJSON"
                 },
                 "created_at": {
@@ -1498,12 +1500,15 @@ var doc = `{
                     }
                 },
                 "bug_tracker": {
+                    "type": "object",
                     "$ref": "#/definitions/v1.BugTackerManifest"
                 },
                 "module": {
+                    "type": "object",
                     "$ref": "#/definitions/v1.ModuleManifest"
                 },
                 "version": {
+                    "type": "object",
                     "$ref": "#/definitions/v1.VersionManifest"
                 }
             }

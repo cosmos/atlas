@@ -57,6 +57,7 @@ definitions:
         type: array
       bug_tracker:
         $ref: '#/definitions/models.BugTrackerJSON'
+        type: object
       created_at:
         type: string
       description:
@@ -177,10 +178,13 @@ definitions:
         type: array
       bug_tracker:
         $ref: '#/definitions/v1.BugTackerManifest'
+        type: object
       module:
         $ref: '#/definitions/v1.ModuleManifest'
+        type: object
       version:
         $ref: '#/definitions/v1.VersionManifest'
+        type: object
     required:
     - authors
     - version
@@ -245,6 +249,7 @@ definitions:
     type: object
 info:
   contact: {}
+  license: {}
 paths:
   /keywords:
     get:
@@ -919,8 +924,7 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/httputil.ErrResponse'
-      summary: Search for Tendermint crawled nodes by network, moniker, version or
-        location.
+      summary: Search for Tendermint crawled nodes by network, moniker, version or location.
       tags:
       - nodes
   /users:
