@@ -29,6 +29,10 @@ Types of changes (Stanzas):
 
 ## [Unreleased]
 
+### Features
+
+- [server] [#54](https://github.com/cosmos/atlas/pull/54) Introduce Tendermint node crawling functionality.
+
 ### Fixed
 
 - [webapp] [#52](https://github.com/cosmos/atlas/pull/52) Fix broken module links on profile page.
