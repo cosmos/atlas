@@ -17,6 +17,7 @@ import (
 
 	"github.com/cosmos/atlas/config"
 	"github.com/cosmos/atlas/server"
+	"github.com/cosmos/atlas/server/crawl"
 )
 
 // StartServerCommand returns a CLI command handler responsible for starting
@@ -106,9 +107,24 @@ func StartServerCommand() *cli.Command {
 				}
 			}()
 
+			crawler, err := crawl.NewCrawler(logger, konfig, svr.GetDB())
+			if err != nil {
+				return err
+			}
+
+			if crawler != nil {
+				// start the node crawler in a separate goroutine
+				go crawler.Start()
+			}
+
 			// trap signals and perform any cleanup
 			trapSignal(func() {
 				logger.Info().Msg("shuting down...")
+
+				if crawler != nil {
+					crawler.Stop()
+				}
+
 				svr.Cleanup()
 				os.Exit(0)
 			})

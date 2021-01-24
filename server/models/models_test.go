@@ -1550,6 +1550,477 @@ func (mts *ModelsTestSuite) TestNewUserJSON() {
 	mts.Require().Equal(user.EmailConfirmed, userJSON.EmailConfirmed)
 }
 
+func (mts *ModelsTestSuite) TestLocationUpsert() {
+	mts.resetDB()
+
+	testCases := []struct {
+		name      string
+		loc       models.Location
+		expectErr bool
+	}{
+		{
+			"valid location",
+			models.Location{
+				Country:   "US",
+				Region:    "US",
+				City:      "New York",
+				Latitude:  "40.7128",
+				Longitude: "74.0060",
+			},
+			false,
+		},
+		{
+			"empty region",
+			models.Location{
+				Country:   "US",
+				City:      "New York",
+				Latitude:  "40.7128",
+				Longitude: "74.0060",
+			},
+			false,
+		},
+		{
+			"updated region",
+			models.Location{
+				Country:   "US",
+				City:      "New York",
+				Region:    "new region",
+				Latitude:  "40.7128",
+				Longitude: "74.0060",
+			},
+			false,
+		},
+		{
+			"missing latitude",
+			models.Location{
+				Country:   "US",
+				City:      "New York",
+				Region:    "new region",
+				Longitude: "74.0060",
+			},
+			true,
+		},
+		{
+			"missing longitude",
+			models.Location{
+				Country:  "US",
+				City:     "New York",
+				Region:   "new region",
+				Latitude: "40.7128",
+			},
+			true,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+
+		mts.Run(tc.name, func() {
+			record, err := tc.loc.Upsert(mts.gormDB)
+			if tc.expectErr {
+				mts.Require().Error(err)
+			} else {
+				mts.Require().NoError(err)
+				mts.Require().Equal(tc.loc.Country, record.Country)
+				mts.Require().Equal(tc.loc.Region, record.Region)
+				mts.Require().Equal(tc.loc.City, record.City)
+				mts.Require().Equal(tc.loc.Latitude, record.Latitude)
+				mts.Require().Equal(tc.loc.Longitude, record.Longitude)
+			}
+		})
+	}
+}
+
+func (mts *ModelsTestSuite) TestNewLocationJSON() {
+	loc := models.Location{
+		ID:        1,
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+		Country:   "US",
+		Region:    "US",
+		City:      "New York",
+		Latitude:  "40.7128",
+		Longitude: "74.0060",
+	}
+
+	locJSON := loc.NewLocationJSON()
+	mts.Require().Equal(loc.Country, locJSON.Country)
+	mts.Require().Equal(loc.Region, locJSON.Region)
+	mts.Require().Equal(loc.City, locJSON.City)
+	mts.Require().Equal(loc.Latitude, locJSON.Latitude)
+	mts.Require().Equal(loc.Longitude, locJSON.Longitude)
+	mts.Require().Equal(loc.ID, loc.ID)
+	mts.Require().Equal(loc.CreatedAt, loc.CreatedAt)
+	mts.Require().Equal(loc.UpdatedAt, loc.UpdatedAt)
+}
+
+func (mts *ModelsTestSuite) TestNodeUpsert() {
+	mts.resetDB()
+
+	testCases := []struct {
+		name      string
+		node      models.Node
+		expectErr bool
+	}{
+		{
+			"valid node",
+			models.Node{
+				Location: models.Location{
+					Country:   "US",
+					Region:    "US",
+					City:      "New York",
+					Latitude:  "40.7128",
+					Longitude: "74.0060",
+				},
+				Address: "127.0.0.1",
+				RPCPort: "26657",
+				P2PPort: "26656",
+				Moniker: "test",
+				NodeID:  "0000FF",
+				Network: "testnet",
+				Version: "1.0.1",
+				TxIndex: "false",
+			},
+			false,
+		},
+		{
+			"updated location",
+			models.Node{
+				Location: models.Location{
+					Country:   "US",
+					Region:    "US",
+					City:      "Baltimore",
+					Latitude:  "33.7128",
+					Longitude: "25.0060",
+				},
+				Address: "127.0.0.1",
+				RPCPort: "26657",
+				P2PPort: "26656",
+				Moniker: "test",
+				NodeID:  "0000FF",
+				Network: "testnet",
+				Version: "1.0.1",
+				TxIndex: "false",
+			},
+			false,
+		},
+		{
+			"same address for different network",
+			models.Node{
+				Location: models.Location{
+					Country:   "US",
+					Region:    "US",
+					City:      "New York",
+					Latitude:  "40.7128",
+					Longitude: "74.0060",
+				},
+				Address: "127.0.0.1",
+				RPCPort: "26657",
+				P2PPort: "26656",
+				Moniker: "test",
+				NodeID:  "0000FF",
+				Network: "other",
+				Version: "1.0.1",
+				TxIndex: "false",
+			},
+			false,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+
+		mts.Run(tc.name, func() {
+			record, err := tc.node.Upsert(mts.gormDB)
+			if tc.expectErr {
+				mts.Require().Error(err)
+			} else {
+				mts.Require().NoError(err)
+				mts.Require().Equal(tc.node.Address, record.Address)
+				mts.Require().Equal(tc.node.RPCPort, record.RPCPort)
+				mts.Require().Equal(tc.node.P2PPort, record.P2PPort)
+				mts.Require().Equal(tc.node.Moniker, record.Moniker)
+				mts.Require().Equal(tc.node.NodeID, record.NodeID)
+				mts.Require().Equal(tc.node.Network, record.Network)
+				mts.Require().Equal(tc.node.Version, record.Version)
+				mts.Require().Equal(tc.node.TxIndex, record.TxIndex)
+				mts.Require().Equal(tc.node.Location.Country, record.Location.Country)
+				mts.Require().Equal(tc.node.Location.Region, record.Location.Region)
+				mts.Require().Equal(tc.node.Location.City, record.Location.City)
+				mts.Require().Equal(tc.node.Location.Latitude, record.Location.Latitude)
+				mts.Require().Equal(tc.node.Location.Longitude, record.Location.Longitude)
+			}
+		})
+	}
+}
+
+func (mts *ModelsTestSuite) TestNodeSearch() {
+	mts.resetDB()
+
+	loc1 := models.Location{
+		Country:   "United States",
+		Region:    "Colorado",
+		City:      "Broomfield",
+		Latitude:  "39.892609",
+		Longitude: "-105.149200",
+	}
+	loc2 := models.Location{
+		Country:   "Japan",
+		Region:    "Tokyo",
+		City:      "Tokyo",
+		Latitude:  "35.696281",
+		Longitude: "139.738556",
+	}
+
+	for i := 0; i < 10; i++ {
+		var (
+			loc     models.Location
+			network string
+			version string
+		)
+
+		if i%2 == 0 {
+			loc = loc1
+			network = "network1"
+			version = "0.33.8"
+		} else {
+			loc = loc2
+			network = "network2"
+			version = "0.33.9"
+		}
+
+		if i == 0 {
+			network = "network3"
+		}
+
+		n := models.Node{
+			Location: loc,
+			Address:  fmt.Sprintf("127.0.0.%d", i),
+			RPCPort:  "26657",
+			P2PPort:  "26656",
+			Moniker:  fmt.Sprintf("node-%d", i),
+			NodeID:   fmt.Sprintf("00FF%d", i),
+			Network:  network,
+			Version:  version,
+			TxIndex:  "off",
+		}
+
+		_, err := n.Upsert(mts.gormDB)
+		mts.Require().NoError(err)
+	}
+
+	mods, paginator, err := models.SearchNodes(mts.gormDB, "foo", httputil.PaginationQuery{Page: 1, Limit: 10, Order: "id"})
+	mts.Require().NoError(err)
+	mts.Require().Empty(mods)
+	mts.Require().Zero(paginator.PrevPage)
+	mts.Require().Zero(paginator.NextPage)
+
+	testCases := []struct {
+		name              string
+		query             string
+		pageQuery         httputil.PaginationQuery
+		expectedRecords   map[string]struct{}
+		expectedPaginator models.Paginator
+	}{
+		{
+			"empty query (page 1)",
+			"",
+			httputil.PaginationQuery{Page: 1, Limit: 5, Order: "id"},
+			map[string]struct{}{
+				"127.0.0.0": {},
+				"127.0.0.1": {},
+				"127.0.0.2": {},
+				"127.0.0.3": {},
+				"127.0.0.4": {},
+			},
+			models.Paginator{PrevPage: 0, NextPage: 2, Total: 10},
+		},
+		{
+			"empty query (page 2)",
+			"",
+			httputil.PaginationQuery{Page: 2, Limit: 5, Order: "id"},
+			map[string]struct{}{
+				"127.0.0.5": {},
+				"127.0.0.6": {},
+				"127.0.0.7": {},
+				"127.0.0.8": {},
+				"127.0.0.9": {},
+			},
+			models.Paginator{PrevPage: 1, NextPage: 0, Total: 10},
+		},
+		{
+			"no matching query",
+			"foo",
+			httputil.PaginationQuery{Page: 1, Limit: 5, Order: "id"},
+			map[string]struct{}{},
+			models.Paginator{PrevPage: 0, NextPage: 0, Total: 0},
+		},
+		{
+			"matches one record (network)",
+			"network3",
+			httputil.PaginationQuery{Page: 1, Limit: 5, Order: "id"},
+			map[string]struct{}{"127.0.0.0": {}},
+			models.Paginator{PrevPage: 0, NextPage: 0, Total: 1},
+		},
+		{
+			"matches all records (location)",
+			"Japan",
+			httputil.PaginationQuery{Page: 1, Limit: 10, Order: "id"},
+			map[string]struct{}{
+				"127.0.0.1": {},
+				"127.0.0.3": {},
+				"127.0.0.5": {},
+				"127.0.0.7": {},
+				"127.0.0.9": {},
+			},
+			models.Paginator{PrevPage: 0, NextPage: 0, Total: 5},
+		},
+		{
+			"matches all records (network)",
+			"network1",
+			httputil.PaginationQuery{Page: 1, Limit: 10, Order: "id"},
+			map[string]struct{}{
+				"127.0.0.2": {},
+				"127.0.0.4": {},
+				"127.0.0.6": {},
+				"127.0.0.8": {},
+			},
+			models.Paginator{PrevPage: 0, NextPage: 0, Total: 4},
+		},
+		{
+			"matches all records (version)",
+			"0.33.9",
+			httputil.PaginationQuery{Page: 1, Limit: 10, Order: "id"},
+			map[string]struct{}{
+				"127.0.0.1": {},
+				"127.0.0.3": {},
+				"127.0.0.5": {},
+				"127.0.0.7": {},
+				"127.0.0.9": {},
+			},
+			models.Paginator{PrevPage: 0, NextPage: 0, Total: 5},
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+
+		mts.Run(tc.name, func() {
+			nodes, paginator, err := models.SearchNodes(mts.gormDB, tc.query, tc.pageQuery)
+			mts.Require().NoError(err)
+			mts.Require().Len(nodes, len(tc.expectedRecords))
+			mts.Require().Equal(tc.expectedPaginator, paginator)
+
+			for _, n := range nodes {
+				mts.Require().Contains(tc.expectedRecords, n.Address)
+			}
+		})
+	}
+}
+
+func (mts *ModelsTestSuite) TestNewNodeJSON() {
+	node := models.Node{
+		ID:        1,
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+		Address:   "127.0.0.1",
+		RPCPort:   "25626",
+		P2PPort:   "25627",
+		Moniker:   "foo",
+		NodeID:    "00000FF",
+		Network:   "testnet-3",
+		Version:   "1.0",
+		TxIndex:   "false",
+	}
+
+	nodeJSON := node.NewNodeJSON()
+	mts.Require().Equal(nodeJSON.ID, nodeJSON.ID)
+	mts.Require().Equal(nodeJSON.CreatedAt, nodeJSON.CreatedAt)
+	mts.Require().Equal(nodeJSON.UpdatedAt, nodeJSON.UpdatedAt)
+	mts.Require().Equal(node.Address, nodeJSON.Address)
+	mts.Require().Equal(node.RPCPort, nodeJSON.RPCPort)
+	mts.Require().Equal(node.P2PPort, nodeJSON.P2PPort)
+	mts.Require().Equal(node.Moniker, nodeJSON.Moniker)
+	mts.Require().Equal(node.NodeID, nodeJSON.NodeID)
+	mts.Require().Equal(node.Network, nodeJSON.Network)
+	mts.Require().Equal(node.Version, nodeJSON.Version)
+	mts.Require().Equal(node.TxIndex, nodeJSON.TxIndex)
+}
+
+func (mts *ModelsTestSuite) TestNodeDelete() {
+	mts.resetDB()
+
+	node := models.Node{}
+	mts.Require().NoError(node.Delete(mts.gormDB))
+
+	node = models.Node{
+		Location: models.Location{
+			Country:   "US",
+			Region:    "US",
+			City:      "New York",
+			Latitude:  "40.7128",
+			Longitude: "74.0060",
+		},
+		Address: "127.0.0.1",
+		RPCPort: "26657",
+		P2PPort: "26656",
+		Moniker: "test",
+		NodeID:  "0000FF",
+		Network: "testnet",
+		Version: "1.0.1",
+		TxIndex: "false",
+	}
+
+	_, err := node.Upsert(mts.gormDB)
+	mts.Require().NoError(err)
+	mts.Require().NoError(node.Delete(mts.gormDB))
+
+	_, err = models.QueryNode(
+		mts.gormDB,
+		map[string]interface{}{"address": node.Address, "network": node.Network},
+	)
+	mts.Require().Error(err)
+}
+
+func (mts *ModelsTestSuite) TestGetStaleNodes() {
+	mts.resetDB()
+
+	var last time.Time
+
+	for i := 0; i < 10; i++ {
+		node := models.Node{
+			Location: models.Location{
+				Country:   "US",
+				Region:    "US",
+				City:      "New York",
+				Latitude:  "40.7128",
+				Longitude: "74.0060",
+			},
+			Address: fmt.Sprintf("127.0.0.%d", i),
+			RPCPort: "26657",
+			P2PPort: "26656",
+			Moniker: fmt.Sprintf("test-node-%d", i),
+			NodeID:  "0000FF",
+			Network: "testnet",
+			Version: "1.0.1",
+			TxIndex: "false",
+		}
+
+		record, err := node.Upsert(mts.gormDB)
+		mts.Require().NoError(err)
+
+		last = record.UpdatedAt
+	}
+
+	nodes, err := models.GetStaleNodes(mts.gormDB, last.Add(time.Minute))
+	mts.Require().NoError(err)
+	mts.Require().Len(nodes, 10)
+
+	nodes, err = models.GetStaleNodes(mts.gormDB, last.Add(-10*time.Minute))
+	mts.Require().NoError(err)
+	mts.Require().Empty(nodes)
+}
+
 func (mts *ModelsTestSuite) resetDB() {
 	mts.T().Helper()
 

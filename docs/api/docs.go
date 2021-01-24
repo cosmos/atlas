@@ -19,7 +19,6 @@ var doc = `{
         "description": "{{.Description}}",
         "title": "{{.Title}}",
         "contact": {},
-        "license": {},
         "version": "{{.Version}}"
     },
     "host": "{{.Host}}",
@@ -996,6 +995,78 @@ var doc = `{
                 }
             }
         },
+        "/nodes/search": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "nodes"
+                ],
+                "summary": "Search for Tendermint crawled nodes by network, moniker, version or location.",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "pagination page",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 100,
+                        "description": "pagination limit",
+                        "name": "limit",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "false",
+                        "description": "pagination reverse",
+                        "name": "reverse",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "id",
+                        "description": "pagination order by",
+                        "name": "order",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "search criteria",
+                        "name": "q",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.PaginationResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/httputil.ErrResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/users": {
             "get": {
                 "consumes": [
@@ -1240,7 +1311,6 @@ var doc = `{
                     }
                 },
                 "bug_tracker": {
-                    "type": "object",
                     "$ref": "#/definitions/models.BugTrackerJSON"
                 },
                 "created_at": {
@@ -1428,15 +1498,12 @@ var doc = `{
                     }
                 },
                 "bug_tracker": {
-                    "type": "object",
                     "$ref": "#/definitions/v1.BugTackerManifest"
                 },
                 "module": {
-                    "type": "object",
                     "$ref": "#/definitions/v1.ModuleManifest"
                 },
                 "version": {
-                    "type": "object",
                     "$ref": "#/definitions/v1.VersionManifest"
                 }
             }

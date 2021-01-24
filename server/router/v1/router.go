@@ -172,6 +172,17 @@ func (r *Router) Register(rtr *mux.Router, prefix string) {
 		mChain.ThenFunc(r.GetAllKeywords()),
 	).Queries(paginationParams...).Methods(httputil.MethodGET)
 
+	v1Router.Handle(
+		"/nodes/search",
+		mChain.ThenFunc(r.SearchNodes()),
+	).Queries(append(paginationParams, "q", "{q}")...).Methods(httputil.MethodGET)
+
+	// allow a missing 'q' query param which defaults to returning all nodes
+	v1Router.Handle(
+		"/nodes/search",
+		mChain.ThenFunc(r.SearchNodes()),
+	).Queries(paginationParams...).Methods(httputil.MethodGET)
+
 	// ====================
 	// authenticated routes
 	// ====================
@@ -431,7 +442,13 @@ func (r *Router) SearchModules() http.HandlerFunc {
 			return
 		}
 
-		paginated := httputil.NewPaginationResponse(pQuery, paginator.PrevPage, paginator.NextPage, paginator.Total, modules)
+		paginated := httputil.NewPaginationResponse(
+			pQuery,
+			paginator.PrevPage,
+			paginator.NextPage,
+			paginator.Total,
+			modules,
+		)
 		httputil.RespondWithJSON(w, http.StatusOK, paginated)
 	}
 }
@@ -1259,6 +1276,49 @@ func (r *Router) StartSession() http.Handler {
 	}
 
 	return github.StateHandler(r.cookieCfg, http.HandlerFunc(loginHandler))
+}
+
+// SearchNodes implements a request handler to retrieve a set of nodes by search
+// criteria, which can be empty.
+//
+// @Summary Search for Tendermint crawled nodes by network, moniker, version or location.
+// @Tags nodes
+// @Accept  json
+// @Produce  json
+// @Param page query int true "pagination page"  default(1)
+// @Param limit query int true "pagination limit"  default(100)
+// @Param reverse query string false "pagination reverse"  default(false)
+// @Param order query string false "pagination order by"  default(id)
+// @Param q query string false "search criteria"
+// @Success 200 {object} httputil.PaginationResponse
+// @Failure 400 {object} httputil.ErrResponse
+// @Failure 500 {object} httputil.ErrResponse
+// @Router /nodes/search [get]
+func (r *Router) SearchNodes() http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		pQuery, err := httputil.ParsePaginationQueryParams(req)
+		if err != nil {
+			httputil.RespondWithError(w, http.StatusBadRequest, err)
+			return
+		}
+
+		query := req.URL.Query().Get("q")
+
+		nodes, paginator, err := models.SearchNodes(r.db, query, pQuery)
+		if err != nil {
+			httputil.RespondWithError(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		paginated := httputil.NewPaginationResponse(
+			pQuery,
+			paginator.PrevPage,
+			paginator.NextPage,
+			paginator.Total,
+			nodes,
+		)
+		httputil.RespondWithJSON(w, http.StatusOK, paginated)
+	}
 }
 
 // AuthorizeSession returns a callback request handler for Github OAuth user

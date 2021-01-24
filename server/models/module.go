@@ -505,13 +505,8 @@ func GetAllModules(db *gorm.DB, pq httputil.PaginationQuery) ([]Module, Paginato
 }
 
 // SearchModules performs a paginated query for a set of modules by name, team,
-// description and set of keywords. If not matching modules exist, an empty slice
-// is returned.
-//
-// Note, we used offset-based pagination even though this approach doesn't scale
-// well. We presume that number of records stored and even returned won't approach
-// the scale where offset pagination would drastically impact performance. This
-// allows us to provide custom sorting.
+// description or keywords. If no matching modules exist, an empty slice is
+// returned.
 func SearchModules(db *gorm.DB, query string, pq httputil.PaginationQuery) ([]Module, Paginator, error) {
 	if len(query) == 0 {
 		return []Module{}, Paginator{}, nil

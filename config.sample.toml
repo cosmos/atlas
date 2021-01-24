@@ -50,3 +50,21 @@ domain.name = "https://atlas.cosmos.network"
 
 # The syslog destination address for log streaming.
 syslog.addr = "logsN.logs.com:XXXX"
+
+# The ipstack API key for geolocation functionality.
+ipstack.key = "013d2f2737f1353bc000f1ed4d61ed44"
+
+# The interval in which to retrigger a node crawl after the node pool is
+# exhausted.
+node.crawl.interval = "5m"
+
+# The interval in which to recheck nodes for availability.
+node.recheck.interval = "1h"
+
+# The size of the reseed list for which to reseed the node pool after it has
+# been exhausted. It is populated by the crawling process.
+node.reseed.size = 100
+
+# The initial list of comma-delimited seed nodes to crawl, where each seed takes
+# the form of [host]:[port];[chain-id], where ;[chain-id] is optional.
+node.seeds = "http://1.255.51.125:26657;cosmsohub-3,..."
