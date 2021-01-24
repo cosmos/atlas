@@ -37,7 +37,7 @@ update-swagger-docs:
 	@swag init -g server/service.go -o ./docs/api --generatedTime=false
 
 verify-clean-swagger-docs: update-swagger-docs
-	@git diff --quiet docs/api
+	@git diff --exit-code docs/api
 
 .PHONY: update-swagger-docs verify-clean-swagger-docs
 
