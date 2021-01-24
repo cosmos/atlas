@@ -30,7 +30,8 @@ variables or in a config file, are used to tune the crawling functionality:
   crawl is only triggered after the internal node pool is exhausted and the crawl
   interval ticker is triggered. Note, depending how the node pool is depleted and
   if and how many new peers are discovered, subsequent node crawling attempts may
-  not always reflect this duration accurately.
+  not always reflect this duration accurately. **Note, a value of zero disables
+  crawling**.
 - `recheck interval`: The time duration between successive stale node rechecks
   sweeps. During every trigger of this interval, Atlas will check for all stale
   nodes and recheck if they are still reachable and update any relevant information
