@@ -43,3 +43,24 @@ variables or in a config file, are used to tune the crawling functionality:
   (e.g. `http://1.255.51.125:26657;cosmoshub-3`). It's ideal to provide a large
   enough list of healthy and reachable nodes in order for Atlas to successfully
   explore the various networks the seed nodes represent.
+
+The following information is crawled and persisted for each node:
+
+- `location`: The geographical information about the node, such as the country,
+  city, and region, based on its RPC address.
+- `address`: The node's RPC IP or hostname. This is used to crawl the node by seeing
+  if it can be reached and if the status can be retrieved via the Tendermint RPC
+  `status` call. It is also used to get geographical information via ipstack.
+- `rpc_port`: The node's RPC port, which is parsed from its RPC `address`.
+- `p2p_port`: The node's P2P port, which is assumed to be a default value of `26656`.
+- `moniker`: The node's Tendermint moniker. This is only retrieved upon a successful
+  Tendermint `status` RPC call.
+- `node_id`: The node's Tendermint node ID. This is only retrieved upon a successful
+  Tendermint `status` RPC call.
+- `network`: The chain-id of the network this node is running on. This is either
+  explicitly provided in the seed list, retrieved via the Tendermint `status` RPC
+  call, or retrieved by a peers Tendermint `status` RPC call.
+- `version`: The node's software version. This is only retrieved upon a successful
+  Tendermint `status` RPC call.
+- `tx_index`: The node's tx indexing status. This is only retrieved upon a successful
+  Tendermint `status` RPC call.
