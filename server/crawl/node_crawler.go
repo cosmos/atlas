@@ -18,6 +18,8 @@ import (
 const (
 	defaultP2PPort    = "26656"
 	locationCacheSize = 1000
+	ipClientHTTPS     = false
+	ipClientTimeoutS  = 5
 )
 
 // Crawler implements the Tendermint p2p network crawler.
@@ -46,7 +48,7 @@ func NewCrawler(logger zerolog.Logger, cfg config.Config, db *gorm.DB) (*Crawler
 		seeds:           strings.Split(cfg.String(config.NodeSeeds), ","),
 		crawlInterval:   cfg.Duration(config.NodeCrawlInterval),
 		recheckInterval: cfg.Duration(config.NodeRecheckInterval),
-		ipClient:        ipstack.NewClient(cfg.String(config.IPStackKey), false, 5),
+		ipClient:        ipstack.NewClient(cfg.String(config.IPStackKey), ipClientHTTPS, ipClientTimeoutS),
 		locCache:        locCache,
 		pool:            NewNodePool(uint(cfg.Int(config.NodeReseedSize))),
 		doneCh:          make(chan struct{}),
