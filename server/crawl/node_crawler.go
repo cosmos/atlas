@@ -42,8 +42,15 @@ func NewCrawler(logger zerolog.Logger, cfg config.Config, db *gorm.DB) (*Crawler
 		return nil, err
 	}
 
+	logger = logger.With().Str("module", "node_crawler").Logger()
+
+	if cfg.Duration(config.NodeCrawlInterval).Seconds() == 0 {
+		logger.Info().Msg("node crawling disabled")
+		return nil, nil
+	}
+
 	return &Crawler{
-		logger:          logger.With().Str("module", "node_crawler").Logger(),
+		logger:          logger,
 		db:              db,
 		seeds:           strings.Split(cfg.String(config.NodeSeeds), ","),
 		crawlInterval:   cfg.Duration(config.NodeCrawlInterval),

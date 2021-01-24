@@ -100,11 +100,6 @@ func StartServerCommand() *cli.Command {
 				return err
 			}
 
-			crawler, err := crawl.NewCrawler(logger, konfig, svr.GetDB())
-			if err != nil {
-				return err
-			}
-
 			// start the service in a separate goroutine
 			go func() {
 				if err := svr.Start(); err != nil {
@@ -112,13 +107,24 @@ func StartServerCommand() *cli.Command {
 				}
 			}()
 
-			// start the node crawler in a separate goroutine
-			go crawler.Start()
+			crawler, err := crawl.NewCrawler(logger, konfig, svr.GetDB())
+			if err != nil {
+				return err
+			}
+
+			if crawler != nil {
+				// start the node crawler in a separate goroutine
+				go crawler.Start()
+			}
 
 			// trap signals and perform any cleanup
 			trapSignal(func() {
 				logger.Info().Msg("shuting down...")
-				crawler.Stop()
+
+				if crawler != nil {
+					crawler.Stop()
+				}
+
 				svr.Cleanup()
 				os.Exit(0)
 			})
