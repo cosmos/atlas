@@ -84,10 +84,11 @@ url = ""
 # An email address to submit bug reports and security vulnerabilities to.
 contact = ""
 
-
+# To list multiple authors, multiple [[authors]] need to be created
 [[authors]]
 # Name of one of the authors. Typically their Github name. (Required)
 name = ""
+
 # Email of the author mentioned. (Optional)
 email = ""
 
