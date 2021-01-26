@@ -29,6 +29,7 @@ func NewApp() *cli.App {
 		StartServerCommand(),
 		LoginCommand(),
 		PublishCommand(),
+		InitCommand(),
 	}
 
 	return app
