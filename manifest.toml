@@ -1,0 +1,18 @@
+[module]
+description = ""
+homepage = ""
+keywords = []
+
+name = "x/auth"
+
+[bug_tracker]
+url = ""
+
+[[authors]]
+name = ""
+
+[version]
+documentation = ""
+repo = ""
+sdk_compat = ""
+version = ""

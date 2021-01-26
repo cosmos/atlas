@@ -76,3 +76,7 @@ lint:
 	@golangci-lint run --timeout 10m
 
 .PHONY: test-docker-db test test-ci lint
+
+publish: 
+	docker run -v $(shell pwd):/workspace --workdir /workspace atlas:test kkk ./manifest.toml true
+.PHONY: publish
