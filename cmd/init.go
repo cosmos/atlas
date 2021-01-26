@@ -6,24 +6,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
-	"text/template"
 
-	v1 "github.com/cosmos/atlas/server/router/v1"
 	"github.com/urfave/cli/v2"
 )
-
-var manifestTemplate *template.Template
-
-func init() {
-	var err error
-	tmpl := template.New("manifestFileTemplate").Funcs(template.FuncMap{
-		"StringsJoin": strings.Join,
-	})
-	if manifestTemplate, err = tmpl.Parse(defaultManifestTemplate); err != nil {
-		panic(err)
-	}
-}
 
 func InitCommand() *cli.Command {
 	return &cli.Command{
@@ -37,10 +22,7 @@ func InitCommand() *cli.Command {
 			},
 		},
 		Action: func(ctx *cli.Context) error {
-			var (
-				buffer   bytes.Buffer
-				manifest v1.Manifest
-			)
+			var buffer bytes.Buffer
 
 			// Get current working directory. This is avoid generating files elsewhere
 			manifestPath, err := os.Getwd()
@@ -48,8 +30,8 @@ func InitCommand() *cli.Command {
 				return err
 			}
 
-			if err := manifestTemplate.Execute(&buffer, manifest); err != nil {
-				panic(err)
+			if _, err = buffer.WriteString(defaultManifestTemplate); err != nil {
+				return err
 			}
 
 			err = ioutil.WriteFile(filepath.Join(manifestPath, filepath.Base("atlas.toml")), buffer.Bytes(), 0644)
