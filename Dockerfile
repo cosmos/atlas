@@ -11,13 +11,14 @@ RUN make build
 
 # stage 2
 FROM alpine:3.9
-LABEL maintainer="hello@tendermint.com"
 
 RUN apk update && \
   apk upgrade && \
   apk --no-cache add curl bash
 
 COPY --from=builder atlas/build/atlas /usr/bin/atlas
-COPY --from=builder atlas/scripts/publish.sh publish.sh
+COPY ./scripts/publish.sh /publish.sh
 
-ENTRYPOINT sh publish.sh
+RUN chmod +x /publish.sh
+
+ENTRYPOINT ["/publish.sh"]

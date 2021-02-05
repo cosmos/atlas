@@ -78,5 +78,5 @@ lint:
 .PHONY: test-docker-db test test-ci lint
 
 publish: 
-	docker run -v $(shell pwd):/workspace --workdir /workspace atlas:test kkk ./manifest.toml true
+	docker run -v $(shell pwd):/workspace --workdir /workspace atlas:test kkk ./atlas.toml true
 .PHONY: publish
