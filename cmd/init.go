@@ -31,7 +31,7 @@ func InitCommand() *cli.Command {
 				return err
 			}
 
-			err := ioutil.WriteFile(filepath.Join(manifestPath, filepath.Base("atlas.toml")), buffer.Bytes(), 0644)
+			err := ioutil.WriteFile(filepath.Join(manifestPath, filepath.Base("manifest.toml")), buffer.Bytes(), 0644)
 			if err != nil {
 				fmt.Printf("MustWriteFile failed: %v", err)
 				os.Exit(1)
