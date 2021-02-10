@@ -25,16 +25,13 @@ func InitCommand() *cli.Command {
 			var buffer bytes.Buffer
 
 			// Get current working directory. This is avoid generating files elsewhere
-			manifestPath, err := os.Getwd()
-			if err != nil {
+			manifestPath := ctx.String("dir")
+
+			if _, err := buffer.WriteString(defaultManifestTemplate); err != nil {
 				return err
 			}
 
-			if _, err = buffer.WriteString(defaultManifestTemplate); err != nil {
-				return err
-			}
-
-			err = ioutil.WriteFile(filepath.Join(manifestPath, filepath.Base("atlas.toml")), buffer.Bytes(), 0644)
+			err := ioutil.WriteFile(filepath.Join(manifestPath, filepath.Base("atlas.toml")), buffer.Bytes(), 0644)
 			if err != nil {
 				fmt.Printf("MustWriteFile failed: %v", err)
 				os.Exit(1)
