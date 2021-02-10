@@ -77,7 +77,6 @@ lint:
 
 .PHONY: test-docker-db test test-ci lint
 
-publish: 
-	@atlas init
+publish:
 	@docker run -v $(shell pwd):/workspace --workdir /workspace interchainio/atlas testKey ./atlas.toml true
 .PHONY: publish
