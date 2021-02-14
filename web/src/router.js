@@ -11,6 +11,7 @@ import AcceptOwnerInvitePage from "./views/AcceptOwnerInvitePage.vue";
 import ProfilePage from "./views/ProfilePage.vue";
 import ModulePage from "./views/Module.vue";
 import ModulesPage from "./views/Modules.vue";
+import NodeExplorer from "./views/NodeExplorer.vue";
 import SearchResults from "./views/SearchResults.vue";
 
 Vue.use(Router);
@@ -79,6 +80,16 @@ export default new Router({
       components: {
         header: AppHeader,
         default: ModulesPage,
+        footer: AppFooter
+      },
+      props: { header: { showSearch: true } }
+    },
+    {
+      path: "/nodes",
+      name: "nodeExplorer",
+      components: {
+        header: AppHeader,
+        default: NodeExplorer,
         footer: AppFooter
       },
       props: { header: { showSearch: true } }

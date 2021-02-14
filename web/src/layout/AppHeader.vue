@@ -41,6 +41,21 @@
       </div>
 
       <ul class="navbar-nav navbar-nav-hover align-items-lg-center ml-lg-auto">
+        <base-dropdown class="nav-item">
+          <a
+            role="button"
+            slot="title"
+            href="#"
+            class="nav-link"
+            data-toggle="dropdown"
+          >
+            <i class="ni ni-tablet-button d-lg-none"></i>
+            <span class="nav-link-inner--text">Tools</span>
+          </a>
+          <router-link :to="{ name: 'nodeExplorer' }" class="dropdown-item">
+            Node Explorer
+          </router-link>
+        </base-dropdown>
         <router-link
           class="nav-link"
           :to="{ name: 'browse' }"
