@@ -19,10 +19,14 @@ This action is used to publish updates or new modules to [Atlas](https://atlas.c
 
 ## Example usage
 
+Below is an example of the action being used. To see an example of the toml file, see [here](../example/bank/atlas.toml)
+
 ```yaml
-uses: marbar3778/atlas@v1
-with:
-  token: "testKey"
-  path: ./example/bank/atlas.toml
+    steps:
+      uses: actions/checkout@v2
+      uses: cosmos/atlas@v0.0.3
+      with:
+        token: "testKey"
+        path: ./example/bank/atlas.toml
   dry-run: ${{ github.event_name != 'pull_request' }}
 ```
