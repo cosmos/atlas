@@ -17,11 +17,12 @@ registry, viewable online at [atlas.cosmos.network](https://atlas.cosmos.network
 - [Atlas](#atlas)
   - [Table of Contents](#table-of-contents)
   - [Background](#background)
-  - [Publishing](#publishing)
   - [Usage](#usage)
     - [Server](#server)
     - [API Documentation](#api-documentation)
     - [Web App](#web-app)
+    - [Publishing](#publishing)
+    - [Action](#action)
   - [Migrations](#migrations)
   - [Local Development](#local-development)
   - [Tests](#tests)
@@ -45,10 +46,6 @@ be found under [docs](./docs/README.md).
 - [Yarn](https://classic.yarnpkg.com/en/)
 - [Vue.js](https://vuejs.org/)
 - [Docker/Docker-Compose](https://docs.docker.com/get-docker/)
-
-## Publishing
-
-To publish a Cosmos SDK module, please see the publishing [doc](https://github.com/cosmos/atlas/blob/main/docs/publishing.md).
 
 ## Usage
 
@@ -112,6 +109,14 @@ To build for production:
 ```shell
 $ cd web && yarn build
 ```
+
+## Publishing
+
+To publish a Cosmos SDK module, please see the publishing [doc](https://github.com/cosmos/atlas/blob/main/docs/publishing.md).
+
+### Action
+
+To publish a Cosmos SDK module with github actions, please see the action [doc](https://github.com/cosmos/atlas/blob/main/docs/action.md).
 
 ## Migrations
 
