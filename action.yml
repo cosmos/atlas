@@ -1,0 +1,20 @@
+name: "Atlas"
+description: "Publish a module to atlas.cosmos.network"
+inputs:
+  token:
+    description: "Token generated on atlas.cosmos.network"
+    required: true
+  path:
+    description: "Path to modules manifest"
+    required: true
+  dry-run:
+    description: "Verify the module manifest without publishing"
+    required: false
+    default: false
+runs:
+  using: "docker"
+  image: "docker://interchainio/atlas"
+  args:
+    - ${{ inputs.token }}
+    - ${{ inputs.path }}
+    - ${{ inputs.dry-run }}

@@ -1,0 +1,56 @@
+[module]
+# Name of the module. (Required)
+name = "x/bank"
+
+# Description of the module. (Optional)
+description = "The bank module is responsible for handling account balances and trasnfers"
+
+# Link to where the module is located, it can also be a link to your project. (Optional)
+homepage = "https://github.com/cosmos/cosmos-sdk"
+
+#List of key words describing your module (Optional)
+keywords = [
+  "bank",
+  "accounts",
+]
+
+
+[bug_tracker]
+# A URL to a site that provides information or guidance on how to submit or deal
+# with security vulnerabilities and bug reports.
+url = "https://github.com/cosmos/cosmos-sdk/issues"
+
+# An email address to submit bug reports and security vulnerabilities to.
+contact = ""
+
+# To list multiple authors, multiple [[authors]] need to be created
+[[authors]]
+# Name of one of the authors. Typically their Github name. (Required)
+name = "alexanderbez"
+
+[[authors]]
+name = "fedekunze"
+
+[[authors]]
+name = "cwgoes"
+
+[[authors]]
+name = "alessio"
+
+# Email of the author mentioned. (Optional)
+email = ""
+
+[version]
+# The repository field should be a URL to the source repository for your module.
+# Typically, this will point to the specific GitHub repository release/tag for the
+# module, although this is not enforced or required. (Required)
+repo = "https://github.com/cosmos/cosmos-sdk/releases/tag/v0.39.2"
+
+# The documentation field specifies a URL to a website hosting the module's documentation. (Optional)
+documentation = "https://raw.githubusercontent.com/cosmos/cosmos-sdk/master/x/bank/atlas/atlas-v0.39.1.md"
+
+# The module version to be published. (Required)
+version = "v0.40.x"
+
+# An optional Cosmos SDK version compatibility may be provided. (Optional)
+sdk_compat = "v0.40.x"
