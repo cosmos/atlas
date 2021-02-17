@@ -15,5 +15,5 @@ jobs:
         uses: ./
         with:
           token: "testKey"
-          path: ./example/bank/atlas.toml
+          path: ./docs/example/bank/atlas.toml
           dry-run: true
