@@ -1,9 +1,11 @@
 package crawl
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/harwoeck/ipstack"
@@ -25,12 +27,17 @@ const (
 // Crawler implements the Tendermint p2p network crawler.
 type Crawler struct {
 	logger   zerolog.Logger
-	db       *gorm.DB
 	pool     *NodePool
 	ipClient *ipstack.Client
 	locCache *lru.ARCCache
 	seeds    []string
 	doneCh   chan struct{}
+
+	mtx sync.Mutex
+	db  *gorm.DB
+	// tmpPeers is buffer that is used to hold peers that will later be added to
+	// the pool after a crawl is complete.
+	tmpPeers []Peer
 
 	crawlInterval   time.Duration
 	recheckInterval time.Duration
@@ -87,18 +94,48 @@ func (c *Crawler) Start() {
 		case <-ticker.C:
 			c.logger.Info().Msg("starting to crawl nodes")
 
+			// reset the peer buffer
+			c.mtx.Lock()
+			c.tmpPeers = make([]Peer, 0)
+			c.mtx.Unlock()
+
+			var wg sync.WaitGroup
+			nc := 0
+
 			// Keep picking a pseudo-random node from the pool to crawl until the pool
 			// is exhausted.
 			peer, ok := c.pool.RandomNode()
 			for ok {
-				c.CrawlNode(peer)
+				wg.Add(1)
 				c.pool.DeleteNode(peer)
+
+				go func(p Peer) {
+					defer wg.Done()
+					c.CrawlNode(p)
+				}(peer)
 
 				// pick the next pseudo-random node
 				peer, ok = c.pool.RandomNode()
+
+				if nc%50 == 0 {
+					c.logger.Info().Int("size", c.pool.Size()).Msg("node pool size")
+				}
+
+				nc++
 			}
 
-			c.logger.Info().Msg("node crawl complete; reseeding node pool")
+			// wait for all crawlers to complete
+			wg.Wait()
+
+			// add all peers from the temp buffer to the node pool
+			c.mtx.Lock()
+			for _, p := range c.tmpPeers {
+				c.logger.Debug().Str("rpc_address", p.RPCAddr).Msg("adding peer to node pool")
+				c.pool.AddNode(p)
+			}
+			c.mtx.Unlock()
+
+			c.logger.Info().Int("num_crawled", nc).Msg("node crawl complete; reseeding node pool")
 			c.pool.Reseed()
 
 		case <-c.doneCh:
@@ -130,11 +167,15 @@ func (c *Crawler) RecheckNodes() {
 				nodeP2PAddr := fmt.Sprintf("%s:%s", node.Address, node.P2PPort)
 				nodeRPCAddr := fmt.Sprintf("http://%s:%s", node.Address, node.RPCPort)
 
-				c.logger.Debug().
-					Str("p2p_address", nodeP2PAddr).
-					Str("rpc_address", nodeRPCAddr).
-					Msg("adding node to node pool")
-				c.pool.AddNode(Peer{RPCAddr: nodeRPCAddr, Network: node.Network})
+				p := Peer{RPCAddr: nodeRPCAddr, Network: node.Network}
+				if !c.pool.HasNode(p) {
+					c.logger.Debug().
+						Str("p2p_address", nodeP2PAddr).
+						Str("rpc_address", nodeRPCAddr).
+						Time("last_sync", node.UpdatedAt).
+						Msg("adding stale node to node pool")
+					c.pool.AddNode(p)
+				}
 			}
 
 		case <-c.doneCh:
@@ -161,10 +202,20 @@ func (c *Crawler) CrawlNode(p Peer) {
 		Network: p.Network,
 	}
 
-	c.logger.Debug().
-		Str("p2p_address", nodeP2PAddr).
-		Str("rpc_address", p.RPCAddr).
-		Msg("pinging node...")
+	var deleteNode bool
+	defer func() {
+		if deleteNode {
+			if err := node.Delete(c.db); err != nil {
+				c.logger.Error().
+					Err(err).
+					Str("p2p_address", nodeP2PAddr).
+					Str("rpc_address", p.RPCAddr).
+					Msg("failed to delete node")
+			}
+		}
+	}()
+
+	c.logger.Debug().Str("p2p_address", nodeP2PAddr).Str("rpc_address", p.RPCAddr).Msg("pinging node...")
 
 	// Attempt to ping the node where upon failure, we remove the node from the
 	// database.
@@ -174,14 +225,7 @@ func (c *Crawler) CrawlNode(p Peer) {
 			Str("rpc_address", p.RPCAddr).
 			Msg("failed to ping node; deleting...")
 
-		if err := node.Delete(c.db); err != nil {
-			c.logger.Error().
-				Err(err).
-				Str("p2p_address", nodeP2PAddr).
-				Str("rpc_address", p.RPCAddr).
-				Msg("failed to delete node")
-		}
-
+		deleteNode = true
 		return
 	}
 
@@ -193,17 +237,28 @@ func (c *Crawler) CrawlNode(p Peer) {
 			Err(err).
 			Str("p2p_address", nodeP2PAddr).
 			Str("rpc_address", p.RPCAddr).
-			Msg("failed to get node geolocation")
+			Msg("failed to get node geolocation; deleting...")
+
+		deleteNode = true
 		return
 	}
 
 	node.Location = loc
-	client := newRPCClient(p.RPCAddr, clientTimeout)
+	client, err := newRPCClient(p.RPCAddr, clientTimeout)
+	if err != nil {
+		c.logger.Error().
+			Err(err).
+			Str("p2p_address", nodeP2PAddr).
+			Str("rpc_address", p.RPCAddr).
+			Msg("failed to create RPC client")
+
+		return
+	}
 
 	// Attempt to get the node's status which provides us with rich information
 	// about the node. Upon failure, we return and prevent further crawling if the
 	// network is unknown due to the lack of any useful information about the node.
-	status, err := client.Status()
+	status, err := client.Status(context.Background())
 	if err != nil {
 		c.logger.Error().
 			Err(err).
@@ -212,6 +267,7 @@ func (c *Crawler) CrawlNode(p Peer) {
 			Msg("failed to get node status")
 
 		if node.Network == "" {
+			deleteNode = true
 			return
 		}
 	} else {
@@ -221,13 +277,15 @@ func (c *Crawler) CrawlNode(p Peer) {
 		node.Version = status.NodeInfo.Version
 		node.TxIndex = status.NodeInfo.Other.TxIndex
 
-		netInfo, err := client.NetInfo()
+		netInfo, err := client.NetInfo(context.Background())
 		if err != nil {
 			c.logger.Error().
 				Err(err).
 				Str("p2p_address", nodeP2PAddr).
 				Str("rpc_address", p.RPCAddr).
-				Msg("failed to get node net info")
+				Msg("failed to get node net info; deleting...")
+
+			deleteNode = true
 			return
 		}
 
@@ -242,13 +300,19 @@ func (c *Crawler) CrawlNode(p Peer) {
 				map[string]interface{}{"address": p.RemoteIP, "network": node.Network},
 			)
 			if err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
-				c.logger.Debug().
-					Str("peer_rpc_address", peerRPCAddress).
-					Msg("adding peer to node pool")
-				c.pool.AddNode(Peer{RPCAddr: peerRPCAddress, Network: node.Network})
+				c.mtx.Lock()
+				c.tmpPeers = append(c.tmpPeers, Peer{RPCAddr: peerRPCAddress, Network: node.Network})
+				c.mtx.Unlock()
 			}
 		}
 	}
+
+	// Since we're running each crawl in a separate goroutine, we obtain a write
+	// lock on the crawler whenever we attempt to upsert a node. This is due to
+	// the fact that GORM might panic during transaction building and execution
+	// of the node record and subsequent location record.
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
 
 	if _, err := node.Upsert(c.db); err != nil {
 		c.logger.Error().
@@ -257,8 +321,7 @@ func (c *Crawler) CrawlNode(p Peer) {
 			Str("rpc_address", p.RPCAddr).
 			Msg("failed to save node")
 	} else {
-		c.logger.Info().
-			Str("p2p_address", nodeP2PAddr).
+		c.logger.Info().Str("p2p_address", nodeP2PAddr).
 			Str("rpc_address", p.RPCAddr).
 			Msg("successfully crawled and saved node")
 	}

@@ -7,18 +7,22 @@ import (
 	"time"
 
 	"github.com/harwoeck/ipstack"
-	rpcclient "github.com/tendermint/tendermint/rpc/client"
-	libclient "github.com/tendermint/tendermint/rpc/lib/client"
+	tmrpchttp "github.com/tendermint/tendermint/rpc/client/http"
+	jsonrpcclient "github.com/tendermint/tendermint/rpc/jsonrpc/client"
 
 	"github.com/cosmos/atlas/server/models"
 )
 
-var clientTimeout = 15 * time.Second
+var clientTimeout = 5 * time.Second
 
-func newRPCClient(remote string, timeout time.Duration) *rpcclient.HTTP {
-	httpClient := libclient.DefaultHTTPClient(remote)
+func newRPCClient(remote string, timeout time.Duration) (*tmrpchttp.HTTP, error) {
+	httpClient, err := jsonrpcclient.DefaultHTTPClient(remote)
+	if err != nil {
+		return nil, err
+	}
+
 	httpClient.Timeout = timeout
-	return rpcclient.NewHTTPWithClient(remote, "/websocket", httpClient)
+	return tmrpchttp.NewWithClient(remote, "/websocket", httpClient)
 }
 
 func parsePort(nodeAddr string) string {
