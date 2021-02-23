@@ -101,6 +101,7 @@ func (c *Crawler) Start() {
 
 			var wg sync.WaitGroup
 			nc := 0
+			start := time.Now()
 
 			// Keep picking a pseudo-random node from the pool to crawl until the pool
 			// is exhausted.
@@ -135,7 +136,11 @@ func (c *Crawler) Start() {
 			}
 			c.mtx.Unlock()
 
-			c.logger.Info().Int("num_crawled", nc).Msg("node crawl complete; reseeding node pool")
+			elapsed := time.Since(start).Seconds()
+
+			c.logger.Info().Int("num_crawled", nc).
+				Float64("elapsed", elapsed).
+				Msg("node crawl complete; reseeding node pool")
 			c.pool.Reseed()
 
 		case <-c.doneCh:
