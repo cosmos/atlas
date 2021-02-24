@@ -210,13 +210,7 @@ func (c *Crawler) CrawlNode(p Peer) {
 	var deleteNode bool
 	defer func() {
 		if deleteNode {
-			if err := node.Delete(c.db); err != nil {
-				c.logger.Error().
-					Err(err).
-					Str("p2p_address", nodeP2PAddr).
-					Str("rpc_address", p.RPCAddr).
-					Msg("failed to delete node")
-			}
+			c.deleteNode(node)
 		}
 	}()
 
@@ -312,24 +306,7 @@ func (c *Crawler) CrawlNode(p Peer) {
 		}
 	}
 
-	// Since we're running each crawl in a separate goroutine, we obtain a write
-	// lock on the crawler whenever we attempt to upsert a node. This is due to
-	// the fact that GORM might panic during transaction building and execution
-	// of the node record and subsequent location record.
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
-
-	if _, err := node.Upsert(c.db); err != nil {
-		c.logger.Error().
-			Err(err).
-			Str("p2p_address", nodeP2PAddr).
-			Str("rpc_address", p.RPCAddr).
-			Msg("failed to save node")
-	} else {
-		c.logger.Info().Str("p2p_address", nodeP2PAddr).
-			Str("rpc_address", p.RPCAddr).
-			Msg("successfully crawled and saved node")
-	}
+	c.upsertNode(node)
 }
 
 // GetGeolocation returns a Location record containing geolocation information
@@ -368,4 +345,32 @@ func (c *Crawler) GetGeolocation(addr string) (models.Location, error) {
 	c.locCache.Add(addr, loc)
 
 	return loc, nil
+}
+
+// deleteNode provides a thread-safe way of deleting the given node from the
+// database. Concurrent goroutines are spawned for each node to crawl, so we
+// use the crawler's mutex to prevent any issues with concurrent database
+// operations.
+func (c *Crawler) deleteNode(n models.Node) {
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+
+	if err := n.Delete(c.db); err != nil {
+		c.logger.Error().Err(err).Str("rpc_address", n.Address).Msg("failed to delete node")
+	}
+}
+
+// upsertNode provides a thread-safe way of updating the given node from the
+// database. Concurrent goroutines are spawned for each node to crawl, so we
+// use the crawler's mutex to prevent any issues with concurrent database
+// operations.
+func (c *Crawler) upsertNode(n models.Node) {
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+
+	if _, err := n.Upsert(c.db); err != nil {
+		c.logger.Error().Err(err).Str("rpc_address", n.Address).Msg("failed to save node")
+	} else {
+		c.logger.Info().Str("rpc_address", n.Address).Msg("successfully crawled and saved node")
+	}
 }
