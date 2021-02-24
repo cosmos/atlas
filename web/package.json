@@ -9,6 +9,8 @@
     "build-watch": "vue-cli-service build-watch"
   },
   "dependencies": {
+    "@amcharts/amcharts4": "^4.10.15",
+    "@amcharts/amcharts4-geodata": "^4.1.19",
     "axios": "^0.20.0",
     "bootstrap-vue": "^2.16.0",
     "choices.js": "^9.0.1",
