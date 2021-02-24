@@ -228,8 +228,8 @@ func (c *Crawler) CrawlNode(p Peer) {
 		return
 	}
 
-	// Grab the node's geolocation information. Failure indicates we
-	// continue to crawl the node.
+	// Grab the node's geolocation information where upon failure, we remove the
+	// node from the database.
 	loc, err := c.GetGeolocation(node.Address)
 	if err != nil {
 		c.logger.Error().
@@ -243,6 +243,7 @@ func (c *Crawler) CrawlNode(p Peer) {
 	}
 
 	node.Location = loc
+
 	client, err := newRPCClient(p.RPCAddr, clientTimeout)
 	if err != nil {
 		c.logger.Error().
@@ -254,9 +255,9 @@ func (c *Crawler) CrawlNode(p Peer) {
 		return
 	}
 
-	// Attempt to get the node's status which provides us with rich information
-	// about the node. Upon failure, we return and prevent further crawling if the
-	// network is unknown due to the lack of any useful information about the node.
+	// Attempt to get the node's status which provides us with node metadata.
+	// Upon failure, we return and prevent further crawling if the network is
+	// unknown due to the lack of any useful information about the node.
 	status, err := client.Status(context.Background())
 	if err != nil {
 		c.logger.Error().
@@ -272,9 +273,12 @@ func (c *Crawler) CrawlNode(p Peer) {
 	} else {
 		node.Moniker = status.NodeInfo.Moniker
 		node.NodeID = string(status.NodeInfo.ID())
-		node.Network = status.NodeInfo.Network
 		node.Version = status.NodeInfo.Version
 		node.TxIndex = status.NodeInfo.Other.TxIndex
+
+		if node.Network == "" {
+			node.Network = status.NodeInfo.Network
+		}
 
 		netInfo, err := client.NetInfo(context.Background())
 		if err != nil {
@@ -282,13 +286,13 @@ func (c *Crawler) CrawlNode(p Peer) {
 				Err(err).
 				Str("p2p_address", nodeP2PAddr).
 				Str("rpc_address", p.RPCAddr).
-				Msg("failed to get node net info; deleting...")
+				Msg("failed to get node net info")
 
-			deleteNode = true
 			return
 		}
 
-		// add the relevant peers to pool
+		// Add the relevant peers to the temp buffer which will later be added to
+		// the node pool.
 		for _, p := range netInfo.Peers {
 			peerRPCPort := parsePort(p.NodeInfo.Other.RPCAddress)
 			peerRPCAddress := fmt.Sprintf("http://%s:%s", p.RemoteIP, peerRPCPort)
