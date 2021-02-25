@@ -1,0 +1,19 @@
+name: Atlas Test
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Dry-run Module
+        uses: ./
+        with:
+          token: "testKey"
+          path: ./docs/example/bank/atlas.toml
+          dry-run: true
