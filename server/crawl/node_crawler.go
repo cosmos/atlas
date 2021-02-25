@@ -287,25 +287,23 @@ func (c *Crawler) CrawlNode(p Peer) {
 				Str("p2p_address", nodeP2PAddr).
 				Str("rpc_address", p.RPCAddr).
 				Msg("failed to get node net info")
+		} else {
+			// Add the relevant peers to the temp buffer which will later be added to
+			// the node pool.
+			for _, p := range netInfo.Peers {
+				peerRPCPort := parsePort(p.NodeInfo.Other.RPCAddress)
+				peerRPCAddress := fmt.Sprintf("http://%s:%s", p.RemoteIP, peerRPCPort)
 
-			return
-		}
-
-		// Add the relevant peers to the temp buffer which will later be added to
-		// the node pool.
-		for _, p := range netInfo.Peers {
-			peerRPCPort := parsePort(p.NodeInfo.Other.RPCAddress)
-			peerRPCAddress := fmt.Sprintf("http://%s:%s", p.RemoteIP, peerRPCPort)
-
-			// only add the peer to the pool if we haven't (re)discovered it
-			_, err := models.QueryNode(
-				c.db,
-				map[string]interface{}{"address": p.RemoteIP, "network": node.Network},
-			)
-			if err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
-				c.mtx.Lock()
-				c.tmpPeers = append(c.tmpPeers, Peer{RPCAddr: peerRPCAddress, Network: node.Network})
-				c.mtx.Unlock()
+				// only add the peer to the pool if we haven't (re)discovered it
+				_, err := models.QueryNode(
+					c.db,
+					map[string]interface{}{"address": p.RemoteIP, "network": node.Network},
+				)
+				if err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
+					c.mtx.Lock()
+					c.tmpPeers = append(c.tmpPeers, Peer{RPCAddr: peerRPCAddress, Network: node.Network})
+					c.mtx.Unlock()
+				}
 			}
 		}
 	}
