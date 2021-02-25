@@ -1,4 +1,4 @@
-name: "Atlas"
+name: "Cosmos Atlas"
 description: "Publish a module to atlas.cosmos.network"
 inputs:
   token:

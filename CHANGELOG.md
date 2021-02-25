@@ -29,6 +29,8 @@ Types of changes (Stanzas):
 
 ## [Unreleased]
 
+## [0.0.3] - 2021-02-25
+
 ### Features
 
 - [server] [#54](https://github.com/cosmos/atlas/pull/54) Introduce Tendermint node crawling functionality.
@@ -66,6 +68,7 @@ Types of changes (Stanzas):
 
 - Initial release!
 
-[Unreleased]: https://github.com/cosmos/atlas/compare/v0.0.2...HEAD
+[Unreleased]: https://github.com/cosmos/atlas/compare/v0.0.3...HEAD
+[0.0.3]: https://github.com/cosmos/atlas/releases/tag/v0.0.3
 [0.0.2]: https://github.com/cosmos/atlas/releases/tag/v0.0.2
 [0.0.1]: https://github.com/cosmos/atlas/releases/tag/v0.0.1
