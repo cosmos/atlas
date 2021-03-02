@@ -11,15 +11,18 @@
       class="section bg-secondary"
       style="position: relative; padding-top: 40vh; min-height: 100vh;"
     >
-      <!--  -->
       <div class="row">
         <div class="container">
+          <modal :show.sync="copyTextModal">
+            <h4 style="text-align: center;">
+              Copied!
+            </h4>
+          </modal>
           <div class="mt--300">
             <div class="px-4">
               <div class="mt-3 py-3 text-center">
                 <div class="row justify-content-center">
                   <div class="col-lg-12">
-                    <!--  -->
                     <div class="row">
                       <div class="text-lg-left align-self-lg-left">
                         <base-button
@@ -40,7 +43,6 @@
                         >
                       </div>
                     </div>
-                    <!--  -->
                   </div>
                 </div>
               </div>
@@ -48,7 +50,6 @@
           </div>
         </div>
       </div>
-      <!--  -->
       <div class="row">
         <div class="container" style="padding-top: 100px;">
           <div
@@ -59,14 +60,11 @@
               <div class="mt-3 py-3 text-center">
                 <div class="row justify-content-center">
                   <div class="col-lg-12">
-                    <!-- map -->
                     <div
                       class="chart"
                       ref="chartdiv"
                       v-show="displayMode === 'map'"
                     ></div>
-                    <!--  -->
-
                     <el-table
                       class="table table-striped table-flush"
                       header-row-class-name="thead-light"
@@ -104,7 +102,9 @@
                         scope="row"
                       >
                         <template v-slot="{ row }">
-                          <div>{{ nodeIDLimited(row.node_id) }}</div>
+                          <div v-on:dblclick="copyToClipboard(row.node_id)">
+                            {{ nodeIDLimited(row.node_id) }}
+                          </div>
                         </template>
                       </el-table-column>
                       <el-table-column
@@ -197,12 +197,14 @@ import * as am4maps from "@amcharts/amcharts4/maps";
 import am4geodata_worldLow from "@amcharts/amcharts4-geodata/worldLow";
 import am4themes_dark from "@amcharts/amcharts4/themes/dark";
 import am4themes_animated from "@amcharts/amcharts4/themes/animated";
+import Modal from "@/components/Modal.vue";
 
 export default {
   bodyClass: "profile-page",
   components: {
     [Table.name]: Table,
-    [TableColumn.name]: TableColumn
+    [TableColumn.name]: TableColumn,
+    Modal
   },
   beforeDestroy() {
     if (this.chart) {
@@ -225,7 +227,8 @@ export default {
       responseData: {},
       firstPageURI: "?page=1&limit=25&order=moniker,id&reverse=true",
       pageURI: "?page=1&limit=25&order=moniker,id&reverse=true",
-      pageSize: 25
+      pageSize: 25,
+      copyTextModal: false
     };
   },
   beforeRouteUpdate(to, from, next) {
@@ -242,6 +245,15 @@ export default {
   },
   computed: {},
   methods: {
+    copyToClipboard(value) {
+      this.$copyText(value).then(() => {
+        this.copyTextModal = true;
+        setTimeout(() => {
+          this.copyTextModal = false;
+        }, 1000);
+      });
+    },
+
     prevNodes() {
       this.pageURI = this.responseData.prev_uri;
     },

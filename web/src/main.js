@@ -2,6 +2,7 @@ import Vue from "vue";
 import VueProgressBar from "vue-progressbar";
 import Notifications from "vue-notification";
 import VueConfetti from "vue-confetti";
+import VueClipboard from "vue-clipboard2";
 
 import App from "./App.vue";
 import Argon from "./plugins/argon-kit";
@@ -18,6 +19,9 @@ Vue.use(VueProgressBar, {
   position: "fixed",
   transition: { speed: "0.2s", opacity: "0.6s", termination: 300 }
 });
+
+VueClipboard.config.autoSetContainer = true;
+Vue.use(VueClipboard);
 
 Vue.use(Notifications);
 Vue.use(VueConfetti);
