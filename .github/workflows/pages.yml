@@ -1,0 +1,31 @@
+name: Documentation
+# This job builds and deploys atlas to github pages.
+# It runs on every push to master.
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v2.3.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Install dependencies 👨🏻‍💻
+        run: cd web & yarn
+
+      - name: Build 🔧
+        run: cd web & yarn build
+
+      - name: Deploy 🚀
+        uses: JamesIves/github-pages-deploy-action@4.1.0
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: gh-pages
+          FOLDER: web/dist
