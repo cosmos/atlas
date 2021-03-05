@@ -29,6 +29,7 @@ jobs:
         run: cd web && yarn build
         env:
           VUE_APP_ATLAS_API_ADDR: "https://api.atlas.cosmos.network/api/v1"
+          NODE_ENV: "production"
 
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@4.1.0
