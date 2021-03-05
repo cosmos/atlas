@@ -1,4 +1,4 @@
-name: Documentation
+name: Deployment
 # This job builds and deploys atlas to github pages.
 # It runs on every push to master.
 on:
@@ -17,11 +17,16 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
 
+      - name: Setup node env 🏗
+        uses: actions/setup-node@v2.1.2
+        with:
+          node-version: 14
+
       - name: Install dependencies 👨🏻‍💻
-        run: cd web & yarn
+        run: cd web && yarn
 
       - name: Build 🔧
-        run: cd web & yarn build
+        run: cd web && yarn build
 
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@4.1.0
