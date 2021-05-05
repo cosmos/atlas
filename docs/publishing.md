@@ -15,3 +15,5 @@ There are two ways you can publish a module to atlas.
 2. By using docker:
 
    1. Run: `docker run -v $(shell pwd):/workspace --workdir /workspace interchainio/atlas:latest [APIkey] [path/to/manifest]] [dry-run, default false]`
+
+*When making changes to the manifest, make sure to bump the `version` field before publishing, otherwise updates will not be reflected in the UI. 
