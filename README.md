@@ -35,8 +35,9 @@ where developers are able to publish and update modules. The registry provides a
 holistic interface for application developers to discover [Cosmos SDK](https://github.com/cosmos/cosmos-sdk)
 modules when building their blockchain applications.
 
-More information about the architecture, publishing and module configuration can
-be found under [docs](./docs/README.md).
+## Documentation
+
+To learn how to use Atlas to publish or update modules please visit the **[documentation](./docs/README.md)**.
 
 ## Dependencies
 
