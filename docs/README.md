@@ -1,6 +1,6 @@
 # Atlas
 
-![GitHub Logo](./images/atlas_logo.png)
+![GitHub Logo](../images/atlas_logo.png)
 
 ![Build, Test and Cover](https://github.com/cosmos/atlas/workflows/Build,%20Test%20and%20Cover/badge.svg?branch=bez%2F13-client-cli-commands)
 [![Go Report Card](https://goreportcard.com/badge/github.com/cosmos/atlas)](https://goreportcard.com/report/github.com/cosmos/atlas)
