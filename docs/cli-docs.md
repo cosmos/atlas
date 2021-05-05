@@ -1,6 +1,6 @@
 # CLI Binary
 
-The atlas CLI binary is used to publish [manifest](./manifest.md) files that describe [Cosmos SDK Modules](https://docs.cosmos.network/v0.42/building-modules/intro.html) in order to make them discoverable at https://atlas.cosmos.network.
+The atlas CLI binary is used to publish [manifest](./manifest.md) files that describe [Cosmos SDK Modules](https://docs.cosmos.network/v0.42/building-modules/intro.html) in order to make them discoverable at [atlas.cosmos.network](https://atlas.cosmos.network).
 
 ## Installation
 
@@ -88,9 +88,9 @@ version = "v0.39.2"
 
 ## Publication
 
-Once you've created a Manifest that describes your module you can use the atlas CLI to publish it to the atlas server at https://atlas.cosmos.network.
+Once you've created a Manifest that describes your module you can use the atlas CLI to publish it to the atlas server at [atlas.cosmos.network](https://atlas.cosmos.network).
 
-If it's the first time you've used atlas you'll need to login first. To do this you need to first obtain an API token by logging into https://atlas.cosmos.network using your github account. 
+If it's the first time you've used atlas you'll need to login first. To do this you need to first obtain an API token by logging into [atlas.cosmos.network](https://atlas.cosmos.network) using your github account. 
 
 <img width="454" alt="Screen Shot 2021-05-05 at 11 29 36" src="https://user-images.githubusercontent.com/964052/117123113-e8f4f780-ad96-11eb-9926-48e2e42ae62a.png">
 
