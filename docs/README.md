@@ -1,6 +1,5 @@
 # Atlas Documentation
 
-- [Manifest](./manifest.md)
-- [Architecture](./architecture.md)
-- [Publishing](./publishing.md)
-- [Node Explorer](./node-explorer.md)
+The following provides instruction on usage of the **CLI Binary** in order to **Publish & Update Modules**. If you're interested in learning more about the **Atlas Server** or the **Node Explorer**, please visit the [Atlas Github Repo](https://github.com/cosmos/atlas#readme).
+
+{% include_relative cli-docs.md %}

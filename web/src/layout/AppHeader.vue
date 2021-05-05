@@ -41,6 +41,14 @@
       </div>
 
       <ul class="navbar-nav navbar-nav-hover align-items-lg-center ml-lg-auto">
+         <a
+          class="nav-link"
+          href="https://docs.atlas.cosmos.network"
+          style="color: rgba(255, 255, 255, 0.95);"
+          target="_blank"
+        >
+          Docs
+        </a>
         <base-dropdown class="nav-item">
           <a
             role="button"
