@@ -103,7 +103,7 @@
                       >
                         <template v-slot="{ row }">
                           <div v-on:dblclick="copyToClipboard(row.node_id)">
-                            {{ nodeIDLimited(row.node_id) }}
+                            {{ row.node_id }}
                           </div>
                         </template>
                       </el-table-column>
